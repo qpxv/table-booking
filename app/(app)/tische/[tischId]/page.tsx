@@ -1,0 +1,52 @@
+import { notFound, redirect } from "next/navigation";
+import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
+import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/session";
+import { listBookingsForTable } from "@/actions/bookings";
+import { listGuestsForUser } from "@/actions/guests";
+import BookingCalendar from "@/components/bookings/BookingCalendar";
+
+export default async function TableCalendarPage({
+  params,
+}: {
+  params: Promise<{ tischId: string }>;
+}) {
+  const { tischId } = await params;
+
+  const session = await getSession();
+  if (!session) {
+    redirect("/login");
+  }
+
+  const table = await prisma.table.findUnique({ where: { id: tischId } });
+  if (!table) {
+    notFound();
+  }
+
+  const [bookings, knownGuests] = await Promise.all([
+    listBookingsForTable(tischId),
+    listGuestsForUser(),
+  ]);
+
+  return (
+    <Box className="flex flex-col gap-4">
+      <Typography variant="h5" component="h1">
+        {table.name}
+      </Typography>
+      <BookingCalendar
+        tableId={table.id}
+        tableName={table.name}
+        currentUserId={session.user.id}
+        bookings={bookings.map((b) => ({
+          id: b.id,
+          start: b.start,
+          end: b.end,
+          game: b.game,
+          userId: b.userId,
+        }))}
+        knownGuests={knownGuests}
+      />
+    </Box>
+  );
+}
