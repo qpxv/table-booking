@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import type { Table } from "@/generated/prisma/client";
 import { createTable, updateTable } from "@/actions/tables";
@@ -25,7 +24,7 @@ export default function TableFormDialog({
   const [pending, startTransition] = useTransition();
   const form = useForm<TableInput>({
     resolver: zodResolver(tableSchema),
-    defaultValues: { name: table?.name ?? "", active: table?.active ?? true },
+    defaultValues: { name: table?.name ?? "" },
   });
 
   function onSubmit(values: TableInput) {
@@ -52,16 +51,6 @@ export default function TableFormDialog({
                   <FieldLabel htmlFor={field.name}>Name</FieldLabel>
                   <Input {...field} id={field.name} autoFocus aria-invalid={fieldState.invalid} />
                   {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                </Field>
-              )}
-            />
-            <Controller
-              name="active"
-              control={form.control}
-              render={({ field }) => (
-                <Field orientation="horizontal">
-                  <FieldLabel htmlFor={field.name}>Aktiv</FieldLabel>
-                  <Switch id={field.name} checked={field.value} onCheckedChange={field.onChange} />
                 </Field>
               )}
             />

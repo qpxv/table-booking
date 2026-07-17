@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { isAdmin } from "@/lib/permissions";
+import { endOfWeekBerlin } from "@/lib/datetime";
+import { BookingStatus } from "@/generated/prisma/enums";
 import { tableSchema, type TableInput } from "@/lib/schemas/table";
 
 async function requireAdmin() {
@@ -76,4 +78,32 @@ export async function deleteTable(id: string): Promise<TableFormState> {
 
 export async function listTables() {
   return prisma.table.findMany({ orderBy: { name: "asc" } });
+}
+
+/** Active tables with a count of their still-upcoming bookings through the end of this week. */
+export async function listTablesWithUpcomingWeekCounts() {
+  const now = new Date();
+  const weekEnd = endOfWeekBerlin(now);
+
+  const tables = await prisma.table.findMany({
+    where: { active: true },
+    orderBy: { name: "asc" },
+    include: {
+      _count: {
+        select: {
+          bookings: {
+            where: {
+              status: BookingStatus.ACTIVE,
+              start: { gte: now, lte: weekEnd },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return tables.map((table) => ({
+    ...table,
+    upcomingWeekBookingCount: table._count.bookings,
+  }));
 }

@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
-import { listTables } from "@/actions/tables";
+import { listTablesWithUpcomingWeekCounts } from "@/actions/tables";
 
 export default async function TablesListPage() {
-  const allTables = await listTables();
-  const activeTables = allTables.filter((table) => table.active);
+  const activeTables = await listTablesWithUpcomingWeekCounts();
 
   return (
     <div className="flex flex-col gap-4">
@@ -18,8 +17,12 @@ export default async function TablesListPage() {
         {activeTables.map((table) => (
           <Link key={table.id} href={`/tische/${table.id}`} className="block">
             <Card className="transition-shadow hover:shadow-md">
-              <CardContent>
+              <CardContent className="flex items-center justify-between gap-2">
                 <CardTitle>{table.name}</CardTitle>
+                <span className="text-sm text-muted-foreground">
+                  {table.upcomingWeekBookingCount}{" "}
+                  {table.upcomingWeekBookingCount === 1 ? "Buchung" : "Buchungen"} diese Woche
+                </span>
               </CardContent>
             </Card>
           </Link>

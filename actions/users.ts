@@ -8,6 +8,7 @@ import { isAdmin } from "@/lib/permissions";
 import {
   createUserSchema,
   updateUserSchema,
+  roleSchema,
   type CreateUserInput,
   type UpdateUserInput,
 } from "@/lib/schemas/user";
@@ -52,8 +53,22 @@ export async function updateUser(
       body: { userId, data: { name: data.name } },
       headers: requestHeaders,
     });
+
+    revalidatePath("/admin/users");
+    return { ok: true };
+  } catch (err) {
+    console.error(err);
+    return { error: err instanceof Error ? err.message : "Ein Fehler ist aufgetreten." };
+  }
+}
+
+export async function updateUserRole(userId: string, role: string): Promise<UserFormState> {
+  try {
+    const requestHeaders = await requireAdminHeaders();
+    const parsedRole = roleSchema.parse(role);
+
     await auth.api.setRole({
-      body: { userId, role: data.role },
+      body: { userId, role: parsedRole },
       headers: requestHeaders,
     });
 

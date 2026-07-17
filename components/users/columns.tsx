@@ -1,16 +1,52 @@
 "use client";
 
+import { useTransition } from "react";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { updateUserRole } from "@/actions/users";
 import type { AppUser } from "./UserFormDialog";
+
+function RoleCell({ user }: { user: AppUser }) {
+  const [pending, startTransition] = useTransition();
+  const role = user.role === "admin" ? "admin" : "user";
+
+  function handleChange(nextRole: string | null) {
+    if (!nextRole || nextRole === role) return;
+    startTransition(async () => {
+      const result = await updateUserRole(user.id, nextRole);
+      if (result.error) toast.error(result.error);
+    });
+  }
+
+  return (
+    <Select value={role} onValueChange={handleChange} disabled={pending}>
+      <SelectTrigger size="sm" className="w-32">
+        <SelectValue>
+          {(value: "admin" | "user") => (value === "admin" ? "Admin" : "Mitglied")}
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="user">Mitglied</SelectItem>
+        <SelectItem value="admin">Admin</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+}
 
 export function createUserColumns({
   onEdit,
@@ -40,14 +76,7 @@ export function createUserColumns({
     {
       accessorKey: "role",
       header: "Rolle",
-      cell: ({ row }) => {
-        const isAdmin = row.original.role === "admin";
-        return (
-          <Badge variant={isAdmin ? "secondary" : "outline"}>
-            {isAdmin ? "Admin" : "Mitglied"}
-          </Badge>
-        );
-      },
+      cell: ({ row }) => <RoleCell user={row.original} />,
     },
     {
       id: "actions",

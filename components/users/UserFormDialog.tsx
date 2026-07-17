@@ -8,13 +8,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { createUser, updateUser } from "@/actions/users";
 import {
   createUserSchema,
@@ -49,7 +42,6 @@ export default function UserFormDialog({
       name: user?.name ?? "",
       email: user?.email ?? "",
       password: "",
-      role: user?.role === "admin" ? "admin" : "user",
     },
   });
 
@@ -121,26 +113,6 @@ export default function UserFormDialog({
                 )}
               />
             )}
-            <Controller
-              name="role"
-              control={form.control}
-              render={({ field }) => (
-                <Field>
-                  <FieldLabel htmlFor={field.name}>Rolle</FieldLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger id={field.name} className="w-full">
-                      <SelectValue>
-                        {(value: "admin" | "user") => (value === "admin" ? "Admin" : "Mitglied")}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="user">Mitglied</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </Field>
-              )}
-            />
           </FieldGroup>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
