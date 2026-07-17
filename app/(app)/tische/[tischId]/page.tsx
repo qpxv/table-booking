@@ -42,6 +42,8 @@ export default async function TableCalendarPage({
             end: b.end,
             game: b.game,
             userId: b.userId,
+            userName: b.user.name,
+            guestNames: b.guests.map((g) => g.guest.name),
           }))}
           knownGuests={knownGuests}
         />

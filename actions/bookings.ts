@@ -150,7 +150,10 @@ export async function cancelBooking(id: string) {
 export async function listBookingsForTable(tableId: string) {
   return prisma.booking.findMany({
     where: { tableId, status: BookingStatus.ACTIVE },
-    include: { guests: true },
+    include: {
+      user: { select: { name: true } },
+      guests: { include: { guest: { select: { name: true } } } },
+    },
     orderBy: { start: "asc" },
   });
 }

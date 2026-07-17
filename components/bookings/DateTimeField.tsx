@@ -52,7 +52,6 @@ export default function DateTimeField({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        nativeButton={false}
         render={<Button id={id} type="button" variant="outline" className="w-full justify-start font-normal" />}
       >
         <CalendarIcon className="opacity-60" />

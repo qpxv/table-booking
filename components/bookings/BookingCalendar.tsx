@@ -27,16 +27,20 @@ export type CalendarBooking = {
   end: Date;
   game: string | null;
   userId: string;
+  userName: string;
+  guestNames: string[];
 };
 
 type DialogState =
   | { mode: "create"; start: string; end: string }
   | { mode: "edit"; booking: CalendarBooking };
 
-const VIEWS = [
-  { value: "timeGridWeek", label: "Woche" },
-  { value: "timeGridDay", label: "Tag" },
-] as const;
+function describeOtherBooking(booking: CalendarBooking): string {
+  const parts = [booking.userName];
+  if (booking.guestNames.length > 0) parts.push(`+ ${booking.guestNames.join(", ")}`);
+  const withGame = booking.game ? `${parts.join(" ")} – ${booking.game}` : parts.join(" ");
+  return withGame;
+}
 
 export default function BookingCalendar({
   tableId,
@@ -57,10 +61,8 @@ export default function BookingCalendar({
   const calendarRef = useRef<FullCalendar>(null);
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [title, setTitle] = useState("");
-  const [view, setView] = useState(searchParams.get("view") ?? "timeGridWeek");
 
   const initialDate = searchParams.get("date") ?? undefined;
-  const initialView = searchParams.get("view") ?? "timeGridWeek";
 
   const events: EventInput[] = useMemo(
     () =>
@@ -70,7 +72,7 @@ export default function BookingCalendar({
           id: booking.id,
           start: booking.start,
           end: booking.end,
-          title: isOwn ? booking.game || "Deine Buchung" : "Belegt",
+          title: isOwn ? booking.game || "Deine Buchung" : describeOtherBooking(booking),
           backgroundColor: isOwn ? "var(--header)" : "#475569",
           borderColor: isOwn ? "var(--header)" : "#475569",
           textColor: isOwn ? "var(--header-foreground)" : "#ffffff",
@@ -83,11 +85,9 @@ export default function BookingCalendar({
 
   function handleDatesSet(arg: DatesSetArg) {
     setTitle(arg.view.title);
-    setView(arg.view.type);
 
     const params = new URLSearchParams(searchParams.toString());
     params.set("date", arg.startStr.slice(0, 10));
-    params.set("view", arg.view.type);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }
 
@@ -153,48 +153,34 @@ export default function BookingCalendar({
 
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-1">
-          <Button
-            variant="outline"
-            size="icon-sm"
-            aria-label="Zurück"
-            onClick={() => calendarRef.current?.getApi().prev()}
-          >
-            <ChevronLeft />
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => calendarRef.current?.getApi().today()}>
-            Heute
-          </Button>
-          <Button
-            variant="outline"
-            size="icon-sm"
-            aria-label="Weiter"
-            onClick={() => calendarRef.current?.getApi().next()}
-          >
-            <ChevronRight />
-          </Button>
-          <span className="ml-2 text-sm font-medium capitalize">{title}</span>
-        </div>
-        <div className="flex items-center gap-1 rounded-lg border p-0.5">
-          {VIEWS.map((v) => (
-            <Button
-              key={v.value}
-              variant={view === v.value ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => calendarRef.current?.getApi().changeView(v.value)}
-            >
-              {v.label}
-            </Button>
-          ))}
-        </div>
+      <div className="mb-3 flex flex-wrap items-center gap-1">
+        <Button
+          variant="outline"
+          size="icon-sm"
+          aria-label="Zurück"
+          onClick={() => calendarRef.current?.getApi().prev()}
+        >
+          <ChevronLeft />
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => calendarRef.current?.getApi().today()}>
+          Heute
+        </Button>
+        <Button
+          variant="outline"
+          size="icon-sm"
+          aria-label="Weiter"
+          onClick={() => calendarRef.current?.getApi().next()}
+        >
+          <ChevronRight />
+        </Button>
+        <span className="ml-2 text-sm font-medium capitalize">{title}</span>
       </div>
 
       <FullCalendar
         ref={calendarRef}
         plugins={[timeGridPlugin, interactionPlugin, momentTimezonePlugin]}
         initialDate={initialDate}
-        initialView={initialView}
+        initialView="timeGridWeek"
         timeZone="Europe/Berlin"
         locale={deLocale}
         headerToolbar={false}
