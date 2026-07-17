@@ -5,6 +5,7 @@ import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import momentTimezonePlugin from "@fullcalendar/moment-timezone";
+import deLocale from "@fullcalendar/core/locales/de";
 import type { DateSelectArg, EventClickArg, EventInput } from "@fullcalendar/core";
 import Box from "@mui/material/Box";
 import { COLORS } from "@/lib/theme";
@@ -80,6 +81,7 @@ export default function BookingCalendar({
         plugins={[timeGridPlugin, interactionPlugin, momentTimezonePlugin]}
         initialView="timeGridWeek"
         timeZone="Europe/Berlin"
+        locale={deLocale}
         headerToolbar={{
           left: "prev,next today",
           center: "title",
@@ -87,6 +89,8 @@ export default function BookingCalendar({
         }}
         slotMinTime="08:00:00"
         slotMaxTime="24:00:00"
+        slotLabelFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
+        eventTimeFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
         allDaySlot={false}
         selectable
         selectOverlap={false}
