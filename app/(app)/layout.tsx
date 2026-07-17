@@ -13,7 +13,13 @@ export default async function AppLayout({
     redirect("/login");
   }
   return (
-    <AppShell user={{ name: session.user.name, role: session.user.role ?? "user" }}>
+    <AppShell
+      user={{
+        name: session.user.name,
+        email: session.user.email,
+        role: session.user.role ?? "user",
+      }}
+    >
       {children}
     </AppShell>
   );

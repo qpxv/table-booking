@@ -1,73 +1,36 @@
 "use server";
 
-import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canEditBooking } from "@/lib/permissions";
 import { calculateGuestPrice } from "@/lib/pricing";
 import { BookingStatus } from "@/generated/prisma/enums";
-
-const guestInputSchema = z.union([
-  z.object({ guestId: z.string().min(1) }),
-  z.object({ newName: z.string().trim().min(1) }),
-]);
-
-const createBookingSchema = z
-  .object({
-    tableId: z.string().min(1),
-    start: z.coerce.date(),
-    end: z.coerce.date(),
-    game: z.string().trim().optional(),
-    guests: z.array(guestInputSchema).default([]),
-  })
-  .refine((data) => data.start < data.end, {
-    message: "Start muss vor dem Ende liegen.",
-    path: ["end"],
-  });
-
-const updateBookingSchema = z
-  .object({
-    start: z.coerce.date(),
-    end: z.coerce.date(),
-    game: z.string().trim().optional(),
-  })
-  .refine((data) => data.start < data.end, {
-    message: "Start muss vor dem Ende liegen.",
-    path: ["end"],
-  });
+import {
+  createBookingSchema,
+  updateBookingSchema,
+  type CreateBookingInput,
+  type UpdateBookingInput,
+} from "@/lib/schemas/booking";
 
 export type BookingFormState = { error?: string; ok?: boolean };
 
-function readGuestsField(formData: FormData) {
-  const raw = formData.get("guestsJson"); // review: also we dont need thtis here anymore i think when we switch to RHF
-  if (!raw) return [];
-  return JSON.parse(String(raw));
-}
-
 export async function createBooking(
   tableId: string,
-  _prevState: BookingFormState,
-  formData: FormData,
+  values: CreateBookingInput,
 ): Promise<BookingFormState> {
   try {
     const session = await getSession();
     if (!session) throw new Error("Nicht angemeldet.");
 
-    const data = createBookingSchema.parse({
-      tableId,
-      start: formData.get("start"), // review: same here we construct the formdata objects here for no reason since we can use react hook form
-      end: formData.get("end"),
-      game: formData.get("game") ?? undefined,
-      guests: readGuestsField(formData),
-    });
+    const data = createBookingSchema.parse(values);
 
     await prisma.$transaction(async (tx) => {
       // Server-side overlap validation: a table must not be double-booked
       // for the same time range.
       const overlap = await tx.booking.findFirst({
         where: {
-          tableId: data.tableId,
+          tableId,
           status: BookingStatus.ACTIVE,
           start: { lt: data.end },
           end: { gt: data.start },
@@ -79,7 +42,7 @@ export async function createBooking(
 
       const newBooking = await tx.booking.create({
         data: {
-          tableId: data.tableId,
+          tableId,
           userId: session.user.id,
           start: data.start,
           end: data.end,
@@ -113,7 +76,7 @@ export async function createBooking(
       }
     });
 
-    revalidatePath(`/tische/${data.tableId}`);
+    revalidatePath(`/tische/${tableId}`);
     revalidatePath("/dashboard");
 
     return { ok: true };
@@ -124,8 +87,7 @@ export async function createBooking(
 
 export async function updateBooking(
   id: string,
-  _prevState: BookingFormState,
-  formData: FormData,
+  values: UpdateBookingInput,
 ): Promise<BookingFormState> {
   try {
     const session = await getSession();
@@ -133,11 +95,7 @@ export async function updateBooking(
     if (!booking) throw new Error("Buchung nicht gefunden.");
     if (!canEditBooking(session, booking)) throw new Error("Nicht berechtigt.");
 
-    const data = updateBookingSchema.parse({
-      start: formData.get("start"),
-      end: formData.get("end"),
-      game: formData.get("game") ?? undefined,
-    });
+    const data = updateBookingSchema.parse(values);
 
     const overlap = await prisma.booking.findFirst({
       where: {

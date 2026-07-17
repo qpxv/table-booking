@@ -7,7 +7,6 @@ import interactionPlugin from "@fullcalendar/interaction";
 import momentTimezonePlugin from "@fullcalendar/moment-timezone";
 import deLocale from "@fullcalendar/core/locales/de";
 import type { DateSelectArg, EventClickArg, EventInput } from "@fullcalendar/core";
-import Box from "@mui/material/Box";
 import { COLORS } from "@/lib/theme";
 import type { GuestWithVisits } from "@/actions/guests";
 import BookingDialog from "./BookingDialog";
@@ -76,7 +75,7 @@ export default function BookingCalendar({
   }
 
   return (
-    <Box>
+    <div>
       <FullCalendar
         plugins={[timeGridPlugin, interactionPlugin, momentTimezonePlugin]}
         initialView="timeGridWeek"
@@ -113,6 +112,6 @@ export default function BookingCalendar({
           onClose={() => setDialog(null)}
         />
       )}
-    </Box>
+    </div>
   );
 }

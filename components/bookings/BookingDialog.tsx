@@ -1,41 +1,30 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
-import DialogContent from "@mui/material/DialogContent";
-import DialogActions from "@mui/material/DialogActions";
-import TextField from "@mui/material/TextField";
-import Button from "@mui/material/Button";
-import Autocomplete from "@mui/material/Autocomplete";
-import Alert from "@mui/material/Alert";
-import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
-import Divider from "@mui/material/Divider";
+import { useMemo, useState, useTransition } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import GameCombobox from "./GameCombobox";
+import GuestMultiCombobox, { type GuestSelection } from "./GuestMultiCombobox";
 import type { GuestWithVisits } from "@/actions/guests";
 import { calculateGuestPrice } from "@/lib/pricing";
 import {
-  createBooking,
-  updateBooking,
-  cancelBooking,
-  type BookingFormState,
-} from "@/actions/bookings";
-
-const COMMON_GAMES = [
-  "Skat",
-  "Doppelkopf",
-  "Schafkopf",
-  "Poker",
-  "Billard",
-  "Darts",
-  "Sonstiges",
-];
-
-type GuestSelection =
-  | { type: "existing"; guest: GuestWithVisits }
-  | { type: "new"; name: string };
-
-const initialState: BookingFormState = {};
+  bookingFieldsSchema,
+  type BookingFieldsInput,
+  type GuestInput,
+} from "@/lib/schemas/booking";
+import { createBooking, updateBooking, cancelBooking } from "@/actions/bookings";
 
 function toDatetimeLocal(iso: string): string {
   // Truncates an ISO date to the format <input type="datetime-local"> expects.
@@ -63,18 +52,19 @@ export default function BookingDialog({
   knownGuests: GuestWithVisits[];
   onClose: () => void;
 }) {
-  const [game, setGame] = useState<string | null>(null);
   const [selectedGuests, setSelectedGuests] = useState<GuestSelection[]>([]);
-  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
   const [cancelPending, startCancelTransition] = useTransition();
 
-  const action =
-    mode === "create" ? createBooking.bind(null, tableId) : updateBooking.bind(null, bookingId!);
-  const [state, formAction, pending] = useActionState(action, initialState);
-
-  useEffect(() => {
-    if (state.ok) onClose();
-  }, [state, onClose]);
+  const form = useForm<BookingFieldsInput>({
+    resolver: zodResolver(bookingFieldsSchema),
+    defaultValues: {
+      start: toDatetimeLocal(initialStart),
+      end: toDatetimeLocal(initialEnd),
+      game: "",
+    },
+  });
 
   const guestCost = useMemo(() => {
     return selectedGuests.reduce((total, selection) => {
@@ -83,161 +73,123 @@ export default function BookingDialog({
     }, 0);
   }, [selectedGuests]);
 
-  const guestsJson = useMemo(
-    () =>
-      JSON.stringify(
-        selectedGuests.map((selection) =>
-          selection.type === "existing"
-            ? { guestId: selection.guest.id }
-            : { newName: selection.name },
-        ),
-      ),
-    [selectedGuests],
-  );
+  function onSubmit(values: BookingFieldsInput) {
+    setError(null);
+    startTransition(async () => {
+      const result =
+        mode === "create"
+          ? await createBooking(tableId, {
+              ...values,
+              guests: selectedGuests.map(
+                (selection): GuestInput =>
+                  selection.type === "existing"
+                    ? { guestId: selection.guest.id }
+                    : { newName: selection.name },
+              ),
+            })
+          : await updateBooking(bookingId!, values);
+
+      if (result.error) setError(result.error);
+      else onClose();
+    });
+  }
 
   function handleCancel() {
     if (!bookingId) return;
     if (!confirm("Diese Buchung wirklich stornieren?")) return;
-    setCancelError(null);
+    setError(null);
     startCancelTransition(async () => {
       try {
         await cancelBooking(bookingId);
         onClose();
       } catch (err) {
-        setCancelError(err instanceof Error ? err.message : "Ein Fehler ist aufgetreten.");
+        setError(err instanceof Error ? err.message : "Ein Fehler ist aufgetreten.");
       }
     });
   }
 
-  const errorMessage = state.error ?? cancelError;
-
   return (
-    <Dialog open onClose={onClose} fullWidth maxWidth="sm">
-      <Box component="form" action={formAction}>
-        <DialogTitle>
-          {tableName} — {mode === "create" ? "Neue Buchung" : "Buchung bearbeiten"}
-        </DialogTitle>
-        <DialogContent className="flex flex-col gap-4 !pt-2">
-          {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>
+            {tableName} — {mode === "create" ? "Neue Buchung" : "Buchung bearbeiten"}
+          </DialogTitle>
+        </DialogHeader>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-          <Box className="flex gap-3">
-            <TextField
-              name="start"
-              label="Start"
-              type="datetime-local"
-              defaultValue={toDatetimeLocal(initialStart)}
-              required
-              fullWidth
-              slotProps={{ inputLabel: { shrink: true } }}
-            />
-            <TextField
-              name="end"
-              label="Ende"
-              type="datetime-local"
-              defaultValue={toDatetimeLocal(initialEnd)}
-              required
-              fullWidth
-              slotProps={{ inputLabel: { shrink: true } }}
-            />
-          </Box>
+          <div className="flex gap-3">
+            <Field data-invalid={!!form.formState.errors.start}>
+              <FieldLabel htmlFor="start">Start</FieldLabel>
+              <Input id="start" type="datetime-local" {...form.register("start")} />
+              {form.formState.errors.start && (
+                <FieldError errors={[form.formState.errors.start]} />
+              )}
+            </Field>
+            <Field data-invalid={!!form.formState.errors.end}>
+              <FieldLabel htmlFor="end">Ende</FieldLabel>
+              <Input id="end" type="datetime-local" {...form.register("end")} />
+              {form.formState.errors.end && <FieldError errors={[form.formState.errors.end]} />}
+            </Field>
+          </div>
 
-          <Autocomplete
-            freeSolo
-            options={COMMON_GAMES}
-            value={game}
-            onInputChange={(_event, value) => setGame(value)}
-            renderInput={(params) => <TextField {...params} label="Spiel" />}
-          />
-          <input type="hidden" name="game" value={game ?? ""} />
+          <Field>
+            <FieldLabel htmlFor="game">Spiel</FieldLabel>
+            <Controller
+              name="game"
+              control={form.control}
+              render={({ field }) => (
+                <GameCombobox value={field.value ?? ""} onChange={field.onChange} />
+              )}
+            />
+          </Field>
 
           {mode === "create" && (
             <>
-              <Divider />
-              <Typography variant="subtitle2">Gäste</Typography>
-              <Autocomplete
-                multiple
-                freeSolo
-                options={knownGuests}
-                value={selectedGuests.map((selection) =>
-                  selection.type === "existing" ? selection.guest : selection.name,
-                )}
-                getOptionLabel={(option) =>
-                  typeof option === "string" ? option : option.name
-                }
-                isOptionEqualToValue={(option, value) =>
-                  typeof option !== "string" &&
-                  typeof value !== "string" &&
-                  option.id === value.id
-                }
-                renderOption={(props, option) => {
-                  if (typeof option === "string") {
-                    return (
-                      <li {...props} key={option}>
-                        {option}
-                      </li>
-                    );
-                  }
-                  return (
-                    <li {...props} key={option.id}>
-                      {option.name}{" "}
-                      <Typography
-                        component="span"
-                        variant="body2"
-                        color="text.secondary"
-                        className="ml-1"
-                      >
-                        ({option.hasVisitedBefore ? "schon da gewesen" : "erstes Mal"})
-                      </Typography>
-                    </li>
-                  );
-                }}
-                onChange={(_event, values) => {
-                  setSelectedGuests(
-                    values.map((value) =>
-                      typeof value === "string"
-                        ? { type: "new" as const, name: value }
-                        : { type: "existing" as const, guest: value },
-                    ),
-                  );
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Gäste hinzufügen"
-                    placeholder="Bekannten Gast wählen oder neuen Namen eingeben"
+              <Separator />
+              <FieldGroup>
+                <Field>
+                  <FieldLabel>Gäste</FieldLabel>
+                  <GuestMultiCombobox
+                    value={selectedGuests}
+                    onChange={setSelectedGuests}
+                    knownGuests={knownGuests}
                   />
-                )}
-              />
-              <input type="hidden" name="guestsJson" value={guestsJson} />
-              <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                Gastkosten: {guestCost.toFixed(2)} €
-              </Typography>
+                </Field>
+                <p className="text-sm font-semibold">Gastkosten: {guestCost.toFixed(2)} €</p>
+              </FieldGroup>
             </>
           )}
-        </DialogContent>
-        <DialogActions className="flex justify-between !px-6">
-          <Box>
-            {mode === "edit" && (
-              <Button
-                type="button"
-                color="error"
-                onClick={handleCancel}
-                disabled={pending || cancelPending}
-              >
-                Stornieren
+
+          <DialogFooter className="sm:justify-between">
+            <div>
+              {mode === "edit" && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleCancel}
+                  disabled={pending || cancelPending}
+                >
+                  Stornieren
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Abbrechen
               </Button>
-            )}
-          </Box>
-          <Box className="flex gap-2">
-            <Button type="button" onClick={onClose}>
-              Abbrechen
-            </Button>
-            <Button type="submit" variant="contained" disabled={pending || cancelPending}>
-              Speichern
-            </Button>
-          </Box>
-        </DialogActions>
-      </Box>
+              <Button type="submit" disabled={pending || cancelPending}>
+                Speichern
+              </Button>
+            </div>
+          </DialogFooter>
+        </form>
+      </DialogContent>
     </Dialog>
   );
 }

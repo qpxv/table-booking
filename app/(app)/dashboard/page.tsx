@@ -1,7 +1,4 @@
-import Typography from "@mui/material/Typography";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import Box from "@mui/material/Box";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { formatBerlin } from "@/lib/datetime";
@@ -26,34 +23,28 @@ export default async function DashboardPage() {
   });
 
   return (
-    <Box className="flex flex-col gap-4">
-      <Typography variant="h5" component="h1">
-        Deine anstehenden Reservierungen
-      </Typography>
+    <div className="flex flex-col gap-4">
+      <h1 className="text-xl font-semibold tracking-tight">Deine anstehenden Reservierungen</h1>
 
       {upcomingBookings.length === 0 && (
-        <Typography color="text.secondary">
+        <p className="text-sm text-muted-foreground">
           Du hast aktuell keine anstehenden Reservierungen.
-        </Typography>
+        </p>
       )}
 
-      <Box className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3">
         {upcomingBookings.map((booking) => (
-          <Card key={booking.id} variant="outlined">
-            <CardContent>
-              <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-                {booking.table.name}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
+          <Card key={booking.id}>
+            <CardContent className="flex flex-col gap-1">
+              <CardTitle>{booking.table.name}</CardTitle>
+              <p className="text-sm text-muted-foreground">
                 {formatBerlin(booking.start)} – {formatBerlin(booking.end, "HH:mm")}
-              </Typography>
-              {booking.game && (
-                <Typography variant="body2">Spiel: {booking.game}</Typography>
-              )}
+              </p>
+              {booking.game && <p className="text-sm">Spiel: {booking.game}</p>}
             </CardContent>
           </Card>
         ))}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

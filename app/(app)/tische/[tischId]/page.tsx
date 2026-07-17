@@ -1,6 +1,4 @@
 import { notFound, redirect } from "next/navigation";
-import Typography from "@mui/material/Typography";
-import Box from "@mui/material/Box";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { listBookingsForTable } from "@/actions/bookings";
@@ -30,10 +28,8 @@ export default async function TableCalendarPage({
   ]);
 
   return (
-    <Box className="flex flex-col gap-4">
-      <Typography variant="h5" component="h1">
-        {table.name}
-      </Typography>
+    <div className="flex flex-col gap-4">
+      <h1 className="text-xl font-semibold tracking-tight">{table.name}</h1>
       <BookingCalendar
         tableId={table.id}
         tableName={table.name}
@@ -47,6 +43,6 @@ export default async function TableCalendarPage({
         }))}
         knownGuests={knownGuests}
       />
-    </Box>
+    </div>
   );
 }

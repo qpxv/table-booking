@@ -1,20 +1,17 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
-import DialogContent from "@mui/material/DialogContent";
-import DialogActions from "@mui/material/DialogActions";
-import TextField from "@mui/material/TextField";
-import Button from "@mui/material/Button";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import Switch from "@mui/material/Switch";
-import Alert from "@mui/material/Alert";
-import Box from "@mui/material/Box";
+import { useState, useTransition } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { Table } from "@/generated/prisma/client";
-import { createTable, updateTable, type TableFormState } from "@/actions/tables";
-
-const initialState: TableFormState = {};
+import { createTable, updateTable } from "@/actions/tables";
+import { tableSchema, type TableInput } from "@/lib/schemas/table";
 
 // Only rendered by the parent while the dialog should be open — the initial
 // values are taken directly from props on mount (no reset effect needed).
@@ -25,42 +22,67 @@ export default function TableFormDialog({
   table: Table | null;
   onClose: () => void;
 }) {
-  const action = table ? updateTable.bind(null, table.id) : createTable;
-  const [state, formAction, pending] = useActionState(action, initialState);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const form = useForm<TableInput>({
+    resolver: zodResolver(tableSchema),
+    defaultValues: { name: table?.name ?? "", active: table?.active ?? true },
+  });
 
-  useEffect(() => {
-    if (state.ok) onClose();
-  }, [state, onClose]);
+  function onSubmit(values: TableInput) {
+    setError(null);
+    startTransition(async () => {
+      const result = table ? await updateTable(table.id, values) : await createTable(values);
+      if (result.error) setError(result.error);
+      else onClose();
+    });
+  }
 
   return (
-    <Dialog open onClose={onClose} fullWidth maxWidth="xs">
-      <Box component="form" action={formAction}>
-        <DialogTitle>{table ? "Tisch bearbeiten" : "Neuer Tisch"}</DialogTitle>
-        <DialogContent className="flex flex-col gap-4 !pt-2">
-          {state.error && <Alert severity="error">{state.error}</Alert>}
-          <TextField
-            autoFocus
-            name="name"
-            label="Name"
-            defaultValue={table?.name ?? ""}
-            required
-            fullWidth
-            margin="dense"
-          />
-          <FormControlLabel
-            control={
-              <Switch name="active" defaultChecked={table?.active ?? true} />
-            }
-            label="Aktiv"
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button type="button" onClick={onClose}>Abbrechen</Button>
-          <Button type="submit" variant="contained" disabled={pending}>
-            Speichern
-          </Button>
-        </DialogActions>
-      </Box>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{table ? "Tisch bearbeiten" : "Neuer Tisch"}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          <FieldGroup>
+            <Controller
+              name="name"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor={field.name}>Name</FieldLabel>
+                  <Input {...field} id={field.name} autoFocus aria-invalid={fieldState.invalid} />
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
+            />
+            <Controller
+              name="active"
+              control={form.control}
+              render={({ field }) => (
+                <Field orientation="horizontal">
+                  <FieldLabel htmlFor={field.name}>Aktiv</FieldLabel>
+                  <Switch id={field.name} checked={field.value} onCheckedChange={field.onChange} />
+                </Field>
+              )}
+            />
+          </FieldGroup>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Abbrechen
+            </Button>
+            <Button type="submit" disabled={pending}>
+              Speichern
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
     </Dialog>
   );
 }

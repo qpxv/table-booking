@@ -1,18 +1,23 @@
-"use client";
-
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import AppBar from "@mui/material/AppBar";
-import Toolbar from "@mui/material/Toolbar";
-import Typography from "@mui/material/Typography";
-import Button from "@mui/material/Button";
-import Box from "@mui/material/Box";
-import { authClient } from "@/lib/auth-client";
+import { Button } from "@/components/ui/button";
+import UserMenu from "./UserMenu";
 
 type AppShellUser = {
   name: string;
+  email: string;
   role: string;
 };
+
+function NavButton({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Button
+      variant="ghost"
+      nativeButton={false}
+      className="text-header-foreground hover:bg-header-foreground/10 hover:text-header-foreground"
+      render={<Link href={href}>{children}</Link>}
+    />
+  );
+}
 
 export default function AppShell({
   user,
@@ -21,49 +26,25 @@ export default function AppShell({
   user: AppShellUser;
   children: React.ReactNode;
 }) {
-  const router = useRouter();
   const isAdmin = user.role === "admin";
 
-  async function handleLogout() {
-    await authClient.signOut();
-    router.push("/login");
-    router.refresh();
-  }
-
   return (
-    <Box className="flex min-h-screen flex-col">
-      <AppBar position="static" color="primary">
-        <Toolbar className="gap-4">
-          <Typography variant="h6" component={Link} href="/dashboard" className="!no-underline !text-inherit grow">
-            Vereins-Tischbuchung
-          </Typography>
-          <Button color="inherit" component={Link} href="/dashboard">
-            Dashboard
-          </Button>
-          <Button color="inherit" component={Link} href="/tische">
-            Tische
-          </Button>
-          {isAdmin && (
-            <>
-              <Button color="inherit" component={Link} href="/admin/tische">
-                Tischverwaltung
-              </Button>
-              <Button color="inherit" component={Link} href="/admin/users">
-                Benutzerverwaltung
-              </Button>
-            </>
-          )}
-          <Typography variant="body2" className="opacity-80">
-            {user.name}
-          </Typography>
-          <Button color="inherit" onClick={handleLogout}>
-            Abmelden
-          </Button>
-        </Toolbar>
-      </AppBar>
-      <Box component="main" className="flex flex-1 flex-col p-6">
-        {children}
-      </Box>
-    </Box>
+    <div className="flex min-h-screen flex-col">
+      <header className="flex items-center gap-4 border-b bg-header px-4 py-2 text-header-foreground">
+        <Link href="/dashboard" className="grow text-lg font-semibold">
+          Vereins-Tischbuchung
+        </Link>
+        <NavButton href="/dashboard">Dashboard</NavButton>
+        <NavButton href="/tische">Tische</NavButton>
+        {isAdmin && (
+          <>
+            <NavButton href="/admin/tische">Tischverwaltung</NavButton>
+            <NavButton href="/admin/users">Benutzerverwaltung</NavButton>
+          </>
+        )}
+        <UserMenu name={user.name} email={user.email} />
+      </header>
+      <main className="flex flex-1 flex-col p-6">{children}</main>
+    </div>
   );
 }

@@ -1,15 +1,10 @@
 "use server";
 
-import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { isAdmin } from "@/lib/permissions";
-
-const tableSchema = z.object({
-  name: z.string().trim().min(1, "Name ist erforderlich"),
-  active: z.coerce.boolean(),
-});
+import { tableSchema, type TableInput } from "@/lib/schemas/table";
 
 async function requireAdmin() {
   const session = await getSession();
@@ -21,20 +16,10 @@ async function requireAdmin() {
 
 export type TableFormState = { error?: string; ok?: boolean };
 
-function parseTableForm(formData: FormData) {
-  return tableSchema.parse({
-    name: formData.get("name"),
-    active: formData.get("active") === "on",
-  });
-}
-
-export async function createTable(
-  _prevState: TableFormState,
-  formData: FormData,
-): Promise<TableFormState> {
+export async function createTable(values: TableInput): Promise<TableFormState> {
   try {
     await requireAdmin();
-    const data = parseTableForm(formData);
+    const data = tableSchema.parse(values);
 
     await prisma.table.create({ data });
     revalidatePath("/admin/tische");
@@ -45,14 +30,10 @@ export async function createTable(
   }
 }
 
-export async function updateTable(
-  id: string,
-  _prevState: TableFormState,
-  formData: FormData,
-): Promise<TableFormState> {
+export async function updateTable(id: string, values: TableInput): Promise<TableFormState> {
   try {
     await requireAdmin();
-    const data = parseTableForm(formData);
+    const data = tableSchema.parse(values);
 
     await prisma.table.update({ where: { id }, data });
     revalidatePath("/admin/tische");

@@ -1,11 +1,16 @@
 "use server";
 
-import { z } from "zod";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { getSession } from "@/lib/session";
 import { isAdmin } from "@/lib/permissions";
+import {
+  createUserSchema,
+  updateUserSchema,
+  type CreateUserInput,
+  type UpdateUserInput,
+} from "@/lib/schemas/user";
 
 async function requireAdminHeaders() {
   const session = await getSession();
@@ -15,29 +20,12 @@ async function requireAdminHeaders() {
   return headers();
 }
 
-const roleSchema = z.enum(["admin", "user"]);
-
-const createUserSchema = z.object({
-  name: z.string().trim().min(1, "Name ist erforderlich"),
-  email: z.email("Ungültige E-Mail-Adresse"),
-  password: z.string().min(8, "Passwort muss mindestens 8 Zeichen haben"),
-  role: roleSchema,
-});
-
 export type UserFormState = { error?: string; ok?: boolean };
 
-export async function createUser(
-  _prevState: UserFormState,
-  formData: FormData,
-): Promise<UserFormState> {
+export async function createUser(values: CreateUserInput): Promise<UserFormState> {
   try {
     const requestHeaders = await requireAdminHeaders();
-    const data = createUserSchema.parse({
-      name: formData.get("name"),
-      email: formData.get("email"),
-      password: formData.get("password"),
-      role: formData.get("role"),
-    });
+    const data = createUserSchema.parse(values);
 
     await auth.api.createUser({
       body: data,
@@ -51,22 +39,13 @@ export async function createUser(
   }
 }
 
-const updateUserSchema = z.object({
-  name: z.string().trim().min(1, "Name ist erforderlich"),
-  role: roleSchema,
-});
-
 export async function updateUser(
   userId: string,
-  _prevState: UserFormState,
-  formData: FormData,
+  values: UpdateUserInput,
 ): Promise<UserFormState> {
   try {
     const requestHeaders = await requireAdminHeaders();
-    const data = updateUserSchema.parse({
-      name: formData.get("name"),
-      role: formData.get("role"),
-    });
+    const data = updateUserSchema.parse(values);
 
     await auth.api.adminUpdateUser({
       body: { userId, data: { name: data.name } },
