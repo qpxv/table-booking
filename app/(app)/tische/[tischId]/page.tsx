@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
@@ -30,19 +31,21 @@ export default async function TableCalendarPage({
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-semibold tracking-tight">{table.name}</h1>
-      <BookingCalendar
-        tableId={table.id}
-        tableName={table.name}
-        currentUserId={session.user.id}
-        bookings={bookings.map((b) => ({
-          id: b.id,
-          start: b.start,
-          end: b.end,
-          game: b.game,
-          userId: b.userId,
-        }))}
-        knownGuests={knownGuests}
-      />
+      <Suspense>
+        <BookingCalendar
+          tableId={table.id}
+          tableName={table.name}
+          currentUserId={session.user.id}
+          bookings={bookings.map((b) => ({
+            id: b.id,
+            start: b.start,
+            end: b.end,
+            game: b.game,
+            userId: b.userId,
+          }))}
+          knownGuests={knownGuests}
+        />
+      </Suspense>
     </div>
   );
 }

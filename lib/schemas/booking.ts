@@ -12,10 +12,12 @@ export type GuestInput = z.infer<typeof guestInputSchema>;
 // to carry display info — visit count, "new vs. existing" — that the
 // server-side schemas below don't care about). Shared by both the create and
 // edit dialogs since start/end/game are identical in shape either way.
+// start/end are real Dates here (set via the DateTimeField calendar+hour/
+// minute picker), not native-input strings.
 export const bookingFieldsSchema = z
   .object({
-    start: z.string().min(1, "Start ist erforderlich"),
-    end: z.string().min(1, "Ende ist erforderlich"),
+    start: z.date(),
+    end: z.date(),
     game: z.string().trim().optional(),
   })
   .refine((data) => data.start < data.end, {

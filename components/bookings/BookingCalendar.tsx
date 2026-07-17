@@ -1,14 +1,24 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import momentTimezonePlugin from "@fullcalendar/moment-timezone";
 import deLocale from "@fullcalendar/core/locales/de";
-import type { DateSelectArg, EventClickArg, EventInput } from "@fullcalendar/core";
-import { COLORS } from "@/lib/theme";
+import type {
+  DateSelectArg,
+  DatesSetArg,
+  EventClickArg,
+  EventDropArg,
+  EventInput,
+} from "@fullcalendar/core";
+import type { EventResizeDoneArg } from "@fullcalendar/interaction";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { GuestWithVisits } from "@/actions/guests";
+import { updateBooking } from "@/actions/bookings";
 import BookingDialog from "./BookingDialog";
 
 export type CalendarBooking = {
@@ -23,6 +33,11 @@ type DialogState =
   | { mode: "create"; start: string; end: string }
   | { mode: "edit"; booking: CalendarBooking };
 
+const VIEWS = [
+  { value: "timeGridWeek", label: "Woche" },
+  { value: "timeGridDay", label: "Tag" },
+] as const;
+
 export default function BookingCalendar({
   tableId,
   tableName,
@@ -36,7 +51,16 @@ export default function BookingCalendar({
   bookings: CalendarBooking[];
   knownGuests: GuestWithVisits[];
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const calendarRef = useRef<FullCalendar>(null);
   const [dialog, setDialog] = useState<DialogState | null>(null);
+  const [title, setTitle] = useState("");
+  const [view, setView] = useState(searchParams.get("view") ?? "timeGridWeek");
+
+  const initialDate = searchParams.get("date") ?? undefined;
+  const initialView = searchParams.get("view") ?? "timeGridWeek";
 
   const events: EventInput[] = useMemo(
     () =>
@@ -47,14 +71,25 @@ export default function BookingCalendar({
           start: booking.start,
           end: booking.end,
           title: isOwn ? booking.game || "Deine Buchung" : "Belegt",
-          backgroundColor: isOwn ? COLORS.secondary : "#9e9e9e",
-          borderColor: isOwn ? COLORS.secondary : "#9e9e9e",
-          editable: false,
+          backgroundColor: isOwn ? "var(--header)" : "#475569",
+          borderColor: isOwn ? "var(--header)" : "#475569",
+          textColor: isOwn ? "var(--header-foreground)" : "#ffffff",
+          editable: isOwn,
           extendedProps: { isOwn },
         };
       }),
     [bookings, currentUserId],
   );
+
+  function handleDatesSet(arg: DatesSetArg) {
+    setTitle(arg.view.title);
+    setView(arg.view.type);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("date", arg.startStr.slice(0, 10));
+    params.set("view", arg.view.type);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }
 
   function handleSelect(selectInfo: DateSelectArg) {
     selectInfo.view.calendar.unselect();
@@ -74,18 +109,96 @@ export default function BookingCalendar({
     setDialog({ mode: "edit", booking });
   }
 
+  async function persistReschedule(
+    bookingId: string,
+    start: Date,
+    end: Date,
+    revert: () => void,
+  ) {
+    const booking = bookings.find((b) => b.id === bookingId);
+    if (!booking) {
+      revert();
+      return;
+    }
+
+    const result = await updateBooking(bookingId, {
+      start,
+      end,
+      game: booking.game ?? undefined,
+    });
+
+    if (result.error) {
+      alert(result.error);
+      revert();
+    }
+  }
+
+  function handleEventDrop(dropInfo: EventDropArg) {
+    const { event } = dropInfo;
+    if (!event.start || !event.end) {
+      dropInfo.revert();
+      return;
+    }
+    void persistReschedule(event.id, event.start, event.end, dropInfo.revert);
+  }
+
+  function handleEventResize(resizeInfo: EventResizeDoneArg) {
+    const { event } = resizeInfo;
+    if (!event.start || !event.end) {
+      resizeInfo.revert();
+      return;
+    }
+    void persistReschedule(event.id, event.start, event.end, resizeInfo.revert);
+  }
+
   return (
     <div>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="icon-sm"
+            aria-label="Zurück"
+            onClick={() => calendarRef.current?.getApi().prev()}
+          >
+            <ChevronLeft />
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => calendarRef.current?.getApi().today()}>
+            Heute
+          </Button>
+          <Button
+            variant="outline"
+            size="icon-sm"
+            aria-label="Weiter"
+            onClick={() => calendarRef.current?.getApi().next()}
+          >
+            <ChevronRight />
+          </Button>
+          <span className="ml-2 text-sm font-medium capitalize">{title}</span>
+        </div>
+        <div className="flex items-center gap-1 rounded-lg border p-0.5">
+          {VIEWS.map((v) => (
+            <Button
+              key={v.value}
+              variant={view === v.value ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => calendarRef.current?.getApi().changeView(v.value)}
+            >
+              {v.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
       <FullCalendar
+        ref={calendarRef}
         plugins={[timeGridPlugin, interactionPlugin, momentTimezonePlugin]}
-        initialView="timeGridWeek"
+        initialDate={initialDate}
+        initialView={initialView}
         timeZone="Europe/Berlin"
         locale={deLocale}
-        headerToolbar={{
-          left: "prev,next today",
-          center: "title",
-          right: "timeGridWeek,timeGridDay",
-        }}
+        headerToolbar={false}
+        datesSet={handleDatesSet}
         slotMinTime="08:00:00"
         slotMaxTime="24:00:00"
         slotLabelFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
@@ -95,6 +208,8 @@ export default function BookingCalendar({
         selectOverlap={false}
         select={handleSelect}
         eventClick={handleEventClick}
+        eventDrop={handleEventDrop}
+        eventResize={handleEventResize}
         events={events}
         height="auto"
       />

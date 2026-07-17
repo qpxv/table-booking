@@ -139,3 +139,31 @@
     @apply font-sans;
   }
 }
+
+/* FullCalendar theming — replace its default blue/grey look with the app's
+   tokens. The header/toolbar buttons are hidden (headerToolbar={false}); a
+   custom shadcn-Button toolbar drives navigation instead. */
+.fc {
+  --fc-border-color: var(--border);
+  --fc-neutral-bg-color: var(--muted);
+  --fc-neutral-text-color: var(--muted-foreground);
+  --fc-page-bg-color: var(--background);
+  --fc-today-bg-color: color-mix(in oklch, var(--header) 8%, transparent);
+  --fc-now-indicator-color: var(--destructive);
+  --fc-highlight-color: color-mix(in oklch, var(--header) 15%, transparent);
+  --fc-small-font-size: 0.8rem;
+  font-family: var(--font-sans);
+}
+
+.fc .fc-event {
+  border-radius: var(--radius-md);
+  border-width: 0;
+  padding: 1px 2px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.fc .fc-timegrid-slot-label,
+.fc .fc-col-header-cell-cushion {
+  color: var(--muted-foreground);
+}

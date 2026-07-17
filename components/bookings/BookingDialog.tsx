@@ -11,10 +11,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import DateTimeField from "./DateTimeField";
 import GameCombobox from "./GameCombobox";
 import GuestMultiCombobox, { type GuestSelection } from "./GuestMultiCombobox";
 import type { GuestWithVisits } from "@/actions/guests";
@@ -25,11 +25,6 @@ import {
   type GuestInput,
 } from "@/lib/schemas/booking";
 import { createBooking, updateBooking, cancelBooking } from "@/actions/bookings";
-
-function toDatetimeLocal(iso: string): string {
-  // Truncates an ISO date to the format <input type="datetime-local"> expects.
-  return iso.slice(0, 16);
-}
 
 // Only rendered by the parent while the dialog should be open — the initial
 // values are taken directly from props on mount (no reset effect needed).
@@ -60,8 +55,8 @@ export default function BookingDialog({
   const form = useForm<BookingFieldsInput>({
     resolver: zodResolver(bookingFieldsSchema),
     defaultValues: {
-      start: toDatetimeLocal(initialStart),
-      end: toDatetimeLocal(initialEnd),
+      start: new Date(initialStart),
+      end: new Date(initialEnd),
       game: "",
     },
   });
@@ -110,7 +105,7 @@ export default function BookingDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
             {tableName} — {mode === "create" ? "Neue Buchung" : "Buchung bearbeiten"}
@@ -123,17 +118,29 @@ export default function BookingDialog({
             </Alert>
           )}
 
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <Field data-invalid={!!form.formState.errors.start}>
               <FieldLabel htmlFor="start">Start</FieldLabel>
-              <Input id="start" type="datetime-local" {...form.register("start")} />
+              <Controller
+                name="start"
+                control={form.control}
+                render={({ field }) => (
+                  <DateTimeField id="start" value={field.value} onChange={field.onChange} />
+                )}
+              />
               {form.formState.errors.start && (
                 <FieldError errors={[form.formState.errors.start]} />
               )}
             </Field>
             <Field data-invalid={!!form.formState.errors.end}>
               <FieldLabel htmlFor="end">Ende</FieldLabel>
-              <Input id="end" type="datetime-local" {...form.register("end")} />
+              <Controller
+                name="end"
+                control={form.control}
+                render={({ field }) => (
+                  <DateTimeField id="end" value={field.value} onChange={field.onChange} />
+                )}
+              />
               {form.formState.errors.end && <FieldError errors={[form.formState.errors.end]} />}
             </Field>
           </div>
