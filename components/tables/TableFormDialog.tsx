@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { Table } from "@/generated/prisma/client";
 import { createTable, updateTable } from "@/actions/tables";
 import { tableSchema, type TableInput } from "@/lib/schemas/table";
@@ -22,7 +22,6 @@ export default function TableFormDialog({
   table: Table | null;
   onClose: () => void;
 }) {
-  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const form = useForm<TableInput>({
     resolver: zodResolver(tableSchema),
@@ -30,10 +29,9 @@ export default function TableFormDialog({
   });
 
   function onSubmit(values: TableInput) {
-    setError(null);
     startTransition(async () => {
       const result = table ? await updateTable(table.id, values) : await createTable(values);
-      if (result.error) setError(result.error);
+      if (result.error) toast.error(result.error);
       else onClose();
     });
   }
@@ -45,11 +43,6 @@ export default function TableFormDialog({
           <DialogTitle>{table ? "Tisch bearbeiten" : "Neuer Tisch"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
           <FieldGroup>
             <Controller
               name="name"

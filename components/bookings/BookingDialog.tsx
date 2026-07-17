@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +13,6 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import DateTimeField from "./DateTimeField";
 import GameCombobox from "./GameCombobox";
@@ -48,7 +48,6 @@ export default function BookingDialog({
   onClose: () => void;
 }) {
   const [selectedGuests, setSelectedGuests] = useState<GuestSelection[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [cancelPending, startCancelTransition] = useTransition();
 
@@ -69,7 +68,6 @@ export default function BookingDialog({
   }, [selectedGuests]);
 
   function onSubmit(values: BookingFieldsInput) {
-    setError(null);
     startTransition(async () => {
       const result =
         mode === "create"
@@ -84,7 +82,7 @@ export default function BookingDialog({
             })
           : await updateBooking(bookingId!, values);
 
-      if (result.error) setError(result.error);
+      if (result.error) toast.error(result.error);
       else onClose();
     });
   }
@@ -92,14 +90,10 @@ export default function BookingDialog({
   function handleCancel() {
     if (!bookingId) return;
     if (!confirm("Diese Buchung wirklich stornieren?")) return;
-    setError(null);
     startCancelTransition(async () => {
-      try {
-        await cancelBooking(bookingId);
-        onClose();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Ein Fehler ist aufgetreten.");
-      }
+      const result = await cancelBooking(bookingId);
+      if (result.error) toast.error(result.error);
+      else onClose();
     });
   }
 
@@ -112,12 +106,6 @@ export default function BookingDialog({
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
           <div className="flex flex-col gap-3 sm:flex-row">
             <Field data-invalid={!!form.formState.errors.start}>
               <FieldLabel htmlFor="start">Start</FieldLabel>

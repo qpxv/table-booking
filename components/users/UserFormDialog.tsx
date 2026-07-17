@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -42,7 +42,6 @@ export default function UserFormDialog({
   onClose: () => void;
 }) {
   const isEdit = Boolean(user);
-  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const form = useForm<FormValues>({
     resolver: zodResolver(isEdit ? updateUserSchema : createUserSchema),
@@ -55,12 +54,11 @@ export default function UserFormDialog({
   });
 
   function onSubmit(values: FormValues) {
-    setError(null);
     startTransition(async () => {
       const result = user
         ? await updateUser(user.id, values as UpdateUserInput)
         : await createUser(values as CreateUserInput);
-      if (result.error) setError(result.error);
+      if (result.error) toast.error(result.error);
       else onClose();
     });
   }
@@ -72,11 +70,6 @@ export default function UserFormDialog({
           <DialogTitle>{isEdit ? "Benutzer bearbeiten" : "Neuer Benutzer"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
           <FieldGroup>
             <Controller
               name="name"
@@ -136,7 +129,9 @@ export default function UserFormDialog({
                   <FieldLabel htmlFor={field.name}>Rolle</FieldLabel>
                   <Select value={field.value} onValueChange={field.onChange}>
                     <SelectTrigger id={field.name} className="w-full">
-                      <SelectValue />
+                      <SelectValue>
+                        {(value: "admin" | "user") => (value === "admin" ? "Admin" : "Mitglied")}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="user">Mitglied</SelectItem>

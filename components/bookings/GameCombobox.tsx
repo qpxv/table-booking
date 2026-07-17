@@ -38,7 +38,7 @@ export default function GameCombobox({
           />
         }
       />
-      <PopoverContent align="start" className="w-(--anchor-width) p-1">
+      <PopoverContent align="start" className="w-(--anchor-width) p-1" finalFocus={false}>
         <Command>
           <CommandList>
             <CommandGroup>

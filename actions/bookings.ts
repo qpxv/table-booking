@@ -81,6 +81,7 @@ export async function createBooking(
 
     return { ok: true };
   } catch (err) {
+    console.error(err);
     return { error: err instanceof Error ? err.message : "Ein Fehler ist aufgetreten." };
   }
 }
@@ -120,31 +121,37 @@ export async function updateBooking(
 
     return { ok: true };
   } catch (err) {
+    console.error(err);
     return { error: err instanceof Error ? err.message : "Ein Fehler ist aufgetreten." };
   }
 }
 
-export async function cancelBooking(id: string) {
-  const session = await getSession();
-  const booking = await prisma.booking.findUnique({ where: { id } });
-  if (!booking) throw new Error("Buchung nicht gefunden.");
+export async function cancelBooking(id: string): Promise<BookingFormState> {
+  try {
+    const session = await getSession();
+    const booking = await prisma.booking.findUnique({ where: { id } });
+    if (!booking) throw new Error("Buchung nicht gefunden.");
 
-  // Admins can cancel any booking; members only their own
-  // (canEditBooking already covers "owner OR admin").
-  if (!canEditBooking(session, booking)) {
-    throw new Error("Nicht berechtigt.");
+    // Admins can cancel any booking; members only their own
+    // (canEditBooking already covers "owner OR admin").
+    if (!canEditBooking(session, booking)) {
+      throw new Error("Nicht berechtigt.");
+    }
+
+    // Soft delete via status — no hard delete, for traceability.
+    await prisma.booking.update({
+      where: { id },
+      data: { status: BookingStatus.CANCELLED },
+    });
+
+    revalidatePath(`/tische/${booking.tableId}`);
+    revalidatePath("/dashboard");
+
+    return { ok: true };
+  } catch (err) {
+    console.error(err);
+    return { error: err instanceof Error ? err.message : "Ein Fehler ist aufgetreten." };
   }
-
-  // Soft delete via status — no hard delete, for traceability.
-  const updated = await prisma.booking.update({
-    where: { id },
-    data: { status: BookingStatus.CANCELLED },
-  });
-
-  revalidatePath(`/tische/${booking.tableId}`);
-  revalidatePath("/dashboard");
-
-  return updated;
 }
 
 export async function listBookingsForTable(tableId: string) {

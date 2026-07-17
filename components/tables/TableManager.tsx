@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { Plus } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import type { Table } from "@/generated/prisma/client";
@@ -26,14 +27,16 @@ export default function TableManager({ tables }: { tables: Table[] }) {
 
   function handleToggleActive(table: Table) {
     startTransition(async () => {
-      await setTableActive(table.id, !table.active);
+      const result = await setTableActive(table.id, !table.active);
+      if (result.error) toast.error(result.error);
     });
   }
 
   function handleDelete(table: Table) {
     if (!confirm(`Tisch "${table.name}" wirklich löschen?`)) return;
     startTransition(async () => {
-      await deleteTable(table.id);
+      const result = await deleteTable(table.id);
+      if (result.error) toast.error(result.error);
     });
   }
 

@@ -35,6 +35,7 @@ export async function createUser(values: CreateUserInput): Promise<UserFormState
     revalidatePath("/admin/users");
     return { ok: true };
   } catch (err) {
+    console.error(err);
     return { error: err instanceof Error ? err.message : "Ein Fehler ist aufgetreten." };
   }
 }
@@ -59,19 +60,26 @@ export async function updateUser(
     revalidatePath("/admin/users");
     return { ok: true };
   } catch (err) {
+    console.error(err);
     return { error: err instanceof Error ? err.message : "Ein Fehler ist aufgetreten." };
   }
 }
 
-export async function deleteUser(userId: string) {
-  const requestHeaders = await requireAdminHeaders();
+export async function deleteUser(userId: string): Promise<UserFormState> {
+  try {
+    const requestHeaders = await requireAdminHeaders();
 
-  await auth.api.removeUser({
-    body: { userId },
-    headers: requestHeaders,
-  });
+    await auth.api.removeUser({
+      body: { userId },
+      headers: requestHeaders,
+    });
 
-  revalidatePath("/admin/users");
+    revalidatePath("/admin/users");
+    return { ok: true };
+  } catch (err) {
+    console.error(err);
+    return { error: err instanceof Error ? err.message : "Ein Fehler ist aufgetreten." };
+  }
 }
 
 export async function listUsers() {

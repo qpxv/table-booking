@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { Plus } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { deleteUser } from "@/actions/users";
@@ -26,7 +27,8 @@ export default function UserManager({ users }: { users: AppUser[] }) {
   function handleDelete(user: AppUser) {
     if (!confirm(`Benutzer "${user.name}" wirklich löschen?`)) return;
     startTransition(async () => {
-      await deleteUser(user.id);
+      const result = await deleteUser(user.id);
+      if (result.error) toast.error(result.error);
     });
   }
 

@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -128,7 +129,7 @@ export default function BookingCalendar({
     });
 
     if (result.error) {
-      alert(result.error);
+      toast.error(result.error);
       revert();
     }
   }
