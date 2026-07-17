@@ -20,6 +20,7 @@ export type AppUser = {
   id: string;
   name: string;
   email: string;
+  memberId?: string | null;
   role?: string | string[] | null;
 };
 
@@ -42,6 +43,7 @@ export default function UserFormDialog({
       name: user?.name ?? "",
       email: user?.email ?? "",
       password: "",
+      memberId: user?.memberId ?? "",
     },
   });
 
@@ -70,6 +72,17 @@ export default function UserFormDialog({
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={field.name}>Name</FieldLabel>
                   <Input {...field} id={field.name} autoFocus aria-invalid={fieldState.invalid} />
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
+            />
+            <Controller
+              name="memberId"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor={field.name}>Mitgliedsnummer</FieldLabel>
+                  <Input {...field} id={field.name} aria-invalid={fieldState.invalid} />
                   {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                 </Field>
               )}

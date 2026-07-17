@@ -29,7 +29,12 @@ export async function createUser(values: CreateUserInput): Promise<UserFormState
     const data = createUserSchema.parse(values);
 
     await auth.api.createUser({
-      body: data,
+      body: {
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        data: { memberId: data.memberId },
+      },
       headers: requestHeaders,
     });
 
@@ -50,7 +55,7 @@ export async function updateUser(
     const data = updateUserSchema.parse(values);
 
     await auth.api.adminUpdateUser({
-      body: { userId, data: { name: data.name } },
+      body: { userId, data: { name: data.name, memberId: data.memberId } },
       headers: requestHeaders,
     });
 

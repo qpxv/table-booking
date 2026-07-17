@@ -13,6 +13,15 @@ export const auth = betterAuth({
     enabled: true,
     disableSignUp: true,
   },
+  user: {
+    additionalFields: {
+      memberId: {
+        type: "string",
+        required: false,
+        input: true,
+      },
+    },
+  },
   plugins: [
     admin(),
     nextCookies(),

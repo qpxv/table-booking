@@ -57,17 +57,22 @@ export function createUserColumns({
 }): ColumnDef<AppUser>[] {
   return [
     {
-      accessorKey: "name",
+      accessorKey: "memberId",
       header: ({ column }) => (
         <Button
           variant="ghost"
           className="-ml-2.5"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Name
+          Mitglieds-Nr.
           <ArrowUpDown className="ml-1.5" />
         </Button>
       ),
+      cell: ({ row }) => row.original.memberId ?? "–",
+    },
+    {
+      accessorKey: "name",
+      header: "Name",
     },
     {
       accessorKey: "email",
