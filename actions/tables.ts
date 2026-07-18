@@ -7,72 +7,80 @@ import { isAdmin } from "@/lib/permissions";
 import { endOfWeekBerlin } from "@/lib/datetime";
 import { BookingStatus } from "@/generated/prisma/enums";
 import { tableSchema, type TableInput } from "@/lib/schemas/table";
+import type { ActionResult } from "@/types/action-result";
 
-async function requireAdmin() {
+/** Returns an ActionResult failure if the session isn't an admin, otherwise null. */
+async function requireAdmin(): Promise<ActionResult | null> {
   const session = await getSession();
   if (!isAdmin(session)) {
-    throw new Error("Nicht berechtigt.");
+    return { success: false, message: "Nicht berechtigt." };
   }
-  return session;
+  return null;
 }
 
-export type TableFormState = { error?: string; ok?: boolean };
+export async function createTable(values: TableInput): Promise<ActionResult> {
+  const authError = await requireAdmin();
+  if (authError) return authError;
 
-export async function createTable(values: TableInput): Promise<TableFormState> {
+  const parsed = tableSchema.safeParse(values);
+  if (!parsed.success) return { success: false, message: "Ungültige Eingabe." };
+
   try {
-    await requireAdmin();
-    const data = tableSchema.parse(values);
-
-    await prisma.table.create({ data });
+    await prisma.table.create({ data: parsed.data });
     revalidatePath("/admin/tische");
     revalidatePath("/tische");
-    return { ok: true };
+    return { success: true, message: "Tisch erstellt." };
   } catch (err) {
-    console.error(err);
-    return { error: err instanceof Error ? err.message : "Ein Fehler ist aufgetreten." };
+    console.error("error in createTable", err);
+    return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
 }
 
-export async function updateTable(id: string, values: TableInput): Promise<TableFormState> {
-  try {
-    await requireAdmin();
-    const data = tableSchema.parse(values);
+export async function updateTable(id: string, values: TableInput): Promise<ActionResult> {
+  const authError = await requireAdmin();
+  if (authError) return authError;
 
-    await prisma.table.update({ where: { id }, data });
+  const parsed = tableSchema.safeParse(values);
+  if (!parsed.success) return { success: false, message: "Ungültige Eingabe." };
+
+  try {
+    await prisma.table.update({ where: { id }, data: parsed.data });
     revalidatePath("/admin/tische");
     revalidatePath("/tische");
-    return { ok: true };
+    return { success: true, message: "Tisch aktualisiert." };
   } catch (err) {
-    console.error(err);
-    return { error: err instanceof Error ? err.message : "Ein Fehler ist aufgetreten." };
+    console.error("error in updateTable", err);
+    return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
 }
 
-export async function setTableActive(id: string, active: boolean): Promise<TableFormState> {
-  try {
-    await requireAdmin();
+export async function setTableActive(id: string, active: boolean): Promise<ActionResult> {
+  const authError = await requireAdmin();
+  if (authError) return authError;
 
+  try {
     await prisma.table.update({ where: { id }, data: { active } });
     revalidatePath("/admin/tische");
     revalidatePath("/tische");
-    return { ok: true };
+    return { success: true, message: active ? "Tisch aktiviert." : "Tisch deaktiviert." };
   } catch (err) {
-    console.error(err);
-    return { error: err instanceof Error ? err.message : "Ein Fehler ist aufgetreten." };
+    console.error("error in setTableActive", err);
+    return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
 }
 
-export async function deleteTable(id: string): Promise<TableFormState> {
-  try {
-    await requireAdmin();
+export async function deleteTable(id: string): Promise<ActionResult> {
+  const authError = await requireAdmin();
+  if (authError) return authError;
 
+  try {
     await prisma.table.delete({ where: { id } });
     revalidatePath("/admin/tische");
     revalidatePath("/tische");
-    return { ok: true };
+    return { success: true, message: "Tisch gelöscht." };
   } catch (err) {
-    console.error(err);
-    return { error: err instanceof Error ? err.message : "Ein Fehler ist aufgetreten." };
+    console.error("error in deleteTable", err);
+    return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
 }
 

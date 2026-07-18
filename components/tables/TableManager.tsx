@@ -28,7 +28,8 @@ export default function TableManager({ tables }: { tables: Table[] }) {
   function handleToggleActive(table: Table) {
     startTransition(async () => {
       const result = await setTableActive(table.id, !table.active);
-      if (result.error) toast.error(result.error);
+      if (result.success) toast.success(result.message);
+      else toast.error(result.message);
     });
   }
 
@@ -36,7 +37,8 @@ export default function TableManager({ tables }: { tables: Table[] }) {
     if (!confirm(`Tisch "${table.name}" wirklich löschen?`)) return;
     startTransition(async () => {
       const result = await deleteTable(table.id);
-      if (result.error) toast.error(result.error);
+      if (result.success) toast.success(result.message);
+      else toast.error(result.message);
     });
   }
 

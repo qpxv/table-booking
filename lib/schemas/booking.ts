@@ -50,6 +50,10 @@ export const updateBookingSchema = z
     start: z.coerce.date(),
     end: z.coerce.date(),
     game: z.string().trim().optional(),
+    // Optional (not defaulted): omitted entirely by reschedule calls
+    // (drag/resize), which must not touch guest assignments. Only present
+    // when the edit dialog explicitly submits a guest list.
+    guests: z.array(guestInputSchema).optional(),
   })
   .refine((data) => data.start < data.end, {
     message: "Start muss vor dem Ende liegen.",

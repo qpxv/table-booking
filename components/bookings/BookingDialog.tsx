@@ -35,6 +35,7 @@ export default function BookingDialog({
   bookingId,
   initialStart,
   initialEnd,
+  initialGuests,
   knownGuests,
   onClose,
 }: {
@@ -44,10 +45,11 @@ export default function BookingDialog({
   bookingId?: string;
   initialStart: string;
   initialEnd: string;
+  initialGuests?: GuestSelection[];
   knownGuests: GuestWithVisits[];
   onClose: () => void;
 }) {
-  const [selectedGuests, setSelectedGuests] = useState<GuestSelection[]>([]);
+  const [selectedGuests, setSelectedGuests] = useState<GuestSelection[]>(initialGuests ?? []);
   const [pending, startTransition] = useTransition();
   const [cancelPending, startCancelTransition] = useTransition();
 
@@ -69,21 +71,24 @@ export default function BookingDialog({
 
   function onSubmit(values: BookingFieldsInput) {
     startTransition(async () => {
+      const guests = selectedGuests.map(
+        (selection): GuestInput =>
+          selection.type === "existing"
+            ? { guestId: selection.guest.id }
+            : { newName: selection.name },
+      );
+
       const result =
         mode === "create"
-          ? await createBooking(tableId, {
-              ...values,
-              guests: selectedGuests.map(
-                (selection): GuestInput =>
-                  selection.type === "existing"
-                    ? { guestId: selection.guest.id }
-                    : { newName: selection.name },
-              ),
-            })
-          : await updateBooking(bookingId!, values);
+          ? await createBooking(tableId, { ...values, guests })
+          : await updateBooking(bookingId!, { ...values, guests });
 
-      if (result.error) toast.error(result.error);
-      else onClose();
+      if (result.success) {
+        toast.success(result.message);
+        onClose();
+      } else {
+        toast.error(result.message);
+      }
     });
   }
 
@@ -92,8 +97,12 @@ export default function BookingDialog({
     if (!confirm("Diese Buchung wirklich stornieren?")) return;
     startCancelTransition(async () => {
       const result = await cancelBooking(bookingId);
-      if (result.error) toast.error(result.error);
-      else onClose();
+      if (result.success) {
+        toast.success(result.message);
+        onClose();
+      } else {
+        toast.error(result.message);
+      }
     });
   }
 
@@ -144,22 +153,18 @@ export default function BookingDialog({
             />
           </Field>
 
-          {mode === "create" && (
-            <>
-              <Separator />
-              <FieldGroup>
-                <Field>
-                  <FieldLabel>Gäste</FieldLabel>
-                  <GuestMultiCombobox
-                    value={selectedGuests}
-                    onChange={setSelectedGuests}
-                    knownGuests={knownGuests}
-                  />
-                </Field>
-                <p className="text-sm font-semibold">Gastkosten: {guestCost.toFixed(2)} €</p>
-              </FieldGroup>
-            </>
-          )}
+          <Separator />
+          <FieldGroup>
+            <Field>
+              <FieldLabel>Gäste</FieldLabel>
+              <GuestMultiCombobox
+                value={selectedGuests}
+                onChange={setSelectedGuests}
+                knownGuests={knownGuests}
+              />
+            </Field>
+            <p className="text-sm font-semibold">Gastkosten: {guestCost.toFixed(2)} €</p>
+          </FieldGroup>
 
           <DialogFooter className="sm:justify-between">
             <div>

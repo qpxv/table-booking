@@ -12,102 +12,114 @@ import {
   type CreateUserInput,
   type UpdateUserInput,
 } from "@/lib/schemas/user";
+import type { ActionResult } from "@/types/action-result";
 
-async function requireAdminHeaders() {
+/** Returns request headers if the session is an admin, otherwise an ActionResult failure. */
+async function requireAdminHeaders(): Promise<
+  { headers: Headers; authError?: undefined } | { headers?: undefined; authError: ActionResult }
+> {
   const session = await getSession();
   if (!isAdmin(session)) {
-    throw new Error("Nicht berechtigt.");
+    return { authError: { success: false, message: "Nicht berechtigt." } };
   }
-  return headers();
+  return { headers: await headers() };
 }
 
-export type UserFormState = { error?: string; ok?: boolean };
+export async function createUser(values: CreateUserInput): Promise<ActionResult> {
+  const admin = await requireAdminHeaders();
+  if (admin.authError) return admin.authError;
 
-export async function createUser(values: CreateUserInput): Promise<UserFormState> {
+  const parsed = createUserSchema.safeParse(values);
+  if (!parsed.success) return { success: false, message: "Ungültige Eingabe." };
+
   try {
-    const requestHeaders = await requireAdminHeaders();
-    const data = createUserSchema.parse(values);
-
     await auth.api.createUser({
       body: {
-        name: data.name,
-        email: data.email,
-        password: data.password,
-        data: { memberId: data.memberId },
+        name: parsed.data.name,
+        email: parsed.data.email,
+        password: parsed.data.password,
+        data: { memberId: parsed.data.memberId },
       },
-      headers: requestHeaders,
+      headers: admin.headers,
     });
 
     revalidatePath("/admin/users");
-    return { ok: true };
+    return { success: true, message: "Benutzer erstellt." };
   } catch (err) {
-    console.error(err);
-    return { error: err instanceof Error ? err.message : "Ein Fehler ist aufgetreten." };
+    console.error("error in createUser", err);
+    return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
 }
 
-export async function updateUser(
-  userId: string,
-  values: UpdateUserInput,
-): Promise<UserFormState> {
-  try {
-    const requestHeaders = await requireAdminHeaders();
-    const data = updateUserSchema.parse(values);
+export async function updateUser(userId: string, values: UpdateUserInput): Promise<ActionResult> {
+  const admin = await requireAdminHeaders();
+  if (admin.authError) return admin.authError;
 
+  const parsed = updateUserSchema.safeParse(values);
+  if (!parsed.success) return { success: false, message: "Ungültige Eingabe." };
+
+  try {
     await auth.api.adminUpdateUser({
-      body: { userId, data: { name: data.name, memberId: data.memberId } },
-      headers: requestHeaders,
+      body: { userId, data: { name: parsed.data.name, memberId: parsed.data.memberId } },
+      headers: admin.headers,
     });
 
     revalidatePath("/admin/users");
-    return { ok: true };
+    return { success: true, message: "Benutzer aktualisiert." };
   } catch (err) {
-    console.error(err);
-    return { error: err instanceof Error ? err.message : "Ein Fehler ist aufgetreten." };
+    console.error("error in updateUser", err);
+    return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
 }
 
-export async function updateUserRole(userId: string, role: string): Promise<UserFormState> {
-  try {
-    const requestHeaders = await requireAdminHeaders();
-    const parsedRole = roleSchema.parse(role);
+export async function updateUserRole(userId: string, role: string): Promise<ActionResult> {
+  const admin = await requireAdminHeaders();
+  if (admin.authError) return admin.authError;
 
+  const parsedRole = roleSchema.safeParse(role);
+  if (!parsedRole.success) return { success: false, message: "Ungültige Eingabe." };
+
+  try {
     await auth.api.setRole({
-      body: { userId, role: parsedRole },
-      headers: requestHeaders,
+      body: { userId, role: parsedRole.data },
+      headers: admin.headers,
     });
 
     revalidatePath("/admin/users");
-    return { ok: true };
+    return { success: true, message: "Rolle aktualisiert." };
   } catch (err) {
-    console.error(err);
-    return { error: err instanceof Error ? err.message : "Ein Fehler ist aufgetreten." };
+    console.error("error in updateUserRole", err);
+    return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
 }
 
-export async function deleteUser(userId: string): Promise<UserFormState> {
-  try {
-    const requestHeaders = await requireAdminHeaders();
+export async function deleteUser(userId: string): Promise<ActionResult> {
+  const admin = await requireAdminHeaders();
+  if (admin.authError) return admin.authError;
 
+  try {
     await auth.api.removeUser({
       body: { userId },
-      headers: requestHeaders,
+      headers: admin.headers,
     });
 
     revalidatePath("/admin/users");
-    return { ok: true };
+    return { success: true, message: "Benutzer gelöscht." };
   } catch (err) {
-    console.error(err);
-    return { error: err instanceof Error ? err.message : "Ein Fehler ist aufgetreten." };
+    console.error("error in deleteUser", err);
+    return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
 }
 
 export async function listUsers() {
-  const requestHeaders = await requireAdminHeaders();
+  const session = await getSession();
+  if (!isAdmin(session)) {
+    throw new Error("Nicht berechtigt.");
+  }
 
   const result = await auth.api.listUsers({
     query: { sortBy: "name", sortDirection: "asc", limit: 200 },
-    headers: requestHeaders,
+    headers: await headers(),
   });
 
   return result.users;

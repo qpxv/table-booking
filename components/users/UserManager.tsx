@@ -28,7 +28,8 @@ export default function UserManager({ users }: { users: AppUser[] }) {
     if (!confirm(`Benutzer "${user.name}" wirklich löschen?`)) return;
     startTransition(async () => {
       const result = await deleteUser(user.id);
-      if (result.error) toast.error(result.error);
+      if (result.success) toast.success(result.message);
+      else toast.error(result.message);
     });
   }
 

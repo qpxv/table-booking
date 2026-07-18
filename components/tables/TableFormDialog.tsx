@@ -30,8 +30,12 @@ export default function TableFormDialog({
   function onSubmit(values: TableInput) {
     startTransition(async () => {
       const result = table ? await updateTable(table.id, values) : await createTable(values);
-      if (result.error) toast.error(result.error);
-      else onClose();
+      if (result.success) {
+        toast.success(result.message);
+        onClose();
+      } else {
+        toast.error(result.message);
+      }
     });
   }
 

@@ -52,8 +52,12 @@ export default function UserFormDialog({
       const result = user
         ? await updateUser(user.id, values as UpdateUserInput)
         : await createUser(values as CreateUserInput);
-      if (result.error) toast.error(result.error);
-      else onClose();
+      if (result.success) {
+        toast.success(result.message);
+        onClose();
+      } else {
+        toast.error(result.message);
+      }
     });
   }
 

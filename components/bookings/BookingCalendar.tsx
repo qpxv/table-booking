@@ -12,6 +12,7 @@ import type {
   DateSelectArg,
   DatesSetArg,
   EventClickArg,
+  EventContentArg,
   EventDropArg,
   EventInput,
 } from "@fullcalendar/core";
@@ -21,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import type { GuestWithVisits } from "@/actions/guests";
 import { updateBooking } from "@/actions/bookings";
 import BookingDialog from "./BookingDialog";
+import type { GuestSelection } from "./GuestMultiCombobox";
 
 export type CalendarBooking = {
   id: string;
@@ -29,18 +31,37 @@ export type CalendarBooking = {
   game: string | null;
   userId: string;
   userName: string;
-  guestNames: string[];
+  guests: { guestId: string; name: string }[];
 };
 
 type DialogState =
   | { mode: "create"; start: string; end: string }
   | { mode: "edit"; booking: CalendarBooking };
 
-function describeOtherBooking(booking: CalendarBooking): string {
-  const parts = [booking.userName];
-  if (booking.guestNames.length > 0) parts.push(`+ ${booking.guestNames.join(", ")}`);
-  const withGame = booking.game ? `${parts.join(" ")} – ${booking.game}` : parts.join(" ");
-  return withGame;
+function formatDuration(start: Date, end: Date): string {
+  const minutes = Math.round((end.getTime() - start.getTime()) / 60000);
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (hours === 0) return `${mins} Min`;
+  if (mins === 0) return `${hours} Std`;
+  return `${hours} Std ${mins} Min`;
+}
+
+function renderEventContent(arg: EventContentArg) {
+  const { attendees, game } = arg.event.extendedProps as { attendees: string; game: string | null };
+  const duration =
+    arg.event.start && arg.event.end ? formatDuration(arg.event.start, arg.event.end) : "";
+
+  return (
+    <div className="flex flex-col gap-0.5 overflow-hidden px-1 py-0.5 leading-tight">
+      <div className="truncate font-semibold">{attendees}</div>
+      <div className="truncate text-[0.7rem] opacity-90">
+        {arg.timeText}
+        {duration && ` · ${duration}`}
+      </div>
+      {game && <div className="truncate text-[0.7rem] italic opacity-90">{game}</div>}
+    </div>
+  );
 }
 
 export default function BookingCalendar({
@@ -69,20 +90,29 @@ export default function BookingCalendar({
     () =>
       bookings.map((booking) => {
         const isOwn = booking.userId === currentUserId;
+        const attendees = [booking.userName, ...booking.guests.map((g) => g.name)].join(", ");
         return {
           id: booking.id,
           start: booking.start,
           end: booking.end,
-          title: isOwn ? booking.game || "Deine Buchung" : describeOtherBooking(booking),
+          title: booking.game ? `${attendees} – ${booking.game}` : attendees,
           backgroundColor: isOwn ? "var(--header)" : "#475569",
           borderColor: isOwn ? "var(--header)" : "#475569",
           textColor: isOwn ? "var(--header-foreground)" : "#ffffff",
           editable: isOwn,
-          extendedProps: { isOwn },
+          extendedProps: { isOwn, attendees, game: booking.game },
         };
       }),
     [bookings, currentUserId],
   );
+
+  const editingGuests: GuestSelection[] =
+    dialog?.mode === "edit"
+      ? dialog.booking.guests
+          .map((g) => knownGuests.find((kg) => kg.id === g.guestId))
+          .filter((g): g is GuestWithVisits => Boolean(g))
+          .map((guest) => ({ type: "existing", guest }))
+      : [];
 
   function handleDatesSet(arg: DatesSetArg) {
     setTitle(arg.view.title);
@@ -128,8 +158,10 @@ export default function BookingCalendar({
       game: booking.game ?? undefined,
     });
 
-    if (result.error) {
-      toast.error(result.error);
+    if (result.success) {
+      toast.success(result.message);
+    } else {
+      toast.error(result.message);
       revert();
     }
   }
@@ -193,10 +225,13 @@ export default function BookingCalendar({
         allDaySlot={false}
         selectable
         selectOverlap={false}
+        selectMirror
+        eventStartEditable
         select={handleSelect}
         eventClick={handleEventClick}
         eventDrop={handleEventDrop}
         eventResize={handleEventResize}
+        eventContent={renderEventContent}
         events={events}
         height="auto"
       />
@@ -210,6 +245,7 @@ export default function BookingCalendar({
             dialog.mode === "create" ? dialog.start : dialog.booking.start.toISOString()
           }
           initialEnd={dialog.mode === "create" ? dialog.end : dialog.booking.end.toISOString()}
+          initialGuests={editingGuests}
           knownGuests={knownGuests}
           onClose={() => setDialog(null)}
         />

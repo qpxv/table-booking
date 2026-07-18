@@ -29,7 +29,8 @@ function RoleCell({ user }: { user: AppUser }) {
     if (!nextRole || nextRole === role) return;
     startTransition(async () => {
       const result = await updateUserRole(user.id, nextRole);
-      if (result.error) toast.error(result.error);
+      if (result.success) toast.success(result.message);
+      else toast.error(result.message);
     });
   }
 

@@ -22,7 +22,7 @@ export default function LoginForm() {
     setError(null);
     startTransition(async () => {
       const result = await signIn(values);
-      if (result?.error) setError(result.error);
+      if (result && !result.success) setError(result.message);
     });
   }
 

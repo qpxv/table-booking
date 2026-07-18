@@ -3,14 +3,14 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import type { SignInInput } from "@/lib/schemas/auth";
+import type { ActionResult } from "@/types/action-result";
 
-export type SignInState = { error?: string };
-
-export async function signIn(values: SignInInput): Promise<SignInState> {
+export async function signIn(values: SignInInput): Promise<ActionResult> {
   try {
     await auth.api.signInEmail({ body: values });
-  } catch {
-    return { error: "Anmeldung fehlgeschlagen." };
+  } catch (err) {
+    console.error("error in signIn", err);
+    return { success: false, message: "Anmeldung fehlgeschlagen." };
   }
 
   redirect("/dashboard");

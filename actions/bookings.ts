@@ -12,34 +12,44 @@ import {
   type CreateBookingInput,
   type UpdateBookingInput,
 } from "@/lib/schemas/booking";
-
-export type BookingFormState = { error?: string; ok?: boolean };
+import type { ActionResult } from "@/types/action-result";
 
 export async function createBooking(
   tableId: string,
   values: CreateBookingInput,
-): Promise<BookingFormState> {
-  try {
-    const session = await getSession();
-    if (!session) throw new Error("Nicht angemeldet.");
+): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return { success: false, message: "Nicht angemeldet." };
 
-    const data = createBookingSchema.parse(values);
+  const parsed = createBookingSchema.safeParse(values);
+  if (!parsed.success) return { success: false, message: "Ungültige Eingabe." };
+  const data = parsed.data;
 
-    await prisma.$transaction(async (tx) => {
-      // Server-side overlap validation: a table must not be double-booked
-      // for the same time range.
-      const overlap = await tx.booking.findFirst({
-        where: {
-          tableId,
-          status: BookingStatus.ACTIVE,
-          start: { lt: data.end },
-          end: { gt: data.start },
-        },
-      });
-      if (overlap) {
-        throw new Error("Der Tisch ist im gewählten Zeitraum bereits belegt.");
+  // Server-side overlap validation: a table must not be double-booked for
+  // the same time range.
+  const overlap = await prisma.booking.findFirst({
+    where: {
+      tableId,
+      status: BookingStatus.ACTIVE,
+      start: { lt: data.end },
+      end: { gt: data.start },
+    },
+  });
+  if (overlap) {
+    return { success: false, message: "Der Tisch ist im gewählten Zeitraum bereits belegt." };
+  }
+
+  for (const guestInput of data.guests) {
+    if ("guestId" in guestInput) {
+      const guest = await prisma.guest.findUnique({ where: { id: guestInput.guestId } });
+      if (!guest || guest.userId !== session.user.id) {
+        return { success: false, message: "Ungültiger Gast." };
       }
+    }
+  }
 
+  try {
+    await prisma.$transaction(async (tx) => {
       const newBooking = await tx.booking.create({
         data: {
           tableId,
@@ -52,13 +62,8 @@ export async function createBooking(
 
       for (const guestInput of data.guests) {
         let guestId: string;
-
         if ("guestId" in guestInput) {
-          const guest = await tx.guest.findUnique({ where: { id: guestInput.guestId } });
-          if (!guest || guest.userId !== session.user.id) {
-            throw new Error("Ungültiger Gast.");
-          }
-          guestId = guest.id;
+          guestId = guestInput.guestId;
         } else {
           const newGuest = await tx.guest.create({
             data: { name: guestInput.newName, userId: session.user.id },
@@ -79,65 +84,116 @@ export async function createBooking(
     revalidatePath(`/tische/${tableId}`);
     revalidatePath("/dashboard");
 
-    return { ok: true };
+    return { success: true, message: "Buchung erstellt." };
   } catch (err) {
-    console.error(err);
-    return { error: err instanceof Error ? err.message : "Ein Fehler ist aufgetreten." };
+    console.error("error in createBooking", err);
+    return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
 }
 
 export async function updateBooking(
   id: string,
   values: UpdateBookingInput,
-): Promise<BookingFormState> {
-  try {
-    const session = await getSession();
-    const booking = await prisma.booking.findUnique({ where: { id } });
-    if (!booking) throw new Error("Buchung nicht gefunden.");
-    if (!canEditBooking(session, booking)) throw new Error("Nicht berechtigt.");
+): Promise<ActionResult> {
+  const session = await getSession();
+  const booking = await prisma.booking.findUnique({ where: { id }, include: { guests: true } });
+  if (!booking) return { success: false, message: "Buchung nicht gefunden." };
+  if (!canEditBooking(session, booking)) return { success: false, message: "Nicht berechtigt." };
 
-    const data = updateBookingSchema.parse(values);
+  const parsed = updateBookingSchema.safeParse(values);
+  if (!parsed.success) return { success: false, message: "Ungültige Eingabe." };
+  const data = parsed.data;
 
-    const overlap = await prisma.booking.findFirst({
-      where: {
-        tableId: booking.tableId,
-        status: BookingStatus.ACTIVE,
-        id: { not: id },
-        start: { lt: data.end },
-        end: { gt: data.start },
-      },
-    });
-    if (overlap) {
-      throw new Error("Der Tisch ist im gewählten Zeitraum bereits belegt.");
+  const overlap = await prisma.booking.findFirst({
+    where: {
+      tableId: booking.tableId,
+      status: BookingStatus.ACTIVE,
+      id: { not: id },
+      start: { lt: data.end },
+      end: { gt: data.start },
+    },
+  });
+  if (overlap) {
+    return { success: false, message: "Der Tisch ist im gewählten Zeitraum bereits belegt." };
+  }
+
+  // Guests are only reconciled when the caller actually submitted a list
+  // (the edit dialog does; drag/resize reschedules omit it entirely so
+  // existing guest assignments are left untouched).
+  if (data.guests !== undefined) {
+    for (const guestInput of data.guests) {
+      if ("guestId" in guestInput) {
+        const guest = await prisma.guest.findUnique({ where: { id: guestInput.guestId } });
+        if (!guest || guest.userId !== booking.userId) {
+          return { success: false, message: "Ungültiger Gast." };
+        }
+      }
     }
+  }
 
-    await prisma.booking.update({
-      where: { id },
-      data: { start: data.start, end: data.end, game: data.game || null },
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.booking.update({
+        where: { id },
+        data: { start: data.start, end: data.end, game: data.game || null },
+      });
+
+      if (data.guests === undefined) return;
+
+      const keepGuestIds = new Set<string>();
+
+      for (const guestInput of data.guests) {
+        if ("guestId" in guestInput) {
+          keepGuestIds.add(guestInput.guestId);
+
+          const alreadyAttached = booking.guests.some((bg) => bg.guestId === guestInput.guestId);
+          if (!alreadyAttached) {
+            const previousVisitCount = await tx.bookingGuest.count({
+              where: { guestId: guestInput.guestId },
+            });
+            const price = calculateGuestPrice(previousVisitCount);
+            await tx.bookingGuest.create({
+              data: { bookingId: id, guestId: guestInput.guestId, price },
+            });
+          }
+        } else {
+          const newGuest = await tx.guest.create({
+            data: { name: guestInput.newName, userId: booking.userId },
+          });
+          const price = calculateGuestPrice(0);
+          await tx.bookingGuest.create({ data: { bookingId: id, guestId: newGuest.id, price } });
+          keepGuestIds.add(newGuest.id);
+        }
+      }
+
+      const toRemove = booking.guests.filter((bg) => !keepGuestIds.has(bg.guestId));
+      if (toRemove.length > 0) {
+        await tx.bookingGuest.deleteMany({ where: { id: { in: toRemove.map((bg) => bg.id) } } });
+      }
     });
 
     revalidatePath(`/tische/${booking.tableId}`);
     revalidatePath("/dashboard");
 
-    return { ok: true };
+    return { success: true, message: "Buchung aktualisiert." };
   } catch (err) {
-    console.error(err);
-    return { error: err instanceof Error ? err.message : "Ein Fehler ist aufgetreten." };
+    console.error("error in updateBooking", err);
+    return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
 }
 
-export async function cancelBooking(id: string): Promise<BookingFormState> {
+export async function cancelBooking(id: string): Promise<ActionResult> {
+  const session = await getSession();
+  const booking = await prisma.booking.findUnique({ where: { id } });
+  if (!booking) return { success: false, message: "Buchung nicht gefunden." };
+
+  // Admins can cancel any booking; members only their own
+  // (canEditBooking already covers "owner OR admin").
+  if (!canEditBooking(session, booking)) {
+    return { success: false, message: "Nicht berechtigt." };
+  }
+
   try {
-    const session = await getSession();
-    const booking = await prisma.booking.findUnique({ where: { id } });
-    if (!booking) throw new Error("Buchung nicht gefunden.");
-
-    // Admins can cancel any booking; members only their own
-    // (canEditBooking already covers "owner OR admin").
-    if (!canEditBooking(session, booking)) {
-      throw new Error("Nicht berechtigt.");
-    }
-
     // Soft delete via status — no hard delete, for traceability.
     await prisma.booking.update({
       where: { id },
@@ -147,10 +203,10 @@ export async function cancelBooking(id: string): Promise<BookingFormState> {
     revalidatePath(`/tische/${booking.tableId}`);
     revalidatePath("/dashboard");
 
-    return { ok: true };
+    return { success: true, message: "Buchung storniert." };
   } catch (err) {
-    console.error(err);
-    return { error: err instanceof Error ? err.message : "Ein Fehler ist aufgetreten." };
+    console.error("error in cancelBooking", err);
+    return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
 }
 
