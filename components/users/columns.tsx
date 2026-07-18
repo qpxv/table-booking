@@ -56,9 +56,11 @@ function RoleCell({ user }: { user: AppUser }) {
 }
 
 export function createUserColumns({
+  pending,
   onEdit,
   onDelete,
 }: {
+  pending: boolean;
   onEdit: (user: AppUser) => void;
   onDelete: (user: AppUser) => void;
 }): ColumnDef<AppUser>[] {
@@ -96,8 +98,8 @@ export function createUserColumns({
       cell: ({ row }) => (
         <div className="flex justify-end">
           <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
-              <MoreHorizontal />
+            <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" disabled={pending} />}>
+              {pending ? <Spinner /> : <MoreHorizontal />}
               <span className="sr-only">Aktionen</span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

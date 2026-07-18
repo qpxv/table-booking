@@ -13,7 +13,7 @@ import TableFormDialog from "./TableFormDialog";
 export default function TableManager({ tables }: { tables: Table[] }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTable, setEditingTable] = useState<Table | null>(null);
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
 
   function openCreateDialog() {
     setEditingTable(null);
@@ -45,11 +45,12 @@ export default function TableManager({ tables }: { tables: Table[] }) {
   const columns = useMemo(
     () =>
       createTableColumns({
+        pending: isPending,
         onToggleActive: handleToggleActive,
         onEdit: openEditDialog,
         onDelete: handleDelete,
       }),
-    [],
+    [isPending],
   );
 
   return (

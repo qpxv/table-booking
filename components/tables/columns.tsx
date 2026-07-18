@@ -4,6 +4,7 @@ import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Spinner } from "@/components/ui/spinner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,10 +14,12 @@ import {
 import type { Table as TableRecord } from "@/generated/prisma/client";
 
 export function createTableColumns({
+  pending,
   onToggleActive,
   onEdit,
   onDelete,
 }: {
+  pending: boolean;
   onToggleActive: (table: TableRecord) => void;
   onEdit: (table: TableRecord) => void;
   onDelete: (table: TableRecord) => void;
@@ -39,10 +42,12 @@ export function createTableColumns({
       accessorKey: "active",
       header: () => <div className="text-right">Aktiv</div>,
       cell: ({ row }) => (
-        <div className="flex justify-end">
+        <div className="flex items-center justify-end gap-2">
+          {pending && <Spinner />}
           <Switch
             checked={row.original.active}
             onCheckedChange={() => onToggleActive(row.original)}
+            disabled={pending}
           />
         </div>
       ),
@@ -53,8 +58,8 @@ export function createTableColumns({
       cell: ({ row }) => (
         <div className="flex justify-end">
           <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
-              <MoreHorizontal />
+            <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" disabled={pending} />}>
+              {pending ? <Spinner /> : <MoreHorizontal />}
               <span className="sr-only">Aktionen</span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

@@ -12,7 +12,7 @@ import UserFormDialog, { type AppUser } from "./UserFormDialog";
 export default function UserManager({ users }: { users: AppUser[] }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<AppUser | null>(null);
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
 
   function openCreateDialog() {
     setEditingUser(null);
@@ -34,8 +34,8 @@ export default function UserManager({ users }: { users: AppUser[] }) {
   }
 
   const columns = useMemo(
-    () => createUserColumns({ onEdit: openEditDialog, onDelete: handleDelete }),
-    [],
+    () => createUserColumns({ pending: isPending, onEdit: openEditDialog, onDelete: handleDelete }),
+    [isPending],
   );
 
   return (
