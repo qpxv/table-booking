@@ -83,7 +83,7 @@ export default function AppShell({
             <Menu />
             <span className="sr-only">Menü</span>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
+          <DropdownMenuContent align="start" className="w-48">
             {links.map((link) => (
               <DropdownMenuItem key={link.href} render={<Link href={link.href} />}>
                 {link.label}

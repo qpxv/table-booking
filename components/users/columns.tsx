@@ -102,7 +102,7 @@ export function createUserColumns({
               <MoreHorizontal />
               <span className="sr-only">Aktionen</span>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-52">
               <DropdownMenuItem onClick={() => onEdit(row.original)}>Bearbeiten</DropdownMenuItem>
               <DropdownMenuItem onClick={() => onResetPassword(row.original)}>
                 <KeyRound />
