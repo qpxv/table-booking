@@ -17,6 +17,22 @@ import { authClient } from "@/lib/auth-client";
 
 type Tab = "profile" | "password";
 
+// better-auth's client errors carry a stable `code` alongside an
+// English `message` — map the ones these two forms can actually hit to
+// German, since the raw API message is what would otherwise land in the
+// toast verbatim.
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  INVALID_PASSWORD: "Aktuelles Passwort ist falsch.",
+  PASSWORD_TOO_SHORT: "Passwort ist zu kurz.",
+  PASSWORD_TOO_LONG: "Passwort ist zu lang.",
+  CREDENTIAL_ACCOUNT_NOT_FOUND: "Für dieses Konto ist kein Passwort hinterlegt.",
+  CHANGE_EMAIL_DISABLED: "E-Mail-Änderung ist deaktiviert.",
+};
+
+function authErrorMessage(error: { code?: string | null | undefined }): string {
+  return (error.code && AUTH_ERROR_MESSAGES[error.code]) || "Ein Fehler ist aufgetreten.";
+}
+
 const profileSchema = z.object({
   name: z.string().trim().min(1, "Name ist erforderlich"),
   email: z.email("Ungültige E-Mail-Adresse"),
@@ -116,7 +132,7 @@ function ProfileForm({ name, email }: { name: string; email: string }) {
       if (values.name !== name) {
         const { error } = await authClient.updateUser({ name: values.name });
         if (error) {
-          toast.error(error.message ?? "Ein Fehler ist aufgetreten.");
+          toast.error(authErrorMessage(error));
           return;
         }
       }
@@ -124,7 +140,7 @@ function ProfileForm({ name, email }: { name: string; email: string }) {
       if (values.email !== email) {
         const { error } = await authClient.changeEmail({ newEmail: values.email });
         if (error) {
-          toast.error(error.message ?? "Ein Fehler ist aufgetreten.");
+          toast.error(authErrorMessage(error));
           return;
         }
       }
@@ -182,7 +198,7 @@ function PasswordForm() {
         newPassword: values.newPassword,
       });
       if (error) {
-        toast.error(error.message ?? "Ein Fehler ist aufgetreten.");
+        toast.error(authErrorMessage(error));
         return;
       }
 
