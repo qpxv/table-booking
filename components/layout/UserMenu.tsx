@@ -78,7 +78,7 @@ export default function UserMenu({ name, email }: { name: string; email: string 
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleLogout}>
+          <DropdownMenuItem variant="destructive" onClick={handleLogout}>
             <LogOut />
             Abmelden
           </DropdownMenuItem>
