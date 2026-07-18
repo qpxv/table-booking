@@ -226,6 +226,7 @@ export default function BookingCalendar({
         selectable
         selectOverlap={false}
         selectMirror
+        selectLongPressDelay={300}
         eventStartEditable
         select={handleSelect}
         eventClick={handleEventClick}
