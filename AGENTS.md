@@ -72,6 +72,26 @@ still throw normally since they aren't wrapped in this pattern.
   register on mobile without hijacking normal page-scroll swipes. Don't
   "fix" this back to a round number without rereading why.
 
+## Permissions
+
+- **Admins can edit/cancel any booking, not just their own.**
+  `lib/permissions.ts`'s `canEditBooking` already allowed this
+  server-side; the fix was purely in `BookingCalendar.tsx`, which now
+  takes an `isAdmin` prop and uses `isOwn || isAdmin` for both the
+  `editable` (drag/resize) flag and the event-click-to-open-dialog gate.
+  Once the dialog can open at all for an admin, `updateBooking`/
+  `cancelBooking` already do the right permission check — no other
+  changes needed.
+- **Deleting a guest is club-wide, on purpose.** Since guests aren't
+  per-member (see above), `actions/guests.ts`'s `deleteGuest(guestId)`
+  removes the shared `Guest` row entirely — the small "x" on a guest
+  badge in Benutzerverwaltung's "Gäste" column doesn't just detach that
+  guest from the row it was clicked on, it deletes them for every member
+  who has them. Deletes `BookingGuest` rows for that guest first (the FK
+  is `RESTRICT`), then the `Guest` row, in a transaction. Confirmed via
+  `ConfirmDeleteDialog`'s `"guest"` mode, whose description explicitly
+  says so, since this is a broader blast radius than a normal delete.
+
 ## Test data
 
 `npx tsx scripts/seed-test-data.ts` wipes all `Guest`/`BookingGuest` rows
