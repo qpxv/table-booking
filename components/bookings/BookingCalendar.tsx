@@ -68,12 +68,14 @@ export default function BookingCalendar({
   tableId,
   tableName,
   currentUserId,
+  isAdmin,
   bookings,
   knownGuests,
 }: {
   tableId: string;
   tableName: string;
   currentUserId: string;
+  isAdmin: boolean;
   bookings: CalendarBooking[];
   knownGuests: GuestWithVisits[];
 }) {
@@ -99,11 +101,11 @@ export default function BookingCalendar({
           backgroundColor: isOwn ? "var(--secondary)" : "#57534e",
           borderColor: isOwn ? "var(--secondary)" : "#57534e",
           textColor: isOwn ? "var(--secondary-foreground)" : "#ffffff",
-          editable: isOwn,
+          editable: isOwn || isAdmin,
           extendedProps: { isOwn, attendees, game: booking.game },
         };
       }),
-    [bookings, currentUserId],
+    [bookings, currentUserId, isAdmin],
   );
 
   const editingGuests: GuestSelection[] =
@@ -133,7 +135,7 @@ export default function BookingCalendar({
 
   function handleEventClick(clickInfo: EventClickArg) {
     const isOwn = Boolean(clickInfo.event.extendedProps.isOwn);
-    if (!isOwn) return;
+    if (!isOwn && !isAdmin) return;
 
     const booking = bookings.find((b) => b.id === clickInfo.event.id);
     if (!booking) return;

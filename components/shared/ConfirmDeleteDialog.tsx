@@ -15,7 +15,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import type { ActionResult } from "@/types/action-result";
 
-type Mode = "table" | "user" | "booking";
+type Mode = "table" | "user" | "booking" | "guest";
 
 const COPY: Record<
   Mode,
@@ -35,6 +35,12 @@ const COPY: Record<
     title: "Buchung stornieren",
     confirmLabel: "Stornieren",
     description: () => "Diese Buchung wirklich stornieren?",
+  },
+  guest: {
+    title: "Gast entfernen",
+    confirmLabel: "Entfernen",
+    description: (name) =>
+      `„${name}" wirklich entfernen? Der Gast wird bei allen Mitgliedern entfernt, die ihn ebenfalls eingetragen haben.`,
   },
 };
 

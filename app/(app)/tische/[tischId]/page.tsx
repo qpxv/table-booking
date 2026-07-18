@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { isAdmin } from "@/lib/permissions";
 import { listBookingsForTable } from "@/actions/bookings";
 import { listGuests } from "@/actions/guests";
 import BookingCalendar from "@/components/bookings/BookingCalendar";
@@ -36,6 +37,7 @@ export default async function TableCalendarPage({
           tableId={table.id}
           tableName={table.name}
           currentUserId={session.user.id}
+          isAdmin={isAdmin(session)}
           bookings={bookings.map((b) => ({
             id: b.id,
             start: b.start,

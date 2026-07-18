@@ -1,9 +1,11 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { isAdmin } from "@/lib/permissions";
 import { BookingStatus } from "@/generated/prisma/enums";
+import type { ActionResult } from "@/types/action-result";
 
 export type GuestWithVisits = {
   id: string;
@@ -85,4 +87,26 @@ export async function listGuestsGroupedByBringer(): Promise<Record<string, Membe
     result[memberId] = [...guestsForMember.values()].sort((a, b) => a.name.localeCompare(b.name));
   }
   return result;
+}
+
+// Guests are club-wide, so removing one removes it everywhere at once —
+// there's no per-member copy to detach, just the one shared Guest row.
+export async function deleteGuest(guestId: string): Promise<ActionResult> {
+  const session = await getSession();
+  if (!isAdmin(session)) {
+    return { success: false, message: "Nicht berechtigt." };
+  }
+
+  try {
+    await prisma.$transaction([
+      prisma.bookingGuest.deleteMany({ where: { guestId } }),
+      prisma.guest.delete({ where: { id: guestId } }),
+    ]);
+
+    revalidatePath("/admin/users");
+    return { success: true, message: "Gast entfernt." };
+  } catch (err) {
+    console.error("error in deleteGuest", err);
+    return { success: false, message: "Ein Fehler ist aufgetreten." };
+  }
 }

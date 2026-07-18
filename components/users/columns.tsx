@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { ArrowUpDown, KeyRound, MoreHorizontal, Pencil, ShieldCheck, Trash2, User } from "lucide-react";
+import { ArrowUpDown, KeyRound, MoreHorizontal, Pencil, ShieldCheck, Trash2, User, X } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { updateUserRole } from "@/actions/users";
+import type { MemberGuestSummary } from "@/actions/guests";
 import type { AppUser } from "./UserFormDialog";
 
 function RoleCell({ user }: { user: AppUser }) {
@@ -66,10 +67,12 @@ export function createUserColumns({
   onEdit,
   onResetPassword,
   onDelete,
+  onRemoveGuest,
 }: {
   onEdit: (user: AppUser) => void;
   onResetPassword: (user: AppUser) => void;
   onDelete: (user: AppUser) => void;
+  onRemoveGuest: (guest: MemberGuestSummary) => void;
 }): ColumnDef<AppUser>[] {
   return [
     {
@@ -110,9 +113,17 @@ export function createUserColumns({
         return (
           <div className="flex flex-wrap gap-1">
             {guests.map((guest) => (
-              <Badge key={guest.id} variant={guest.isFirstTimer ? "outline" : "secondary"}>
+              <Badge key={guest.id} variant={guest.isFirstTimer ? "outline" : "secondary"} className="gap-1">
                 {guest.name}
                 {guest.isFirstTimer && " · neu"}
+                <button
+                  type="button"
+                  onClick={() => onRemoveGuest(guest)}
+                  className="ml-0.5 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <X className="size-3" />
+                  <span className="sr-only">{guest.name} entfernen</span>
+                </button>
               </Badge>
             ))}
           </div>

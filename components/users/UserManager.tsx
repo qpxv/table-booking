@@ -7,6 +7,7 @@ import { DataTable } from "@/components/ui/data-table";
 import ConfirmDeleteDialog from "@/components/shared/ConfirmDeleteDialog";
 import ResetPasswordDialog from "./ResetPasswordDialog";
 import { deleteUser } from "@/actions/users";
+import { deleteGuest, type MemberGuestSummary } from "@/actions/guests";
 import { createUserColumns } from "./columns";
 import UserFormDialog, { type AppUser } from "./UserFormDialog";
 
@@ -15,6 +16,7 @@ export default function UserManager({ users }: { users: AppUser[] }) {
   const [editingUser, setEditingUser] = useState<AppUser | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AppUser | null>(null);
   const [resetPasswordTarget, setResetPasswordTarget] = useState<AppUser | null>(null);
+  const [removeGuestTarget, setRemoveGuestTarget] = useState<MemberGuestSummary | null>(null);
 
   function openCreateDialog() {
     setEditingUser(null);
@@ -32,6 +34,7 @@ export default function UserManager({ users }: { users: AppUser[] }) {
         onEdit: openEditDialog,
         onResetPassword: setResetPasswordTarget,
         onDelete: setDeleteTarget,
+        onRemoveGuest: setRemoveGuestTarget,
       }),
     [],
   );
@@ -60,6 +63,14 @@ export default function UserManager({ users }: { users: AppUser[] }) {
         <ResetPasswordDialog
           user={resetPasswordTarget}
           onClose={() => setResetPasswordTarget(null)}
+        />
+      )}
+      {removeGuestTarget && (
+        <ConfirmDeleteDialog
+          mode="guest"
+          name={removeGuestTarget.name}
+          onConfirm={() => deleteGuest(removeGuestTarget.id)}
+          onClose={() => setRemoveGuestTarget(null)}
         />
       )}
     </div>
