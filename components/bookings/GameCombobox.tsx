@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useRef, useState } from "react";
+import { Popover, PopoverContent } from "@/components/ui/popover";
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 
@@ -17,28 +17,30 @@ export default function GameCombobox({
   onChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const suggestions = COMMON_GAMES.filter((game) =>
     game.toLowerCase().includes(value.trim().toLowerCase()),
   );
 
   return (
     <Popover open={open && suggestions.length > 0} onOpenChange={setOpen}>
-      <PopoverTrigger
-        nativeButton={false}
-        render={
-          <Input
-            value={value}
-            onChange={(event) => {
-              onChange(event.target.value);
-              setOpen(true);
-            }}
-            onFocus={() => setOpen(true)}
-            placeholder="Spiel"
-            autoComplete="off"
-          />
-        }
+      <Input
+        ref={inputRef}
+        value={value}
+        onChange={(event) => {
+          onChange(event.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        placeholder="Spiel"
+        autoComplete="off"
       />
-      <PopoverContent align="start" className="w-(--anchor-width) p-1" finalFocus={false}>
+      <PopoverContent
+        anchor={inputRef}
+        align="start"
+        className="w-(--anchor-width) p-1"
+        finalFocus={false}
+      >
         <Command>
           <CommandList>
             <CommandGroup>

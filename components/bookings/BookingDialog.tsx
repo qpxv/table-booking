@@ -37,6 +37,7 @@ export default function BookingDialog({
   bookingId,
   initialStart,
   initialEnd,
+  initialGame,
   initialGuests,
   knownGuests,
   onClose,
@@ -47,6 +48,7 @@ export default function BookingDialog({
   bookingId?: string;
   initialStart: string;
   initialEnd: string;
+  initialGame?: string;
   initialGuests?: GuestSelection[];
   knownGuests: GuestWithVisits[];
   onClose: () => void;
@@ -60,7 +62,7 @@ export default function BookingDialog({
     defaultValues: {
       start: new Date(initialStart),
       end: new Date(initialEnd),
-      game: "",
+      game: initialGame ?? "",
     },
   });
 

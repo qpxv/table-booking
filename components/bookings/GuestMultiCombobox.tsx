@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { X } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverContent } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,7 @@ export default function GuestMultiCombobox({
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const selectedIds = new Set(
     value
@@ -70,22 +71,18 @@ export default function GuestMultiCombobox({
         </div>
       )}
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger
-          nativeButton={false}
-          render={
-            <Input
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setOpen(true);
-              }}
-              onFocus={() => setOpen(true)}
-              placeholder="Bekannten Gast wählen oder neuen Namen eingeben"
-              autoComplete="off"
-            />
-          }
+        <Input
+          ref={inputRef}
+          value={search}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          placeholder="Bekannten Gast wählen oder neuen Namen eingeben"
+          autoComplete="off"
         />
-        <PopoverContent align="start" className="w-(--anchor-width) p-1">
+        <PopoverContent anchor={inputRef} align="start" className="w-(--anchor-width) p-1">
           <Command>
             <CommandList>
               {matches.length === 0 && trimmedSearch === "" && (

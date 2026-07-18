@@ -245,6 +245,7 @@ export default function BookingCalendar({
             dialog.mode === "create" ? dialog.start : dialog.booking.start.toISOString()
           }
           initialEnd={dialog.mode === "create" ? dialog.end : dialog.booking.end.toISOString()}
+          initialGame={dialog.mode === "edit" ? (dialog.booking.game ?? "") : ""}
           initialGuests={editingGuests}
           knownGuests={knownGuests}
           onClose={() => setDialog(null)}
