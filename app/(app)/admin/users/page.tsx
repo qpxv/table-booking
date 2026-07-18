@@ -1,8 +1,16 @@
 import { listUsers } from "@/actions/users";
+import { listGuestsGroupedByBringer } from "@/actions/guests";
 import UserManager from "@/components/users/UserManager";
 
 export default async function AdminUsersPage() {
-  const users = await listUsers();
+  const [users, guestsByMember] = await Promise.all([
+    listUsers(),
+    listGuestsGroupedByBringer(),
+  ]);
+  const usersWithGuests = users.map((user) => ({
+    ...user,
+    guests: guestsByMember[user.id] ?? [],
+  }));
 
   return (
     <div className="flex flex-col gap-4">
@@ -12,7 +20,7 @@ export default async function AdminUsersPage() {
           Mitglieder verwalten, Rollen und Zugangsdaten anpassen.
         </p>
       </div>
-      <UserManager users={users} />
+      <UserManager users={usersWithGuests} />
     </div>
   );
 }

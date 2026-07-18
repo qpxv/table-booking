@@ -6,6 +6,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -97,6 +98,26 @@ export function createUserColumns({
       accessorKey: "role",
       header: "Rolle",
       cell: ({ row }) => <RoleCell user={row.original} />,
+    },
+    {
+      id: "guests",
+      header: "Gäste",
+      cell: ({ row }) => {
+        const guests = row.original.guests ?? [];
+        if (guests.length === 0) {
+          return <span className="text-sm text-muted-foreground">Keine Gäste</span>;
+        }
+        return (
+          <div className="flex flex-wrap gap-1">
+            {guests.map((guest) => (
+              <Badge key={guest.id} variant={guest.isFirstTimer ? "outline" : "secondary"}>
+                {guest.name}
+                {guest.isFirstTimer && " · neu"}
+              </Badge>
+            ))}
+          </div>
+        );
+      },
     },
     {
       id: "actions",

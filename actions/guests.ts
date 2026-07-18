@@ -1,8 +1,9 @@
 "use server";
 
-import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
+import { isAdmin } from "@/lib/permissions";
+import { BookingStatus } from "@/generated/prisma/enums";
 
 export type GuestWithVisits = {
   id: string;
@@ -11,12 +12,17 @@ export type GuestWithVisits = {
   hasVisitedBefore: boolean;
 };
 
-export async function listGuestsForUser(): Promise<GuestWithVisits[]> {
+// Guests are a club-wide directory, not scoped per member — in a small
+// club everyone knows each other, and the same person is often brought
+// by different members over time. Searching/matching across everyone's
+// guests (rather than just the logged-in member's own past guests) is
+// what lets a booking reuse an existing guest instead of creating a
+// duplicate with a fresh, incorrect "first visit" status.
+export async function listGuests(): Promise<GuestWithVisits[]> {
   const session = await getSession();
   if (!session) throw new Error("Nicht angemeldet.");
 
   const guests = await prisma.guest.findMany({
-    where: { userId: session.user.id },
     include: { _count: { select: { bookings: true } } },
     orderBy: { name: "asc" },
   });
@@ -29,21 +35,54 @@ export async function listGuestsForUser(): Promise<GuestWithVisits[]> {
   }));
 }
 
-const nameSchema = z.string().trim().min(1, "Name ist erforderlich");
+export type MemberGuestSummary = {
+  id: string;
+  name: string;
+  visitCount: number;
+  isFirstTimer: boolean;
+};
 
-/** Finds an existing guest of the user by name, or creates a new one. */
-export async function findOrCreateGuest(name: string) {
+/**
+ * Guests grouped by the member who brought them (derived from actual
+ * booking history, not Guest's original creator — a guest can be shared
+ * across members). Admin-only, for Benutzerverwaltung.
+ */
+export async function listGuestsGroupedByBringer(): Promise<Record<string, MemberGuestSummary[]>> {
   const session = await getSession();
-  if (!session) throw new Error("Nicht angemeldet.");
+  if (!isAdmin(session)) {
+    throw new Error("Nicht berechtigt.");
+  }
 
-  const parsedName = nameSchema.parse(name);
-
-  const existing = await prisma.guest.findFirst({
-    where: { userId: session.user.id, name: parsedName },
+  const bookingGuests = await prisma.bookingGuest.findMany({
+    where: { booking: { status: BookingStatus.ACTIVE } },
+    include: {
+      guest: { include: { _count: { select: { bookings: true } } } },
+      booking: { select: { userId: true } },
+    },
   });
-  if (existing) return existing;
 
-  return prisma.guest.create({
-    data: { name: parsedName, userId: session.user.id },
-  });
+  const byMember = new Map<string, Map<string, MemberGuestSummary>>();
+  for (const bg of bookingGuests) {
+    const memberId = bg.booking.userId;
+    let guestsForMember = byMember.get(memberId);
+    if (!guestsForMember) {
+      guestsForMember = new Map();
+      byMember.set(memberId, guestsForMember);
+    }
+    if (!guestsForMember.has(bg.guest.id)) {
+      const visitCount = bg.guest._count.bookings;
+      guestsForMember.set(bg.guest.id, {
+        id: bg.guest.id,
+        name: bg.guest.name,
+        visitCount,
+        isFirstTimer: visitCount === 1,
+      });
+    }
+  }
+
+  const result: Record<string, MemberGuestSummary[]> = {};
+  for (const [memberId, guestsForMember] of byMember) {
+    result[memberId] = [...guestsForMember.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }
+  return result;
 }

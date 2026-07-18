@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { createUser, updateUser } from "@/actions/users";
+import type { MemberGuestSummary } from "@/actions/guests";
 import {
   createUserSchema,
   updateUserSchema,
@@ -24,6 +25,7 @@ export type AppUser = {
   email: string;
   memberId?: string | null;
   role?: string | string[] | null;
+  guests?: MemberGuestSummary[];
 };
 
 // Only rendered by the parent while the dialog should be open — the initial

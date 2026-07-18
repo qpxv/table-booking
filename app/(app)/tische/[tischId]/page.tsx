@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { listBookingsForTable } from "@/actions/bookings";
-import { listGuestsForUser } from "@/actions/guests";
+import { listGuests } from "@/actions/guests";
 import BookingCalendar from "@/components/bookings/BookingCalendar";
 
 export default async function TableCalendarPage({
@@ -25,7 +25,7 @@ export default async function TableCalendarPage({
 
   const [bookings, knownGuests] = await Promise.all([
     listBookingsForTable(tischId),
-    listGuestsForUser(),
+    listGuests(),
   ]);
 
   return (

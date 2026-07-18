@@ -42,7 +42,7 @@ export async function createBooking(
   for (const guestInput of data.guests) {
     if ("guestId" in guestInput) {
       const guest = await prisma.guest.findUnique({ where: { id: guestInput.guestId } });
-      if (!guest || guest.userId !== session.user.id) {
+      if (!guest) {
         return { success: false, message: "Ungültiger Gast." };
       }
     }
@@ -65,10 +65,18 @@ export async function createBooking(
         if ("guestId" in guestInput) {
           guestId = guestInput.guestId;
         } else {
-          const newGuest = await tx.guest.create({
-            data: { name: guestInput.newName, userId: session.user.id },
+          // Guests are club-wide — reuse an existing one (case-insensitive)
+          // instead of creating a duplicate for the same real person.
+          const existingGuest = await tx.guest.findFirst({
+            where: { name: { equals: guestInput.newName, mode: "insensitive" } },
           });
-          guestId = newGuest.id;
+          guestId =
+            existingGuest?.id ??
+            (
+              await tx.guest.create({
+                data: { name: guestInput.newName, userId: session.user.id },
+              })
+            ).id;
         }
 
         // Price is frozen at creation time (snapshot), not computed live.
@@ -124,7 +132,7 @@ export async function updateBooking(
     for (const guestInput of data.guests) {
       if ("guestId" in guestInput) {
         const guest = await prisma.guest.findUnique({ where: { id: guestInput.guestId } });
-        if (!guest || guest.userId !== booking.userId) {
+        if (!guest) {
           return { success: false, message: "Ungültiger Gast." };
         }
       }
@@ -157,12 +165,22 @@ export async function updateBooking(
             });
           }
         } else {
-          const newGuest = await tx.guest.create({
-            data: { name: guestInput.newName, userId: booking.userId },
+          // Guests are club-wide — reuse an existing one (case-insensitive)
+          // instead of creating a duplicate for the same real person.
+          const existingGuest = await tx.guest.findFirst({
+            where: { name: { equals: guestInput.newName, mode: "insensitive" } },
           });
-          const price = calculateGuestPrice(0);
-          await tx.bookingGuest.create({ data: { bookingId: id, guestId: newGuest.id, price } });
-          keepGuestIds.add(newGuest.id);
+          const guestId =
+            existingGuest?.id ??
+            (
+              await tx.guest.create({
+                data: { name: guestInput.newName, userId: booking.userId },
+              })
+            ).id;
+          const previousVisitCount = await tx.bookingGuest.count({ where: { guestId } });
+          const price = calculateGuestPrice(previousVisitCount);
+          await tx.bookingGuest.create({ data: { bookingId: id, guestId, price } });
+          keepGuestIds.add(guestId);
         }
       }
 
