@@ -4,7 +4,6 @@ import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Spinner } from "@/components/ui/spinner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,8 +41,7 @@ export function createTableColumns({
       accessorKey: "active",
       header: () => <div className="text-right">Aktiv</div>,
       cell: ({ row }) => (
-        <div className="flex items-center justify-end gap-2">
-          {pending && <Spinner />}
+        <div className="flex justify-end">
           <Switch
             checked={row.original.active}
             onCheckedChange={() => onToggleActive(row.original)}
@@ -58,8 +56,8 @@ export function createTableColumns({
       cell: ({ row }) => (
         <div className="flex justify-end">
           <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" disabled={pending} />}>
-              {pending ? <Spinner /> : <MoreHorizontal />}
+            <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" />}>
+              <MoreHorizontal />
               <span className="sr-only">Aktionen</span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

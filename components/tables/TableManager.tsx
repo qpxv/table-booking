@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
+import ConfirmDeleteDialog from "@/components/shared/ConfirmDeleteDialog";
 import type { Table } from "@/generated/prisma/client";
 import { setTableActive, deleteTable } from "@/actions/tables";
 import { createTableColumns } from "./columns";
@@ -13,6 +14,7 @@ import TableFormDialog from "./TableFormDialog";
 export default function TableManager({ tables }: { tables: Table[] }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTable, setEditingTable] = useState<Table | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Table | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function openCreateDialog() {
@@ -33,22 +35,13 @@ export default function TableManager({ tables }: { tables: Table[] }) {
     });
   }
 
-  function handleDelete(table: Table) {
-    if (!confirm(`Tisch "${table.name}" wirklich löschen?`)) return;
-    startTransition(async () => {
-      const result = await deleteTable(table.id);
-      if (result.success) toast.success(result.message);
-      else toast.error(result.message);
-    });
-  }
-
   const columns = useMemo(
     () =>
       createTableColumns({
         pending: isPending,
         onToggleActive: handleToggleActive,
         onEdit: openEditDialog,
-        onDelete: handleDelete,
+        onDelete: setDeleteTarget,
       }),
     [isPending],
   );
@@ -64,6 +57,14 @@ export default function TableManager({ tables }: { tables: Table[] }) {
       <DataTable columns={columns} data={tables} />
       {dialogOpen && (
         <TableFormDialog table={editingTable} onClose={() => setDialogOpen(false)} />
+      )}
+      {deleteTarget && (
+        <ConfirmDeleteDialog
+          mode="table"
+          name={deleteTarget.name}
+          onConfirm={() => deleteTable(deleteTarget.id)}
+          onClose={() => setDeleteTarget(null)}
+        />
       )}
     </div>
   );

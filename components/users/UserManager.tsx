@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
+import ConfirmDeleteDialog from "@/components/shared/ConfirmDeleteDialog";
 import { deleteUser } from "@/actions/users";
 import { createUserColumns } from "./columns";
 import UserFormDialog, { type AppUser } from "./UserFormDialog";
@@ -12,7 +12,7 @@ import UserFormDialog, { type AppUser } from "./UserFormDialog";
 export default function UserManager({ users }: { users: AppUser[] }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<AppUser | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [deleteTarget, setDeleteTarget] = useState<AppUser | null>(null);
 
   function openCreateDialog() {
     setEditingUser(null);
@@ -24,18 +24,9 @@ export default function UserManager({ users }: { users: AppUser[] }) {
     setDialogOpen(true);
   }
 
-  function handleDelete(user: AppUser) {
-    if (!confirm(`Benutzer "${user.name}" wirklich löschen?`)) return;
-    startTransition(async () => {
-      const result = await deleteUser(user.id);
-      if (result.success) toast.success(result.message);
-      else toast.error(result.message);
-    });
-  }
-
   const columns = useMemo(
-    () => createUserColumns({ pending: isPending, onEdit: openEditDialog, onDelete: handleDelete }),
-    [isPending],
+    () => createUserColumns({ onEdit: openEditDialog, onDelete: setDeleteTarget }),
+    [],
   );
 
   return (
@@ -49,6 +40,14 @@ export default function UserManager({ users }: { users: AppUser[] }) {
       <DataTable columns={columns} data={users} />
       {dialogOpen && (
         <UserFormDialog user={editingUser} onClose={() => setDialogOpen(false)} />
+      )}
+      {deleteTarget && (
+        <ConfirmDeleteDialog
+          mode="user"
+          name={deleteTarget.name}
+          onConfirm={() => deleteUser(deleteTarget.id)}
+          onClose={() => setDeleteTarget(null)}
+        />
       )}
     </div>
   );

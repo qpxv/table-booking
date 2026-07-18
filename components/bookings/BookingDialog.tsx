@@ -15,6 +15,7 @@ import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Separator } from "@/components/ui/separator";
+import ConfirmDeleteDialog from "@/components/shared/ConfirmDeleteDialog";
 import DateTimeField from "./DateTimeField";
 import GameCombobox from "./GameCombobox";
 import GuestMultiCombobox, { type GuestSelection } from "./GuestMultiCombobox";
@@ -51,8 +52,8 @@ export default function BookingDialog({
   onClose: () => void;
 }) {
   const [selectedGuests, setSelectedGuests] = useState<GuestSelection[]>(initialGuests ?? []);
+  const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
   const [pending, startTransition] = useTransition();
-  const [cancelPending, startCancelTransition] = useTransition();
 
   const form = useForm<BookingFieldsInput>({
     resolver: zodResolver(bookingFieldsSchema),
@@ -93,106 +94,104 @@ export default function BookingDialog({
     });
   }
 
-  function handleCancel() {
-    if (!bookingId) return;
-    if (!confirm("Diese Buchung wirklich stornieren?")) return;
-    startCancelTransition(async () => {
-      const result = await cancelBooking(bookingId);
-      if (result.success) {
-        toast.success(result.message);
-        onClose();
-      } else {
-        toast.error(result.message);
-      }
-    });
-  }
-
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {tableName} — {mode === "create" ? "Neue Buchung" : "Buchung bearbeiten"}
-          </DialogTitle>
-        </DialogHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Field data-invalid={!!form.formState.errors.start}>
-              <FieldLabel htmlFor="start">Start</FieldLabel>
-              <Controller
-                name="start"
-                control={form.control}
-                render={({ field }) => (
-                  <DateTimeField id="start" value={field.value} onChange={field.onChange} />
+    <>
+      <Dialog open onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {tableName} — {mode === "create" ? "Neue Buchung" : "Buchung bearbeiten"}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Field data-invalid={!!form.formState.errors.start}>
+                <FieldLabel htmlFor="start">Start</FieldLabel>
+                <Controller
+                  name="start"
+                  control={form.control}
+                  render={({ field }) => (
+                    <DateTimeField id="start" value={field.value} onChange={field.onChange} />
+                  )}
+                />
+                {form.formState.errors.start && (
+                  <FieldError errors={[form.formState.errors.start]} />
                 )}
-              />
-              {form.formState.errors.start && (
-                <FieldError errors={[form.formState.errors.start]} />
-              )}
-            </Field>
-            <Field data-invalid={!!form.formState.errors.end}>
-              <FieldLabel htmlFor="end">Ende</FieldLabel>
-              <Controller
-                name="end"
-                control={form.control}
-                render={({ field }) => (
-                  <DateTimeField id="end" value={field.value} onChange={field.onChange} />
-                )}
-              />
-              {form.formState.errors.end && <FieldError errors={[form.formState.errors.end]} />}
-            </Field>
-          </div>
+              </Field>
+              <Field data-invalid={!!form.formState.errors.end}>
+                <FieldLabel htmlFor="end">Ende</FieldLabel>
+                <Controller
+                  name="end"
+                  control={form.control}
+                  render={({ field }) => (
+                    <DateTimeField id="end" value={field.value} onChange={field.onChange} />
+                  )}
+                />
+                {form.formState.errors.end && <FieldError errors={[form.formState.errors.end]} />}
+              </Field>
+            </div>
 
-          <Field>
-            <FieldLabel htmlFor="game">Spiel</FieldLabel>
-            <Controller
-              name="game"
-              control={form.control}
-              render={({ field }) => (
-                <GameCombobox value={field.value ?? ""} onChange={field.onChange} />
-              )}
-            />
-          </Field>
-
-          <Separator />
-          <FieldGroup>
             <Field>
-              <FieldLabel>Gäste</FieldLabel>
-              <GuestMultiCombobox
-                value={selectedGuests}
-                onChange={setSelectedGuests}
-                knownGuests={knownGuests}
+              <FieldLabel htmlFor="game">Spiel</FieldLabel>
+              <Controller
+                name="game"
+                control={form.control}
+                render={({ field }) => (
+                  <GameCombobox value={field.value ?? ""} onChange={field.onChange} />
+                )}
               />
             </Field>
-            <p className="text-sm font-semibold">Gastkosten: {guestCost.toFixed(2)} €</p>
-          </FieldGroup>
 
-          <DialogFooter className="sm:justify-between">
-            <div>
-              {mode === "edit" && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleCancel}
-                  disabled={pending || cancelPending}
-                >
-                  {cancelPending && <Spinner />}
-                  Stornieren
+            <Separator />
+            <FieldGroup>
+              <Field>
+                <FieldLabel>Gäste</FieldLabel>
+                <GuestMultiCombobox
+                  value={selectedGuests}
+                  onChange={setSelectedGuests}
+                  knownGuests={knownGuests}
+                />
+              </Field>
+              <p className="text-sm font-semibold">Gastkosten: {guestCost.toFixed(2)} €</p>
+            </FieldGroup>
+
+            <DialogFooter className="sm:justify-between">
+              <div>
+                {mode === "edit" && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => setConfirmCancelOpen(true)}
+                    disabled={pending}
+                  >
+                    Stornieren
+                  </Button>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={onClose}>
+                  Abbrechen
                 </Button>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={onClose}>
-                Abbrechen
-              </Button>
-              <Button type="submit" disabled={pending || cancelPending}>
-                {pending && <Spinner />}
-                Speichern
-              </Button>
-            </div>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+                <Button type="submit" disabled={pending}>
+                  {pending && <Spinner />}
+                  Speichern
+                </Button>
+              </div>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      {confirmCancelOpen && (
+        <ConfirmDeleteDialog
+          mode="booking"
+          onConfirm={async () => {
+            const result = await cancelBooking(bookingId!);
+            if (result.success) onClose();
+            return result;
+          }}
+          onClose={() => setConfirmCancelOpen(false)}
+        />
+      )}
+    </>
   );
 }
