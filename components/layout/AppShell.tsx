@@ -43,7 +43,7 @@ export default function AppShell({
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="flex items-center gap-2 border-b bg-header px-4 py-2 text-header-foreground">
+      <header className="flex items-center gap-2 border-b bg-header px-4 py-3 text-header-foreground">
         <Link href="/dashboard" className="flex min-w-0 grow items-center gap-2 truncate">
           <Image
             src="/club-logo-dark.png"
@@ -53,9 +53,7 @@ export default function AppShell({
             priority
             className="h-8 w-auto shrink-0"
           />
-          <span className="hidden truncate font-heading text-lg font-semibold md:inline">
-            Dice-Bock e.V.
-          </span>
+          <span className="truncate font-heading text-lg font-semibold">Dice-Bock e.V.</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
