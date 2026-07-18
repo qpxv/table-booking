@@ -48,6 +48,22 @@ still throw normally since they aren't wrapped in this pattern.
 - Mobile: use `min-h-dvh`, not `min-h-screen` (the latter causes phantom
   scroll on mobile Safari, since `100vh` includes the area behind the
   collapsible address bar).
+- **Mobile nav** (`components/layout/MobileNav.tsx`) uses shadcn's
+  `Sidebar` in mobile-only capacity — desktop keeps `AppShell.tsx`'s
+  original inline-nav-+-`UserMenu` header untouched. `Sidebar` has no
+  "become a horizontal top bar" mode, so this isn't a unification, just
+  the existing header's mobile hamburger replaced with a proper drawer
+  (nav links + account actions). It works as mobile-only for free:
+  `SidebarProvider`'s `open` (desktop) and `openMobile` (mobile) are
+  independent, and the only trigger rendered is `md:hidden`, so `open`
+  is never touched and stays at its (explicitly set) `defaultOpen={false}`
+  — no CSS overrides on the vendored component needed. **Gotcha**: don't
+  put dialog-open state (e.g. `SettingsDialog`'s) inside a component
+  that lives inside the `Sidebar`'s own Sheet subtree — closing the
+  drawer unmounts that subtree, so if the same click both closes the
+  drawer and opens a dialog, the dialog's state has to live in the
+  parent that persists (`MobileNav` itself), not in the footer component
+  that's about to be unmounted.
 
 ## Data model notes
 

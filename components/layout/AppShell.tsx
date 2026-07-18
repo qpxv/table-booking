@@ -1,13 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import MobileNav from "./MobileNav";
 import UserMenu from "./UserMenu";
 
 type AppShellUser = {
@@ -59,7 +53,9 @@ export default function AppShell({
             priority
             className="h-8 w-auto shrink-0"
           />
-          <span className="truncate font-heading text-lg font-semibold">Dice-Bock e.V.</span>
+          <span className="hidden truncate font-heading text-lg font-semibold md:inline">
+            Dice-Bock e.V.
+          </span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
@@ -70,29 +66,11 @@ export default function AppShell({
           ))}
         </nav>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-header-foreground hover:bg-header-foreground/10 hover:text-header-foreground aria-expanded:bg-header-foreground/10 aria-expanded:text-header-foreground md:hidden"
-              />
-            }
-          >
-            <Menu />
-            <span className="sr-only">Menü</span>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-48">
-            {links.map((link) => (
-              <DropdownMenuItem key={link.href} render={<Link href={link.href} />}>
-                {link.label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <MobileNav links={links} name={user.name} email={user.email} />
 
-        <UserMenu name={user.name} email={user.email} />
+        <div className="hidden md:block">
+          <UserMenu name={user.name} email={user.email} />
+        </div>
       </header>
       <main className="flex flex-1 flex-col p-6">{children}</main>
     </div>
