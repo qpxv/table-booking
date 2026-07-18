@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -60,9 +60,13 @@ export function createTableColumns({
               <MoreHorizontal />
               <span className="sr-only">Aktionen</span>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onEdit(row.original)}>Bearbeiten</DropdownMenuItem>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={() => onEdit(row.original)}>
+                <Pencil />
+                Bearbeiten
+              </DropdownMenuItem>
               <DropdownMenuItem variant="destructive" onClick={() => onDelete(row.original)}>
+                <Trash2 />
                 Löschen
               </DropdownMenuItem>
             </DropdownMenuContent>

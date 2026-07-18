@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { ArrowUpDown, KeyRound, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown, KeyRound, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -103,12 +103,16 @@ export function createUserColumns({
               <span className="sr-only">Aktionen</span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuItem onClick={() => onEdit(row.original)}>Bearbeiten</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onEdit(row.original)}>
+                <Pencil />
+                Bearbeiten
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onResetPassword(row.original)}>
                 <KeyRound />
                 Passwort zurücksetzen
               </DropdownMenuItem>
               <DropdownMenuItem variant="destructive" onClick={() => onDelete(row.original)}>
+                <Trash2 />
                 Löschen
               </DropdownMenuItem>
             </DropdownMenuContent>

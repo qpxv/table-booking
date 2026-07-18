@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { CalendarX, Save, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -166,16 +167,18 @@ export default function BookingDialog({
                     onClick={() => setConfirmCancelOpen(true)}
                     disabled={pending}
                   >
+                    <CalendarX />
                     Stornieren
                   </Button>
                 )}
               </div>
               <div className="flex gap-2">
                 <Button type="button" variant="outline" onClick={onClose}>
+                  <X />
                   Abbrechen
                 </Button>
                 <Button type="submit" disabled={pending}>
-                  {pending && <Spinner />}
+                  {pending ? <Spinner /> : <Save />}
                   Speichern
                 </Button>
               </div>
