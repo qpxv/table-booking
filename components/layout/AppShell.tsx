@@ -76,7 +76,7 @@ export default function AppShell({
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-header-foreground hover:bg-header-foreground/10 hover:text-header-foreground md:hidden"
+                className="text-header-foreground hover:bg-header-foreground/10 hover:text-header-foreground aria-expanded:bg-header-foreground/10 aria-expanded:text-header-foreground md:hidden"
               />
             }
           >

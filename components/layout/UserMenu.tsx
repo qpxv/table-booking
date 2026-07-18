@@ -40,7 +40,7 @@ export default function UserMenu({ name, email }: { name: string; email: string 
         render={
           <Button
             variant="ghost"
-            className="h-9 gap-2 px-1.5 text-header-foreground hover:bg-header-foreground/10 hover:text-header-foreground"
+            className="h-9 gap-2 px-1.5 text-header-foreground hover:bg-header-foreground/10 hover:text-header-foreground aria-expanded:bg-header-foreground/10 aria-expanded:text-header-foreground"
           />
         }
       >
