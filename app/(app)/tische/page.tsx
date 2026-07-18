@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Dices, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { listTablesWithUpcomingWeekCounts } from "@/actions/tables";
 
@@ -7,26 +8,55 @@ export default async function TablesListPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold tracking-tight">Tische</h1>
+      <div>
+        <h1 className="text-xl font-semibold tracking-tight">Tische</h1>
+        <p className="text-sm text-muted-foreground">
+          Wähle einen Tisch, um die Buchungen zu sehen.
+        </p>
+      </div>
 
       {activeTables.length === 0 && (
         <p className="text-sm text-muted-foreground">Aktuell sind keine Tische verfügbar.</p>
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
-        {activeTables.map((table) => (
-          <Link key={table.id} href={`/tische/${table.id}`} className="block">
-            <Card className="transition-shadow hover:shadow-md">
-              <CardContent className="flex items-center justify-between gap-2">
-                <CardTitle>{table.name}</CardTitle>
-                <span className="text-sm text-muted-foreground">
-                  {table.upcomingWeekBookingCount}{" "}
-                  {table.upcomingWeekBookingCount === 1 ? "Buchung" : "Buchungen"} diese Woche
-                </span>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
+        {activeTables.map((table) => {
+          const hasBookings = table.upcomingWeekBookingCount > 0;
+          return (
+            <Link key={table.id} href={`/tische/${table.id}`} className="block">
+              <Card className="ring-foreground/10 transition-all hover:shadow-md hover:ring-secondary/30">
+                <CardContent className="flex flex-col gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                      <Dices className="size-5" />
+                    </div>
+                    <CardTitle className="grow text-lg">{table.name}</CardTitle>
+                    <ChevronRight className="size-4 shrink-0 text-muted-foreground opacity-0 transition-all group-hover/card:translate-x-0.5 group-hover/card:opacity-100" />
+                  </div>
+
+                  <div>
+                    <p
+                      className={
+                        hasBookings
+                          ? "font-heading text-3xl font-semibold text-secondary"
+                          : "font-heading text-3xl font-semibold text-muted-foreground"
+                      }
+                    >
+                      {table.upcomingWeekBookingCount}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {hasBookings
+                        ? table.upcomingWeekBookingCount === 1
+                          ? "Buchung diese Woche"
+                          : "Buchungen diese Woche"
+                        : "Keine Buchungen diese Woche"}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

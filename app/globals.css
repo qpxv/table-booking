@@ -155,6 +155,12 @@
   --fc-today-bg-color: color-mix(in oklch, var(--header) 8%, transparent);
   --fc-now-indicator-color: var(--destructive);
   --fc-highlight-color: color-mix(in oklch, var(--header) 15%, transparent);
+  /* FullCalendar's own default is blue (#3788d8) — every real booking
+     already overrides this per-event, but the selectMirror drag preview
+     doesn't, so it needs its own gray default too. */
+  --fc-event-bg-color: #57534e;
+  --fc-event-border-color: #57534e;
+  --fc-event-text-color: #ffffff;
   --fc-small-font-size: 0.8rem;
   font-family: var(--font-sans);
 }
