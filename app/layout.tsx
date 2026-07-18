@@ -22,7 +22,7 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Dice-Bock",
+  title: "Dice-Bock e.V.",
   description: "Tischbuchungsapp für den Dice-Bock e.V.",
 };
 

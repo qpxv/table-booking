@@ -59,7 +59,7 @@ export default function AppShell({
             priority
             className="h-8 w-auto shrink-0"
           />
-          <span className="truncate font-heading text-lg font-semibold">Dice-Bock</span>
+          <span className="truncate font-heading text-lg font-semibold">Dice-Bock e.V.</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
