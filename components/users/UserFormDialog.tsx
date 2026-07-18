@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { createUser, updateUser } from "@/actions/users";
 import {
   createUserSchema,
@@ -129,6 +130,7 @@ function CreateUserForm({ onClose }: { onClose: () => void }) {
           Abbrechen
         </Button>
         <Button type="submit" disabled={pending}>
+          {pending && <Spinner />}
           Speichern
         </Button>
       </DialogFooter>
@@ -190,6 +192,7 @@ function EditUserForm({ user, onClose }: { user: AppUser; onClose: () => void })
           Abbrechen
         </Button>
         <Button type="submit" disabled={pending}>
+          {pending && <Spinner />}
           Speichern
         </Button>
       </DialogFooter>

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Separator } from "@/components/ui/separator";
 import DateTimeField from "./DateTimeField";
 import GameCombobox from "./GameCombobox";
@@ -175,6 +176,7 @@ export default function BookingDialog({
                   onClick={handleCancel}
                   disabled={pending || cancelPending}
                 >
+                  {cancelPending && <Spinner />}
                   Stornieren
                 </Button>
               )}
@@ -184,6 +186,7 @@ export default function BookingDialog({
                 Abbrechen
               </Button>
               <Button type="submit" disabled={pending || cancelPending}>
+                {pending && <Spinner />}
                 Speichern
               </Button>
             </div>

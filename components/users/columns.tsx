@@ -5,6 +5,7 @@ import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Select,
   SelectContent,
@@ -38,7 +39,12 @@ function RoleCell({ user }: { user: AppUser }) {
     <Select value={role} onValueChange={handleChange} disabled={pending}>
       <SelectTrigger size="sm" className="w-32">
         <SelectValue>
-          {(value: "admin" | "user") => (value === "admin" ? "Vorstand" : "Mitglied")}
+          {(value: "admin" | "user") => (
+            <span className="flex items-center gap-1.5">
+              {pending && <Spinner />}
+              {value === "admin" ? "Vorstand" : "Mitglied"}
+            </span>
+          )}
         </SelectValue>
       </SelectTrigger>
       <SelectContent>

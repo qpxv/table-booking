@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import type { Table } from "@/generated/prisma/client";
 import { createTable, updateTable } from "@/actions/tables";
 import { tableSchema, type TableInput } from "@/lib/schemas/table";
@@ -64,6 +65,7 @@ export default function TableFormDialog({
               Abbrechen
             </Button>
             <Button type="submit" disabled={pending}>
+              {pending && <Spinner />}
               Speichern
             </Button>
           </DialogFooter>
