@@ -38,12 +38,12 @@ function RoleCell({ user }: { user: AppUser }) {
     <Select value={role} onValueChange={handleChange} disabled={pending}>
       <SelectTrigger size="sm" className="w-32">
         <SelectValue>
-          {(value: "admin" | "user") => (value === "admin" ? "Admin" : "Mitglied")}
+          {(value: "admin" | "user") => (value === "admin" ? "Vorstand" : "Mitglied")}
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="user">Mitglied</SelectItem>
-        <SelectItem value="admin">Admin</SelectItem>
+        <SelectItem value="admin">Vorstand</SelectItem>
       </SelectContent>
     </Select>
   );
