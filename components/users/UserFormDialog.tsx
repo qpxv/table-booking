@@ -24,8 +24,6 @@ export type AppUser = {
   role?: string | string[] | null;
 };
 
-type FormValues = CreateUserInput | UpdateUserInput;
-
 // Only rendered by the parent while the dialog should be open — the initial
 // values are taken directly from props on mount (no reset effect needed).
 export default function UserFormDialog({
@@ -35,23 +33,36 @@ export default function UserFormDialog({
   user: AppUser | null;
   onClose: () => void;
 }) {
-  const isEdit = Boolean(user);
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{user ? "Benutzer bearbeiten" : "Neuer Benutzer"}</DialogTitle>
+        </DialogHeader>
+        {user ? (
+          <EditUserForm user={user} onClose={onClose} />
+        ) : (
+          <CreateUserForm onClose={onClose} />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// create and edit submit different (and differently shaped) data to
+// different actions, so each gets its own form typed to its own schema
+// output — no shared union type, so no cast is needed at the call site.
+
+function CreateUserForm({ onClose }: { onClose: () => void }) {
   const [pending, startTransition] = useTransition();
-  const form = useForm<FormValues>({
-    resolver: zodResolver(isEdit ? updateUserSchema : createUserSchema),
-    defaultValues: {
-      name: user?.name ?? "",
-      email: user?.email ?? "",
-      password: "",
-      memberId: user?.memberId ?? "",
-    },
+  const form = useForm<CreateUserInput>({
+    resolver: zodResolver(createUserSchema),
+    defaultValues: { name: "", email: "", password: "", memberId: "" },
   });
 
-  function onSubmit(values: FormValues) {
+  function onSubmit(values: CreateUserInput) {
     startTransition(async () => {
-      const result = user
-        ? await updateUser(user.id, values as UpdateUserInput)
-        : await createUser(values as CreateUserInput);
+      const result = await createUser(values);
       if (result.success) {
         toast.success(result.message);
         onClose();
@@ -62,85 +73,126 @@ export default function UserFormDialog({
   }
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Benutzer bearbeiten" : "Neuer Benutzer"}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          <FieldGroup>
-            <Controller
-              name="name"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Name</FieldLabel>
-                  <Input {...field} id={field.name} autoFocus aria-invalid={fieldState.invalid} />
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                </Field>
+    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+      <FieldGroup>
+        <Controller
+          name="name"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={field.name}>Name</FieldLabel>
+              <Input {...field} id={field.name} autoFocus aria-invalid={fieldState.invalid} />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
+        <Controller
+          name="memberId"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={field.name}>Mitgliedsnummer</FieldLabel>
+              <Input {...field} id={field.name} aria-invalid={fieldState.invalid} />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
+        <Controller
+          name="email"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={field.name}>E-Mail</FieldLabel>
+              <Input {...field} id={field.name} type="email" aria-invalid={fieldState.invalid} />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
+        <Controller
+          name="password"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={field.name}>Passwort</FieldLabel>
+              <Input {...field} id={field.name} type="password" aria-invalid={fieldState.invalid} />
+              {fieldState.invalid ? (
+                <FieldError errors={[fieldState.error]} />
+              ) : (
+                <p className="text-sm text-muted-foreground">Mindestens 8 Zeichen</p>
               )}
-            />
-            <Controller
-              name="memberId"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>Mitgliedsnummer</FieldLabel>
-                  <Input {...field} id={field.name} aria-invalid={fieldState.invalid} />
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                </Field>
-              )}
-            />
-            <Controller
-              name="email"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>E-Mail</FieldLabel>
-                  <Input
-                    {...field}
-                    id={field.name}
-                    type="email"
-                    disabled={isEdit}
-                    aria-invalid={fieldState.invalid}
-                  />
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                </Field>
-              )}
-            />
-            {!isEdit && (
-              <Controller
-                name="password"
-                control={form.control}
-                render={({ field, fieldState }) => (
-                  <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel htmlFor={field.name}>Passwort</FieldLabel>
-                    <Input
-                      {...field}
-                      id={field.name}
-                      type="password"
-                      aria-invalid={fieldState.invalid}
-                    />
-                    {fieldState.invalid ? (
-                      <FieldError errors={[fieldState.error]} />
-                    ) : (
-                      <p className="text-sm text-muted-foreground">Mindestens 8 Zeichen</p>
-                    )}
-                  </Field>
-                )}
-              />
-            )}
-          </FieldGroup>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              Abbrechen
-            </Button>
-            <Button type="submit" disabled={pending}>
-              Speichern
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+            </Field>
+          )}
+        />
+      </FieldGroup>
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onClose}>
+          Abbrechen
+        </Button>
+        <Button type="submit" disabled={pending}>
+          Speichern
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+}
+
+function EditUserForm({ user, onClose }: { user: AppUser; onClose: () => void }) {
+  const [pending, startTransition] = useTransition();
+  const form = useForm<UpdateUserInput>({
+    resolver: zodResolver(updateUserSchema),
+    defaultValues: { name: user.name, memberId: user.memberId ?? "" },
+  });
+
+  function onSubmit(values: UpdateUserInput) {
+    startTransition(async () => {
+      const result = await updateUser(user.id, values);
+      if (result.success) {
+        toast.success(result.message);
+        onClose();
+      } else {
+        toast.error(result.message);
+      }
+    });
+  }
+
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+      <FieldGroup>
+        <Controller
+          name="name"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={field.name}>Name</FieldLabel>
+              <Input {...field} id={field.name} autoFocus aria-invalid={fieldState.invalid} />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
+        <Controller
+          name="memberId"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={field.name}>Mitgliedsnummer</FieldLabel>
+              <Input {...field} id={field.name} aria-invalid={fieldState.invalid} />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
+        <Field>
+          <FieldLabel>E-Mail</FieldLabel>
+          <Input value={user.email} disabled readOnly />
+        </Field>
+      </FieldGroup>
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onClose}>
+          Abbrechen
+        </Button>
+        <Button type="submit" disabled={pending}>
+          Speichern
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }
