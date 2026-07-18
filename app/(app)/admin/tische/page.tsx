@@ -6,7 +6,12 @@ export default async function AdminTablesPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold tracking-tight">Tischverwaltung</h1>
+      <div>
+        <h1 className="text-xl font-semibold tracking-tight">Tischverwaltung</h1>
+        <p className="text-sm text-muted-foreground">
+          Tische anlegen, bearbeiten und aktivieren.
+        </p>
+      </div>
       <TableManager tables={tables} />
     </div>
   );

@@ -6,7 +6,12 @@ export default async function AdminUsersPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold tracking-tight">Benutzerverwaltung</h1>
+      <div>
+        <h1 className="text-xl font-semibold tracking-tight">Benutzerverwaltung</h1>
+        <p className="text-sm text-muted-foreground">
+          Mitglieder verwalten, Rollen und Zugangsdaten anpassen.
+        </p>
+      </div>
       <UserManager users={users} />
     </div>
   );
