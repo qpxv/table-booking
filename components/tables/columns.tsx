@@ -37,12 +37,14 @@ export function createTableColumns({
     },
     {
       accessorKey: "active",
-      header: "Aktiv",
+      header: () => <div className="text-right">Aktiv</div>,
       cell: ({ row }) => (
-        <Switch
-          checked={row.original.active}
-          onCheckedChange={() => onToggleActive(row.original)}
-        />
+        <div className="flex justify-end">
+          <Switch
+            checked={row.original.active}
+            onCheckedChange={() => onToggleActive(row.original)}
+          />
+        </div>
       ),
     },
     {
