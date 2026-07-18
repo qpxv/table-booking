@@ -92,6 +92,22 @@ still throw normally since they aren't wrapped in this pattern.
   tallest tab, and switching tabs never resizes the dialog. Cheaper and
   more robust than hardcoding a min-height, since it adapts automatically
   if a tab's content changes later.
+- **`components/ui/button.tsx` uses `transition`, not `transition-all`.**
+  `transition-all` compiles to `transition-property: all`, which includes
+  `visibility` — and per the CSS Transitions spec, a `visibility`
+  transition whose end value is `hidden` keeps the element rendered as
+  visible for the *entire* transition duration, flipping to hidden only
+  at 100%. That collided with the tabbed-dialog pattern above: switching
+  tabs sets `invisible` on the inactive panel, which the submit `Button`
+  inside it inherits, so with `transition-all` the old tab's button stayed
+  visibly on screen for the full 150ms default duration after the rest of
+  the form had already vanished. Tailwind's bare `transition` utility uses
+  a curated property list (color, background-color, border-color,
+  opacity, box-shadow, transform, etc.) that still covers every real
+  button transition but excludes `visibility` — confirmed by compiling
+  both utilities through the project's actual `@tailwindcss/postcss`
+  pipeline. Don't reintroduce `transition-all` on `Button` without
+  rereading this.
 
 ## Data model notes
 
