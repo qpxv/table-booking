@@ -36,5 +36,14 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|icons|.*\\.(?:svg|png|ico)$).*)"],
+  // PWA assets (manifest, service worker, its workbox runtime chunk) must
+  // stay reachable unauthenticated: they're fetched by the browser off the
+  // very first page load (often /login, before any session cookie exists),
+  // and the post-login redirect to /dashboard is a soft client-side nav —
+  // it never gives the browser a second, authenticated shot at fetching
+  // them. Redirecting sw.js to /login's HTML breaks service worker
+  // registration outright, which is why the install icon never appeared.
+  matcher: [
+    "/((?!api|_next/static|_next/image|icons|manifest\\.webmanifest|sw\\.js|workbox-.*\\.js|.*\\.(?:svg|png|ico)$).*)",
+  ],
 };
