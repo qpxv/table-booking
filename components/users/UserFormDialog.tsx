@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { Save, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -127,10 +128,11 @@ function CreateUserForm({ onClose }: { onClose: () => void }) {
       </FieldGroup>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onClose}>
+          <X />
           Abbrechen
         </Button>
         <Button type="submit" disabled={pending}>
-          {pending && <Spinner />}
+          {pending ? <Spinner /> : <Save />}
           Speichern
         </Button>
       </DialogFooter>
@@ -196,10 +198,11 @@ function EditUserForm({ user, onClose }: { user: AppUser; onClose: () => void })
       </FieldGroup>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onClose}>
+          <X />
           Abbrechen
         </Button>
         <Button type="submit" disabled={pending}>
-          {pending && <Spinner />}
+          {pending ? <Spinner /> : <Save />}
           Speichern
         </Button>
       </DialogFooter>
