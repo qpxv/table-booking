@@ -3,8 +3,9 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
-import { isAdmin } from "@/lib/permissions";
+import { isAdmin, isHiddenAccount } from "@/lib/permissions";
 import {
   createUserSchema,
   updateUserSchema,
@@ -125,6 +126,11 @@ export async function deleteUser(userId: string): Promise<ActionResult> {
   const admin = await requireAdminHeaders();
   if (admin.authError) return admin.authError;
 
+  const target = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+  if (target && isHiddenAccount(target.email)) {
+    return { success: false, message: "Dieser Benutzer kann nicht gelöscht werden." };
+  }
+
   try {
     await auth.api.removeUser({
       body: { userId },
@@ -150,5 +156,5 @@ export async function listUsers() {
     headers: await headers(),
   });
 
-  return result.users;
+  return result.users.filter((user) => !isHiddenAccount(user.email));
 }

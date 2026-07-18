@@ -5,6 +5,12 @@ export function isAdmin(session: Session | null): boolean {
   return session?.user.role === "admin";
 }
 
+/** True for the designated dev/test account, kept out of admin listings. */
+export function isHiddenAccount(email: string): boolean {
+  const hiddenEmail = process.env.DEV_ACCOUNT_EMAIL;
+  return !!hiddenEmail && email.toLowerCase() === hiddenEmail.toLowerCase();
+}
+
 export function canEditBooking(
   session: Session | null,
   booking: Pick<Booking, "userId">,
