@@ -96,9 +96,9 @@ export default function BookingCalendar({
           start: booking.start,
           end: booking.end,
           title: booking.game ? `${attendees} – ${booking.game}` : attendees,
-          backgroundColor: isOwn ? "var(--header)" : "#475569",
-          borderColor: isOwn ? "var(--header)" : "#475569",
-          textColor: isOwn ? "var(--header-foreground)" : "#ffffff",
+          backgroundColor: isOwn ? "var(--secondary)" : "#57534e",
+          borderColor: isOwn ? "var(--secondary)" : "#57534e",
+          textColor: isOwn ? "var(--secondary-foreground)" : "#ffffff",
           editable: isOwn,
           extendedProps: { isOwn, attendees, game: booking.game },
         };

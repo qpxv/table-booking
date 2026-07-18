@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,8 +50,16 @@ export default function AppShell({
   return (
     <div className="flex min-h-screen flex-col">
       <header className="flex items-center gap-2 border-b bg-header px-4 py-2 text-header-foreground">
-        <Link href="/dashboard" className="min-w-0 grow truncate text-lg font-semibold">
-          Vereins-Tischbuchung
+        <Link href="/dashboard" className="flex min-w-0 grow items-center gap-2 truncate">
+          <Image
+            src="/club-logo-dark.png"
+            alt=""
+            width={444}
+            height={509}
+            priority
+            className="h-8 w-auto shrink-0"
+          />
+          <span className="truncate font-heading text-lg font-semibold">Dice-Bock</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
