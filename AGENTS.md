@@ -65,6 +65,27 @@ still throw normally since they aren't wrapped in this pattern.
   parent that persists (`MobileNav` itself), not in the footer component
   that's about to be unmounted.
 
+## Error handling / dialog UI
+
+- **`app/error.tsx`** is the app's error boundary — catches unexpected
+  exceptions anywhere under it with a branded German page (retry +
+  back-to-dashboard) instead of Next's default one. It's not a route
+  you navigate to; Next mounts it automatically when a Server/Client
+  Component throws during render. In dev mode Next's own red overlay
+  shows on top of it — dismiss the overlay (X) to see the boundary
+  underneath, or build for production to see it exactly as a real user
+  would.
+- **Tabbed dialogs that shouldn't jump size when switching tabs**
+  (`SettingsDialog.tsx`'s "Persönliche Daten"/"Passwort ändern"): don't
+  conditionally render one tab's content at a time — keep all tab
+  panels mounted, stacked in the same CSS grid cell
+  (`col-start-1 row-start-1` on each, `invisible` on the inactive ones).
+  Grid sizing accounts for every item in a cell regardless of
+  visibility, so the container's height is always driven by the
+  tallest tab, and switching tabs never resizes the dialog. Cheaper and
+  more robust than hardcoding a min-height, since it adapts automatically
+  if a tab's content changes later.
+
 ## Data model notes
 
 - **Guests are club-wide, not per-member.** `Guest` rows have a `userId`
