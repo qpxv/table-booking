@@ -68,13 +68,20 @@ still throw normally since they aren't wrapped in this pattern.
 ## Error handling / dialog UI
 
 - **`app/error.tsx`** is the app's error boundary — catches unexpected
-  exceptions anywhere under it with a branded German page (retry +
-  back-to-dashboard) instead of Next's default one. It's not a route
-  you navigate to; Next mounts it automatically when a Server/Client
-  Component throws during render. In dev mode Next's own red overlay
-  shows on top of it — dismiss the overlay (X) to see the boundary
-  underneath, or build for production to see it exactly as a real user
-  would.
+  exceptions anywhere under it with a branded page (club logo, heading,
+  a single "Zurück zum Dashboard" button — no retry button, since a
+  retry rarely helps and it kept things simpler) instead of Next's
+  default one. It's not a route you navigate to; Next mounts it
+  automatically when a Server/Client Component throws during render. In
+  dev mode Next's own red overlay shows on top of it — dismiss the
+  overlay (X) to see the boundary underneath, or build for production to
+  see it exactly as a real user would.
+- **`app/not-found.tsx`** is the same visual treatment (logo, heading,
+  "Zurück zum Dashboard") but with actual 404 copy — this one *is*
+  reachable directly, by visiting any unmatched route or via `notFound()`.
+  Keep the two visually in sync if either's styling changes; they're
+  meant to read as the same "something's not right" family, just with
+  different headings/copy.
 - **Tabbed dialogs that shouldn't jump size when switching tabs**
   (`SettingsDialog.tsx`'s "Persönliche Daten"/"Passwort ändern"): don't
   conditionally render one tab's content at a time — keep all tab
