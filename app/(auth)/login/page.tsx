@@ -3,7 +3,7 @@ import LoginForm from "./LoginForm";
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-6">
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-6 p-6">
       <Image
         src="/club-logo-light.png"
         alt="Dice-Bock e.V."

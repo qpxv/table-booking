@@ -48,7 +48,7 @@ export default function AppShell({
   ];
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-dvh flex-col">
       <header className="flex items-center gap-2 border-b bg-header px-4 py-2 text-header-foreground">
         <Link href="/dashboard" className="flex min-w-0 grow items-center gap-2 truncate">
           <Image
