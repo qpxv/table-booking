@@ -81,12 +81,16 @@ export default function SettingsDialog({
               Passwort ändern
             </TabButton>
           </nav>
-          <div className="min-w-0 grow">
-            {tab === "profile" ? (
+          {/* Both forms stay mounted, stacked in the same grid cell, so the
+              grid's height is driven by the taller one (password) — keeps
+              the dialog from jumping in height when switching tabs. */}
+          <div className="grid min-w-0 grow">
+            <div className={cn("col-start-1 row-start-1", tab !== "profile" && "invisible")}>
               <ProfileForm name={name} email={email} />
-            ) : (
+            </div>
+            <div className={cn("col-start-1 row-start-1", tab !== "password" && "invisible")}>
               <PasswordForm />
-            )}
+            </div>
           </div>
         </div>
       </DialogContent>
