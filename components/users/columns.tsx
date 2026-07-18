@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { ArrowUpDown, KeyRound, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { ArrowUpDown, KeyRound, MoreHorizontal, Pencil, ShieldCheck, Trash2, User } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -41,15 +41,21 @@ function RoleCell({ user }: { user: AppUser }) {
         <SelectValue>
           {(value: "admin" | "user") => (
             <span className="flex items-center gap-1.5">
-              {pending && <Spinner />}
+              {pending ? <Spinner /> : value === "admin" ? <ShieldCheck /> : <User />}
               {value === "admin" ? "Vorstand" : "Mitglied"}
             </span>
           )}
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="user">Mitglied</SelectItem>
-        <SelectItem value="admin">Vorstand</SelectItem>
+        <SelectItem value="user">
+          <User />
+          Mitglied
+        </SelectItem>
+        <SelectItem value="admin">
+          <ShieldCheck />
+          Vorstand
+        </SelectItem>
       </SelectContent>
     </Select>
   );
