@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, LogOut, Settings, UserCircle } from "lucide-react";
+import { ChevronDown, LogOut, Settings } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
+import SettingsDialog from "./SettingsDialog";
 
 function getInitials(name: string): string {
   const initials = name
@@ -27,6 +29,7 @@ function getInitials(name: string): string {
 
 export default function UserMenu({ name, email }: { name: string; email: string }) {
   const router = useRouter();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   async function handleLogout() {
     await authClient.signOut();
@@ -35,54 +38,55 @@ export default function UserMenu({ name, email }: { name: string; email: string 
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button
-            variant="ghost"
-            className="h-9 gap-2 px-1.5 text-header-foreground hover:bg-header-foreground/10 hover:text-header-foreground aria-expanded:bg-header-foreground/10 aria-expanded:text-header-foreground"
-          />
-        }
-      >
-        <Avatar size="sm">
-          <AvatarFallback className="bg-header-foreground/15 text-header-foreground">
-            {getInitials(name)}
-          </AvatarFallback>
-        </Avatar>
-        <span className="max-w-32 truncate text-sm">{name}</span>
-        <ChevronDown className="size-3.5 opacity-70" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuGroup>
-          <DropdownMenuLabel className="p-0 font-normal">
-            <div className="flex items-center gap-2 px-1.5 py-1.5 text-left text-sm">
-              <Avatar size="sm">
-                <AvatarFallback>{getInitials(name)}</AvatarFallback>
-              </Avatar>
-              <div className="grid flex-1 leading-tight">
-                <span className="truncate font-medium">{name}</span>
-                <span className="truncate text-xs text-muted-foreground">{email}</span>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="ghost"
+              className="h-9 gap-2 px-1.5 text-header-foreground hover:bg-header-foreground/10 hover:text-header-foreground aria-expanded:bg-header-foreground/10 aria-expanded:text-header-foreground"
+            />
+          }
+        >
+          <Avatar size="sm">
+            <AvatarFallback className="bg-header-foreground/15 text-header-foreground">
+              {getInitials(name)}
+            </AvatarFallback>
+          </Avatar>
+          <span className="max-w-32 truncate text-sm">{name}</span>
+          <ChevronDown className="size-3.5 opacity-70" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="p-0 font-normal text-foreground">
+              <div className="flex items-center gap-2 px-1.5 py-1.5 text-left text-sm">
+                <Avatar size="sm">
+                  <AvatarFallback>{getInitials(name)}</AvatarFallback>
+                </Avatar>
+                <div className="grid flex-1 leading-tight">
+                  <span className="truncate font-medium">{name}</span>
+                  <span className="truncate text-xs text-muted-foreground">{email}</span>
+                </div>
               </div>
-            </div>
-          </DropdownMenuLabel>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-          <DropdownMenuItem disabled>
-            <UserCircle />
-            Konto
+            </DropdownMenuLabel>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
+              <Settings />
+              Einstellungen
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleLogout}>
+            <LogOut />
+            Abmelden
           </DropdownMenuItem>
-          <DropdownMenuItem disabled>
-            <Settings />
-            Einstellungen
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout}>
-          <LogOut />
-          Abmelden
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {settingsOpen && (
+        <SettingsDialog name={name} email={email} onClose={() => setSettingsOpen(false)} />
+      )}
+    </>
   );
 }

@@ -21,6 +21,14 @@ export const auth = betterAuth({
         input: true,
       },
     },
+    changeEmail: {
+      enabled: true,
+      // No email-sending flow exists in this app and every user is
+      // unverified anyway (no verification emails are ever sent), so
+      // require the confirmation step only for accounts that actually
+      // went through verification — i.e. none of them.
+      updateEmailWithoutVerification: true,
+    },
   },
   plugins: [
     admin(),

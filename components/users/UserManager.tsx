@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import ConfirmDeleteDialog from "@/components/shared/ConfirmDeleteDialog";
+import ResetPasswordDialog from "./ResetPasswordDialog";
 import { deleteUser } from "@/actions/users";
 import { createUserColumns } from "./columns";
 import UserFormDialog, { type AppUser } from "./UserFormDialog";
@@ -13,6 +14,7 @@ export default function UserManager({ users }: { users: AppUser[] }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<AppUser | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AppUser | null>(null);
+  const [resetPasswordTarget, setResetPasswordTarget] = useState<AppUser | null>(null);
 
   function openCreateDialog() {
     setEditingUser(null);
@@ -25,7 +27,12 @@ export default function UserManager({ users }: { users: AppUser[] }) {
   }
 
   const columns = useMemo(
-    () => createUserColumns({ onEdit: openEditDialog, onDelete: setDeleteTarget }),
+    () =>
+      createUserColumns({
+        onEdit: openEditDialog,
+        onResetPassword: setResetPasswordTarget,
+        onDelete: setDeleteTarget,
+      }),
     [],
   );
 
@@ -47,6 +54,12 @@ export default function UserManager({ users }: { users: AppUser[] }) {
           name={deleteTarget.name}
           onConfirm={() => deleteUser(deleteTarget.id)}
           onClose={() => setDeleteTarget(null)}
+        />
+      )}
+      {resetPasswordTarget && (
+        <ResetPasswordDialog
+          user={resetPasswordTarget}
+          onClose={() => setResetPasswordTarget(null)}
         />
       )}
     </div>

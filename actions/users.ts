@@ -9,8 +9,10 @@ import {
   createUserSchema,
   updateUserSchema,
   roleSchema,
+  resetPasswordSchema,
   type CreateUserInput,
   type UpdateUserInput,
+  type ResetPasswordInput,
 } from "@/lib/schemas/user";
 import type { ActionResult } from "@/types/action-result";
 
@@ -60,7 +62,10 @@ export async function updateUser(userId: string, values: UpdateUserInput): Promi
 
   try {
     await auth.api.adminUpdateUser({
-      body: { userId, data: { name: parsed.data.name, memberId: parsed.data.memberId } },
+      body: {
+        userId,
+        data: { name: parsed.data.name, email: parsed.data.email, memberId: parsed.data.memberId },
+      },
       headers: admin.headers,
     });
 
@@ -89,6 +94,29 @@ export async function updateUserRole(userId: string, role: string): Promise<Acti
     return { success: true, message: "Rolle aktualisiert." };
   } catch (err) {
     console.error("error in updateUserRole", err);
+    return { success: false, message: "Ein Fehler ist aufgetreten." };
+  }
+}
+
+export async function resetUserPassword(
+  userId: string,
+  values: ResetPasswordInput,
+): Promise<ActionResult> {
+  const admin = await requireAdminHeaders();
+  if (admin.authError) return admin.authError;
+
+  const parsed = resetPasswordSchema.safeParse(values);
+  if (!parsed.success) return { success: false, message: "Ungültige Eingabe." };
+
+  try {
+    await auth.api.setUserPassword({
+      body: { userId, newPassword: parsed.data.newPassword },
+      headers: admin.headers,
+    });
+
+    return { success: true, message: "Passwort zurückgesetzt." };
+  } catch (err) {
+    console.error("error in resetUserPassword", err);
     return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
 }

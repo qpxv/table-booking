@@ -142,7 +142,7 @@ function EditUserForm({ user, onClose }: { user: AppUser; onClose: () => void })
   const [pending, startTransition] = useTransition();
   const form = useForm<UpdateUserInput>({
     resolver: zodResolver(updateUserSchema),
-    defaultValues: { name: user.name, memberId: user.memberId ?? "" },
+    defaultValues: { name: user.name, email: user.email, memberId: user.memberId ?? "" },
   });
 
   function onSubmit(values: UpdateUserInput) {
@@ -182,10 +182,17 @@ function EditUserForm({ user, onClose }: { user: AppUser; onClose: () => void })
             </Field>
           )}
         />
-        <Field>
-          <FieldLabel>E-Mail</FieldLabel>
-          <Input value={user.email} disabled readOnly />
-        </Field>
+        <Controller
+          name="email"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={field.name}>E-Mail</FieldLabel>
+              <Input {...field} id={field.name} type="email" aria-invalid={fieldState.invalid} />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
       </FieldGroup>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onClose}>
