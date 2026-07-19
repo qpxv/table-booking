@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- Icon-only extract (the blue/red "swoosh" mark) from a clean vector
-     source of the current Postbank logo — the "Postbank" wordmark text
-     shared the same combined path in the source file, split out here so
-     only the standalone icon remains. -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="18 82 50 28" width="50" height="28">
-  <path d="M40.248 84.393L55.1 84c-11.522 6.937-15.397 17.576-16.362 24.126h-12.77c.936-7.179 6.71-19.077 14.28-23.733zM61.85 93.832c-5.877 3.715-7.597 9.561-7.955 11.795h-3.82c.661-3.932 3.114-9.023 6.739-11.696.031-.023 5.036-.099 5.036-.099z" fill="#217cad"/>
-  <path d="M50.457 90.162l8.703-.246c-7.144 3.801-10.704 11.78-11.302 16.706H41.24c.56-4.04 3.302-11.991 9.217-16.46z" fill="#b4282e"/>
-</svg>

@@ -301,42 +301,54 @@ still throw normally since they aren't wrapped in this pattern.
   official pages where the bank has a clear one, `girocodegenerator.com`'s
   consistent per-bank guides as fallback otherwise). Revolut was
   deliberately left out — couldn't confirm its app supports scanning a
-  standard GiroCode the way German bank apps do. Logos are real SVGs
-  downloaded/sourced from Wikimedia Commons (and one clean vector-logo site
-  for Postbank's current mark) into `public/bank-logos/*.svg` (this app has
-  no other precedent for embedding third-party assets — everything else,
-  like the club logo, is local) — rendered via `next/image` with
-  `unoptimized` (Next's built-in optimizer doesn't handle SVG without
-  `dangerouslyAllowSVG`, confirmed via `node_modules/next/dist/docs`, so
-  `unoptimized` is the documented way to serve a local SVG through `Image`
-  without touching that config).
-  - **Icon-only, not the wordmark.** Several of these banks' most
-    findable official assets are the full wordmark (bank name spelled out)
-    rather than a standalone icon. Where the wordmark and icon are
-    genuinely separate paths/groups in the *same* source SVG (Commerzbank's
-    "ribbon", Postbank's blue/red "swoosh", DKB's tagline vs. the DKB
-    mark), the icon was extracted by hand — identify the paths belonging to
-    just the icon by their distinct coordinate range, keep only those (and
-    their gradient `<defs>` if any), drop the text paths, then crop the
-    `viewBox` to that region's bounding box. Deutsche Bank already has a
-    standalone "logo without wordmark" file on Commons, no extraction
-    needed. ING and N26 were left as their official wordmark — their brand
-    genuinely *is* the short wordmark, no separate icon exists, and at a
-    consistent height it reads fine (unlike a long wordmark forced into a
-    tiny square, which is what looked bad before). Verified every
-    replacement visually — this sandbox has `chromium --headless
-    --screenshot`, which renders a real screenshot Claude can then read as
-    an image, so "does this actually look right" doesn't have to be a
-    guess.
-  - **Sizing: fixed height, not a forced square.** Each `BANK_HELP_LINKS`
-    entry carries its logo's real intrinsic `width`/`height` (so `Image`
-    gets the right aspect ratio) but the actual on-screen size comes purely
-    from the button's `h-6 w-auto object-contain` — icon-shaped logos
-    render as small squares, wordmark-shaped ones (ING, N26) as wider
-    rectangles, all aligned at the same height instead of every logo being
-    squished/padded into an identical square box. No visible bank-name text
-    next to the logo either (was there originally, doubled up badly with
-    wordmark logos) — kept as an `sr-only` label for accessibility only.
+  standard GiroCode the way German bank apps do. Logos live as **rasterized
+  PNGs** in `public/bank-logos/*.png` (sourced from Wikimedia Commons SVGs,
+  plus one clean vector-logo site for Postbank's current mark — this app has
+  no other precedent for embedding third-party assets, everything else like
+  the club logo is local), rendered via a plain `<img>` (`eslint-disable`d
+  for `@next/next/no-img-element`, same as the QR image in this file), sized
+  with a fixed `h-6 w-11 object-contain` box.
+  - **Icon-only, not the wordmark.** Several of these banks' most findable
+    official assets are the full wordmark (bank name spelled out) rather
+    than a standalone icon. Where the wordmark and icon were genuinely
+    separate paths/groups in the same source SVG (Commerzbank's "ribbon",
+    Postbank's blue/red "swoosh" — colors corrected to the club's specified
+    `#0A3274`/`#DA0013`, DKB's tagline vs. the DKB mark), the icon was
+    extracted by hand: identify the paths belonging to just the icon by
+    their distinct coordinate range, keep only those (and their gradient
+    `<defs>` if any), drop the text paths, crop the `viewBox` to that
+    region's bounding box. Deutsche Bank already has a standalone "logo
+    without wordmark" file on Commons, no extraction needed. ING and N26 were
+    left as their official wordmark — their brand genuinely *is* the short
+    wordmark, no separate icon exists.
+  - **Why PNG and not SVG.** Tried SVG first (sized via `next/image`, then
+    via a plain `<img>` with `h-6 w-auto`) — both looked right in a
+    headless-Chromium screenshot of a static-HTML mimic, but the *real* app
+    kept rendering ING/DKB/N26 much bigger than the other five. Reproduced it
+    directly (not just trusting the mimic): bordering each `<img>` showed the
+    CSS box itself was sized correctly, but `object-fit: contain` wasn't
+    scaling those three SVGs' *content* down to fit it, while it worked fine
+    for the other five. Checked several hypotheses for what made those three
+    different (ING's intrinsic width/height are in `mm`; N26 has no
+    width/height at all, only `viewBox`; DKB's original file had a DOCTYPE)
+    — none is a single common thread across all three, so this reads as a
+    genuine, not-fully-diagnosed SVG-intrinsic-size/`object-fit` edge case
+    rather than one fixable misconfiguration. Rasterizing sidesteps it
+    entirely: a bitmap's natural size is unambiguous, so `object-fit` behaves
+    identically for all eight. Rasterized via Puppeteer driving the sandbox's
+    existing `/usr/bin/chromium` (`executablePath`, since Puppeteer's own
+    Chromium download needs a postinstall script this sandbox blocks by
+    default) — not ImageMagick's `convert`, whose built-in SVG delegate
+    doesn't support the `xlink:href`-linked radial gradients in the
+    Commerzbank icon and silently rendered it flat grayscale.
+  - No visible bank-name text next to the logo was tried once (`sr-only`,
+    for a brief window) but reverted — with clean icon-only marks in place,
+    a visible label reads fine and isn't the "duplicate wordmark" problem
+    that prompted removing it originally.
+  - Verified all of this visually rather than guessing — this sandbox has
+    `chromium --headless --screenshot`, which produces a real screenshot
+    Claude can read as an image, so "does this actually look right" doesn't
+    have to stay a guess for long, even without a live browser.
 - **IBAN lives in a dedicated "Zahlungsdetails" settings tab, self-service
   only.** `User.iban` is registered as a `better-auth` `additionalFields`
   entry in `lib/auth.ts` (`input: true`, same mechanism `memberId` already

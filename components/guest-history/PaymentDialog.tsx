@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import { toast } from "sonner";
 import { Copy, ExternalLink, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -22,68 +21,55 @@ import {
 // Verified help pages on scanning a payment QR code (GiroCode/EPC), one per
 // bank — official pages where the bank has a clear one, girocodegenerator.com
 // (a GiroCode-focused site with consistent per-bank guides) as fallback
-// otherwise. Logos are downloaded locally from Wikimedia Commons
-// (public/bank-logos/) rather than hotlinked — this app has no precedent
-// for embedding third-party assets, and this keeps things self-contained.
-// width/height are each logo's real intrinsic dimensions (not a forced
-// square) — only used so <Image> knows the aspect ratio; actual on-screen
-// size comes from the button's own `h-6 w-auto` so every logo lines up at
-// the same height instead of being squished/padded into a uniform square.
+// otherwise. Logos are rasterized PNGs (public/bank-logos/*.png), not SVGs —
+// several of the source SVGs (ING, DKB, N26) rendered `object-fit: contain`
+// inconsistently across sizing approaches for reasons that didn't trace back
+// to one common cause (checked intrinsic-size units, missing width/height,
+// inline <style> blocks, DOCTYPEs — none of it lined up across all three).
+// Rasterizing sidesteps the whole class of bug: a bitmap's natural size is
+// unambiguous, so `object-contain` in a fixed `h-6 w-11` box behaves
+// identically for all eight. Sourced from Wikimedia Commons (plus one clean
+// vector-logo site for Postbank's current mark) rather than hotlinked — this
+// app has no other precedent for embedding third-party assets.
 const BANK_HELP_LINKS = [
   {
     name: "Sparkasse",
-    logo: "/bank-logos/sparkasse.svg",
-    width: 354,
-    height: 461,
+    logo: "/bank-logos/sparkasse.png",
     url: "https://www.sparkasse.de/pk/produkte/konten-und-karten/banking/ueberweisung/girocode.html",
   },
   {
     name: "Postbank",
-    logo: "/bank-logos/postbank.svg",
-    width: 50,
-    height: 28,
+    logo: "/bank-logos/postbank.png",
     url: "https://girocodegenerator.com/postbank",
   },
   {
     name: "Commerzbank",
-    logo: "/bank-logos/commerzbank.svg",
-    width: 97,
-    height: 85,
+    logo: "/bank-logos/commerzbank.png",
     url: "https://www.commerzbank.de/service/wie-taetige-ich-eine-fotoueberweisung/",
   },
   {
     name: "ING",
-    logo: "/bank-logos/ing.svg",
-    width: 1920,
-    height: 1009,
+    logo: "/bank-logos/ing.png",
     url: "https://www.ing.de/wissen/fotoueberweisung/",
   },
   {
     name: "Deutsche Bank",
-    logo: "/bank-logos/deutsche-bank.svg",
-    width: 150,
-    height: 150,
+    logo: "/bank-logos/deutsche-bank.png",
     url: "https://www.girocodegenerator.com/deutsche-bank",
   },
   {
     name: "DKB",
-    logo: "/bank-logos/dkb.svg",
-    width: 601,
-    height: 233,
+    logo: "/bank-logos/dkb.png",
     url: "https://girocodegenerator.com/dkb",
   },
   {
     name: "N26",
-    logo: "/bank-logos/n26.svg",
-    width: 94,
-    height: 64,
+    logo: "/bank-logos/n26.png",
     url: "https://www.girocodegenerator.com/n26",
   },
   {
     name: "Volksbank / VR-Banking",
-    logo: "/bank-logos/volksbank.svg",
-    width: 608,
-    height: 418,
+    logo: "/bank-logos/volksbank.png",
     url: "https://www.girocodegenerator.com/volksbank",
   },
 ];
@@ -175,15 +161,13 @@ export default function PaymentDialog({
                             <a href={bank.url} target="_blank" rel="noopener noreferrer" />
                           }
                         >
-                          <Image
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
                             src={bank.logo}
                             alt=""
-                            width={bank.width}
-                            height={bank.height}
-                            unoptimized
-                            className="h-6 w-auto object-contain"
+                            className="h-6 w-11 shrink-0 object-contain"
                           />
-                          <span className="sr-only">{bank.name}</span>
+                          {bank.name}
                           <ExternalLink className="ml-auto size-3.5 text-muted-foreground" />
                         </Button>
                       ))}
