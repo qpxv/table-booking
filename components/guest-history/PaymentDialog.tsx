@@ -25,45 +25,65 @@ import {
 // otherwise. Logos are downloaded locally from Wikimedia Commons
 // (public/bank-logos/) rather than hotlinked — this app has no precedent
 // for embedding third-party assets, and this keeps things self-contained.
+// width/height are each logo's real intrinsic dimensions (not a forced
+// square) — only used so <Image> knows the aspect ratio; actual on-screen
+// size comes from the button's own `h-6 w-auto` so every logo lines up at
+// the same height instead of being squished/padded into a uniform square.
 const BANK_HELP_LINKS = [
   {
     name: "Sparkasse",
     logo: "/bank-logos/sparkasse.svg",
+    width: 354,
+    height: 461,
     url: "https://www.sparkasse.de/pk/produkte/konten-und-karten/banking/ueberweisung/girocode.html",
   },
   {
     name: "Postbank",
     logo: "/bank-logos/postbank.svg",
+    width: 50,
+    height: 28,
     url: "https://girocodegenerator.com/postbank",
   },
   {
     name: "Commerzbank",
     logo: "/bank-logos/commerzbank.svg",
+    width: 97,
+    height: 85,
     url: "https://www.commerzbank.de/service/wie-taetige-ich-eine-fotoueberweisung/",
   },
   {
     name: "ING",
     logo: "/bank-logos/ing.svg",
+    width: 1920,
+    height: 1009,
     url: "https://www.ing.de/wissen/fotoueberweisung/",
   },
   {
     name: "Deutsche Bank",
     logo: "/bank-logos/deutsche-bank.svg",
+    width: 150,
+    height: 150,
     url: "https://www.girocodegenerator.com/deutsche-bank",
   },
   {
     name: "DKB",
     logo: "/bank-logos/dkb.svg",
+    width: 601,
+    height: 233,
     url: "https://girocodegenerator.com/dkb",
   },
   {
     name: "N26",
     logo: "/bank-logos/n26.svg",
+    width: 94,
+    height: 64,
     url: "https://www.girocodegenerator.com/n26",
   },
   {
     name: "Volksbank / VR-Banking",
     logo: "/bank-logos/volksbank.svg",
+    width: 608,
+    height: 418,
     url: "https://www.girocodegenerator.com/volksbank",
   },
 ];
@@ -149,7 +169,7 @@ export default function PaymentDialog({
                         <Button
                           key={bank.name}
                           variant="outline"
-                          className="justify-start"
+                          className="no-underline! justify-start py-2"
                           nativeButton={false}
                           render={
                             <a href={bank.url} target="_blank" rel="noopener noreferrer" />
@@ -158,12 +178,12 @@ export default function PaymentDialog({
                           <Image
                             src={bank.logo}
                             alt=""
-                            width={20}
-                            height={20}
+                            width={bank.width}
+                            height={bank.height}
                             unoptimized
-                            className="size-5"
+                            className="h-6 w-auto object-contain"
                           />
-                          {bank.name}
+                          <span className="sr-only">{bank.name}</span>
                           <ExternalLink className="ml-auto size-3.5 text-muted-foreground" />
                         </Button>
                       ))}
