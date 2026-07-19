@@ -47,7 +47,8 @@ export async function listGuestHistory(): Promise<GuestHistoryRow[]> {
         },
       },
     },
-    orderBy: { booking: { start: "desc" } },
+    // Open (unpaid) entries first, newest booking first within each group.
+    orderBy: [{ paid: "asc" }, { booking: { start: "desc" } }],
   });
 
   return bookingGuests.map((bookingGuest) => ({

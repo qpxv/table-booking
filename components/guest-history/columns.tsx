@@ -11,18 +11,44 @@ import { cn } from "@/lib/utils";
 import { formatBerlin } from "@/lib/datetime";
 import { setBookingGuestPaid, type GuestHistoryRow } from "@/actions/guestHistory";
 
-function mutedClass(paid: boolean) {
-  return cn(paid && "text-muted-foreground opacity-60");
+// A free first visit has nothing to collect: treated as settled the same
+// as an actually-paid row, both for muted styling and sort order.
+export function isSettled(row: GuestHistoryRow): boolean {
+  return row.paid || row.price === 0;
 }
 
-function PaidCheckbox({ row }: { row: GuestHistoryRow }) {
+function mutedClass(settled: boolean) {
+  return cn(settled && "text-muted-foreground opacity-60");
+}
+
+function PaidCheckbox({
+  row,
+  onTogglePaid,
+}: {
+  row: GuestHistoryRow;
+  onTogglePaid: (rowId: string, paid: boolean) => void;
+}) {
   const [pending, startTransition] = useTransition();
 
+  // Nothing to collect for a free first visit: always shown as settled,
+  // not independently toggleable.
+  if (row.price === 0) {
+    return <Checkbox checked disabled />;
+  }
+
   function handleChange(checked: boolean) {
+    // Optimistic: re-sort immediately instead of waiting for the server
+    // round trip, so a just-checked row doesn't sit as a stray in the
+    // middle of the unpaid ones until the revalidation lands.
+    onTogglePaid(row.id, checked);
     startTransition(async () => {
       const result = await setBookingGuestPaid(row.id, checked);
-      if (result.success) toast.success(result.message);
-      else toast.error(result.message);
+      if (result.success) {
+        toast.success(result.message);
+      } else {
+        onTogglePaid(row.id, !checked);
+        toast.error(result.message);
+      }
     });
   }
 
@@ -31,9 +57,11 @@ function PaidCheckbox({ row }: { row: GuestHistoryRow }) {
 
 export function createGuestHistoryColumns({
   onOpenPayment,
+  onTogglePaid,
   isAdmin,
 }: {
   onOpenPayment: (row: GuestHistoryRow) => void;
+  onTogglePaid: (rowId: string, paid: boolean) => void;
   isAdmin: boolean;
 }): ColumnDef<GuestHistoryRow>[] {
   return [
@@ -41,21 +69,21 @@ export function createGuestHistoryColumns({
       accessorKey: "memberId",
       header: "Mitgliedsnummer",
       cell: ({ row }) => (
-        <span className={mutedClass(row.original.paid)}>{row.original.memberId ?? "–"}</span>
+        <span className={mutedClass(isSettled(row.original))}>{row.original.memberId ?? "–"}</span>
       ),
     },
     {
       accessorKey: "memberName",
       header: "Name",
       cell: ({ row }) => (
-        <span className={mutedClass(row.original.paid)}>{row.original.memberName}</span>
+        <span className={mutedClass(isSettled(row.original))}>{row.original.memberName}</span>
       ),
     },
     {
       accessorKey: "tableName",
       header: "Tisch",
       cell: ({ row }) => (
-        <span className={mutedClass(row.original.paid)}>{row.original.tableName}</span>
+        <span className={mutedClass(isSettled(row.original))}>{row.original.tableName}</span>
       ),
     },
     {
@@ -71,21 +99,21 @@ export function createGuestHistoryColumns({
         </Button>
       ),
       cell: ({ row }) => (
-        <span className={mutedClass(row.original.paid)}>{formatBerlin(row.original.start)}</span>
+        <span className={mutedClass(isSettled(row.original))}>{formatBerlin(row.original.start)}</span>
       ),
     },
     {
       accessorKey: "guestName",
       header: "Gast",
       cell: ({ row }) => (
-        <span className={mutedClass(row.original.paid)}>{row.original.guestName}</span>
+        <span className={mutedClass(isSettled(row.original))}>{row.original.guestName}</span>
       ),
     },
     {
       accessorKey: "price",
       header: "Preis",
       cell: ({ row }) => (
-        <span className={mutedClass(row.original.paid)}>
+        <span className={mutedClass(isSettled(row.original))}>
           {row.original.price === 0 ? "Erster Besuch" : `${row.original.price.toFixed(2)} €`}
         </span>
       ),
@@ -93,7 +121,7 @@ export function createGuestHistoryColumns({
     {
       accessorKey: "paid",
       header: "Bezahlt",
-      cell: ({ row }) => <PaidCheckbox row={row.original} />,
+      cell: ({ row }) => <PaidCheckbox row={row.original} onTogglePaid={onTogglePaid} />,
     },
     {
       id: "actions",

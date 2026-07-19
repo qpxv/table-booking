@@ -1,5 +1,5 @@
 // ISO 13616 IBAN validation: shape check, then the real MOD-97 checksum
-// (not just a regex) — this feeds real SEPA transfers, so a typo shouldn't
+// (not just a regex): this feeds real SEPA transfers, so a typo shouldn't
 // silently save.
 export function isValidIban(raw: string): boolean {
   const iban = raw.replace(/\s+/g, "").toUpperCase();
@@ -9,4 +9,10 @@ export function isValidIban(raw: string): boolean {
   const numeric = rearranged.replace(/[A-Z]/g, (letter) => (letter.charCodeAt(0) - 55).toString());
 
   return BigInt(numeric) % BigInt(97) === BigInt(1);
+}
+
+/** Live input formatting: groups characters in 4s like a printed IBAN. */
+export function formatIbanInput(raw: string): string {
+  const cleaned = raw.replace(/\s+/g, "");
+  return cleaned.replace(/(.{4})/g, "$1 ").trim();
 }

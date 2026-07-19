@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
-import { isValidIban } from "@/lib/iban";
+import { isValidIban, formatIbanInput } from "@/lib/iban";
 
 type Tab = "profile" | "password" | "payment";
 
@@ -309,6 +309,7 @@ function PaymentForm({ iban }: { iban: string | null }) {
               <FieldLabel htmlFor={field.name}>IBAN</FieldLabel>
               <Input
                 {...field}
+                onChange={(event) => field.onChange(formatIbanInput(event.target.value))}
                 id={field.name}
                 placeholder="DE89 3704 0044 0532 0130 00"
                 aria-invalid={fieldState.invalid}
