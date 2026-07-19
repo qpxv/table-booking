@@ -63,7 +63,9 @@ export async function createBooking(
           userId: session.user.id,
           start: data.start,
           end: data.end,
-          game: data.game || null,
+          // Shared ("Mehrfachbuchung") tables are a community event slot,
+          // not a per-booking game — never store a game for them.
+          game: table.allowMultipleBookings ? null : data.game || null,
         },
       });
 
@@ -167,7 +169,11 @@ export async function updateBooking(
     await prisma.$transaction(async (tx) => {
       await tx.booking.update({
         where: { id },
-        data: { start: data.start, end: data.end, game: data.game || null },
+        data: {
+          start: data.start,
+          end: data.end,
+          game: booking.table.allowMultipleBookings ? null : data.game || null,
+        },
       });
 
       if (guestsInput === undefined) return;

@@ -168,7 +168,6 @@ export async function listTablesWithUpcomingWeekCounts() {
         ? {
             start: nextEvent.start,
             end: nextEvent.end,
-            game: nextEvent.game,
             participantCount: nextEvent._count.participants,
           }
         : null,

@@ -36,6 +36,7 @@ export default function AppShell({
     ...(isAdmin
       ? [
           { href: "/admin/tische", label: "Tischverwaltung" },
+          { href: "/admin/spiele", label: "Spielverwaltung" },
           { href: "/admin/users", label: "Benutzerverwaltung" },
         ]
       : []),

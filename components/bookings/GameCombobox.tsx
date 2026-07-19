@@ -3,11 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
-
-const COMMON_GAMES = ["Skat", "Doppelkopf", "Schafkopf", "Poker", "Billard", "Darts", "Sonstiges"];
+import type { Game } from "@/generated/prisma/client";
 
 // Free-text input with pick-from-list suggestions — not a fixed choice, the
 // typed value itself is what gets saved (matches the previous freeSolo Autocomplete).
+// Suggestions come from Spielverwaltung's admin-managed `games` list, not a
+// hardcoded array — typing a one-off value not in that list is still fine.
 //
 // Deliberately not built on Popover/PopoverTrigger: that primitive ties
 // "is this the trigger" to "is this exempt from outside-press dismissal",
@@ -17,14 +18,16 @@ const COMMON_GAMES = ["Skat", "Doppelkopf", "Schafkopf", "Poker", "Billard", "Da
 export default function GameCombobox({
   value,
   onChange,
+  games,
 }: {
   value: string;
   onChange: (value: string) => void;
+  games: Pick<Game, "id" | "name">[];
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const suggestions = COMMON_GAMES.filter((game) =>
-    game.toLowerCase().includes(value.trim().toLowerCase()),
+  const suggestions = games.filter((game) =>
+    game.name.toLowerCase().includes(value.trim().toLowerCase()),
   );
 
   useEffect(() => {
@@ -59,13 +62,13 @@ export default function GameCombobox({
               <CommandGroup>
                 {suggestions.map((game) => (
                   <CommandItem
-                    key={game}
+                    key={game.id}
                     onSelect={() => {
-                      onChange(game);
+                      onChange(game.name);
                       setOpen(false);
                     }}
                   >
-                    {game}
+                    {game.name}
                   </CommandItem>
                 ))}
               </CommandGroup>

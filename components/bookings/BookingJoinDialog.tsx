@@ -49,10 +49,7 @@ export default function BookingJoinDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {tableName}
-            {booking.game && ` – ${booking.game}`}
-          </DialogTitle>
+          <DialogTitle>{tableName}</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-3">
           <p className="text-sm text-muted-foreground">

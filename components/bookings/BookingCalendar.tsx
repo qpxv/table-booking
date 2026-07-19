@@ -20,6 +20,7 @@ import type { EventResizeDoneArg } from "@fullcalendar/interaction";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { GuestWithVisits } from "@/actions/guests";
+import type { Game } from "@/generated/prisma/client";
 import { updateBooking } from "@/actions/bookings";
 import BookingDialog from "./BookingDialog";
 import BookingJoinDialog from "./BookingJoinDialog";
@@ -75,6 +76,7 @@ export default function BookingCalendar({
   tableAllowsMultiple,
   bookings,
   knownGuests,
+  knownGames,
 }: {
   tableId: string;
   tableName: string;
@@ -83,6 +85,7 @@ export default function BookingCalendar({
   tableAllowsMultiple: boolean;
   bookings: CalendarBooking[];
   knownGuests: GuestWithVisits[];
+  knownGames: Pick<Game, "id" | "name">[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -276,6 +279,7 @@ export default function BookingCalendar({
           initialGame={dialog.mode === "edit" ? (dialog.booking.game ?? "") : ""}
           initialGuests={editingGuests}
           knownGuests={knownGuests}
+          knownGames={knownGames}
           tableAllowsMultiple={tableAllowsMultiple}
           onClose={() => setDialog(null)}
         />

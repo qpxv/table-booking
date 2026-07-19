@@ -15,7 +15,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import type { ActionResult } from "@/types/action-result";
 
-type Mode = "table" | "user" | "booking" | "guest";
+type Mode = "table" | "user" | "booking" | "guest" | "game";
 
 const COPY: Record<
   Mode,
@@ -41,6 +41,11 @@ const COPY: Record<
     confirmLabel: "Entfernen",
     description: (name) =>
       `„${name}" wirklich entfernen? Der Gast wird bei allen Mitgliedern entfernt, die ihn ebenfalls eingetragen haben.`,
+  },
+  game: {
+    title: "Spiel löschen",
+    confirmLabel: "Löschen",
+    description: (name) => `„${name}" wirklich löschen? Dies kann nicht rückgängig gemacht werden.`,
   },
 };
 

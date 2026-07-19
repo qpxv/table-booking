@@ -164,3 +164,14 @@ model BookingParticipant {
   @@unique([bookingId, userId])
   @@index([bookingId])
 }
+
+// Admin-managed suggestion list for the "Spiel" field on bookings
+// (Spielverwaltung). Deliberately not a relation to Booking — a booking's
+// game stays a free-typed string, this just powers GameCombobox's
+// suggestions, so renaming/deleting a game here never touches past bookings.
+model Game {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

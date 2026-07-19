@@ -21,6 +21,7 @@ import DateTimeField from "./DateTimeField";
 import GameCombobox from "./GameCombobox";
 import GuestMultiCombobox, { type GuestSelection } from "./GuestMultiCombobox";
 import type { GuestWithVisits } from "@/actions/guests";
+import type { Game } from "@/generated/prisma/client";
 import { calculateGuestPrice } from "@/lib/pricing";
 import {
   bookingFieldsSchema,
@@ -41,6 +42,7 @@ export default function BookingDialog({
   initialGame,
   initialGuests,
   knownGuests,
+  knownGames,
   tableAllowsMultiple,
   onClose,
 }: {
@@ -53,6 +55,7 @@ export default function BookingDialog({
   initialGame?: string;
   initialGuests?: GuestSelection[];
   knownGuests: GuestWithVisits[];
+  knownGames: Pick<Game, "id" | "name">[];
   tableAllowsMultiple: boolean;
   onClose: () => void;
 }) {
@@ -136,19 +139,23 @@ export default function BookingDialog({
               </Field>
             </div>
 
-            <Field>
-              <FieldLabel htmlFor="game">Spiel</FieldLabel>
-              <Controller
-                name="game"
-                control={form.control}
-                render={({ field }) => (
-                  <GameCombobox value={field.value ?? ""} onChange={field.onChange} />
-                )}
-              />
-            </Field>
-
             {!tableAllowsMultiple && (
               <>
+                <Field>
+                  <FieldLabel htmlFor="game">Spiel</FieldLabel>
+                  <Controller
+                    name="game"
+                    control={form.control}
+                    render={({ field }) => (
+                      <GameCombobox
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        games={knownGames}
+                      />
+                    )}
+                  />
+                </Field>
+
                 <Separator />
                 <FieldGroup>
                   <Field>

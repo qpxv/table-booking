@@ -51,7 +51,9 @@ export default async function DashboardPage() {
                 <p className="text-sm text-muted-foreground">
                   {formatBerlin(booking.start)} – {formatBerlin(booking.end, "HH:mm")}
                 </p>
-                {booking.game && <p className="text-sm">Spiel: {booking.game}</p>}
+                {!booking.table.allowMultipleBookings && booking.game && (
+                  <p className="text-sm">Spiel: {booking.game}</p>
+                )}
                 {otherParticipants.length > 0 && (
                   <p className="text-sm text-muted-foreground">
                     Mit: {otherParticipants.join(", ")}

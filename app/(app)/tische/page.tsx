@@ -57,7 +57,6 @@ export default async function TablesListPage() {
                       {nextEvent && (
                         <p className="mt-1 text-sm text-muted-foreground">
                           {formatBerlin(nextEvent.start)}
-                          {nextEvent.game && ` · ${nextEvent.game}`}
                         </p>
                       )}
                     </div>
