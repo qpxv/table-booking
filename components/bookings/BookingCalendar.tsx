@@ -62,7 +62,7 @@ function renderEventContent(arg: EventContentArg) {
       <div className="truncate font-semibold">{attendees}</div>
       <div className="truncate text-[0.7rem] opacity-90">
         {arg.timeText}
-        {duration && ` · ${duration}`}
+        {duration && ` (${duration})`}
       </div>
       {game && <div className="truncate text-[0.7rem] italic opacity-90">{game}</div>}
     </div>

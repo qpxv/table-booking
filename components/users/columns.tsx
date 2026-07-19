@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { ArrowUpDown, KeyRound, MoreHorizontal, Pencil, ShieldCheck, Trash2, User, X } from "lucide-react";
+import { ArrowUpDown, KeyRound, MoreHorizontal, Pencil, ShieldCheck, Sparkles, Trash2, User, X } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -115,7 +115,12 @@ export function createUserColumns({
             {guests.map((guest) => (
               <Badge key={guest.id} variant={guest.isFirstTimer ? "outline" : "secondary"} className="gap-1">
                 {guest.name}
-                {guest.isFirstTimer && " · neu"}
+                {guest.isFirstTimer && (
+                  <>
+                    <Sparkles className="size-3" />
+                    neu
+                  </>
+                )}
                 <button
                   type="button"
                   onClick={() => onRemoveGuest(guest)}

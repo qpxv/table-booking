@@ -106,7 +106,7 @@ export default function PaymentDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Zahlung — {row.guestName}</DialogTitle>
+          <DialogTitle>Zahlung für {row.guestName}</DialogTitle>
         </DialogHeader>
 
         {!result && (
@@ -140,7 +140,7 @@ export default function PaymentDialog({
               </div>
             ) : (
               <p className="text-center text-xs text-muted-foreground">
-                Kein SEPA-QR-Code verfügbar — dieses Mitglied hat noch keine IBAN in den
+                Kein SEPA-QR-Code verfügbar. Dieses Mitglied hat noch keine IBAN in den
                 Zahlungsdetails hinterlegt.
               </p>
             )}

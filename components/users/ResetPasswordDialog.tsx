@@ -55,7 +55,7 @@ export default function ResetPasswordDialog({
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Passwort zurücksetzen — {user.name}</DialogTitle>
+          <DialogTitle>Passwort zurücksetzen für {user.name}</DialogTitle>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <FieldGroup>

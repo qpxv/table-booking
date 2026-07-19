@@ -125,7 +125,7 @@ export default function BookingDialog({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {tableName} — {mode === "create" ? "Neue Buchung" : "Buchung bearbeiten"}
+              {tableName}: {mode === "create" ? "Neue Buchung" : "Buchung bearbeiten"}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
