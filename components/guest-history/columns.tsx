@@ -4,8 +4,9 @@ import { useTransition } from "react";
 import { ArrowUpDown, Landmark } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { formatBerlin } from "@/lib/datetime";
 import { setBookingGuestPaid, type GuestHistoryRow } from "@/actions/guestHistory";
@@ -97,19 +98,47 @@ export function createGuestHistoryColumns({
     {
       id: "actions",
       header: () => <div className="text-right">Aktionen</div>,
-      cell: ({ row }) => (
-        <div className="flex justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!isAdmin && !row.original.hasIban}
-            onClick={() => onOpenPayment(row.original)}
-          >
-            <Landmark />
-            Zahlung
-          </Button>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const canPay = isAdmin || row.original.hasIban;
+
+        if (canPay) {
+          return (
+            <div className="flex justify-end">
+              <Button variant="outline" size="sm" onClick={() => onOpenPayment(row.original)}>
+                <Landmark />
+                Zahlung
+              </Button>
+            </div>
+          );
+        }
+
+        // Deliberately not <Button render={...}> here: TooltipTrigger needs
+        // to be the actual interactive element receiving hover/focus events,
+        // not composed onto a separate Button via the render prop (a native
+        // `disabled` button also never fires hover events at all, in any
+        // browser, which is why this is styled-disabled via aria-disabled
+        // instead of the real `disabled` attribute).
+        return (
+          <div className="flex justify-end">
+            <Tooltip>
+              <TooltipTrigger
+                aria-disabled
+                delay={0}
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "cursor-not-allowed opacity-50",
+                )}
+              >
+                <Landmark />
+                Zahlung
+              </TooltipTrigger>
+              <TooltipContent>
+                Zuerst eine IBAN in den Zahlungsdetails (Einstellungen) hinterlegen.
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        );
+      },
     },
   ];
 }
