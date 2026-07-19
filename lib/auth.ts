@@ -20,6 +20,11 @@ export const auth = betterAuth({
         required: false,
         input: true,
       },
+      iban: {
+        type: "string",
+        required: false,
+        input: true,
+      },
     },
     changeEmail: {
       enabled: true,

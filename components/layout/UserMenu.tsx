@@ -27,7 +27,15 @@ function getInitials(name: string): string {
   return initials || "?";
 }
 
-export default function UserMenu({ name, email }: { name: string; email: string }) {
+export default function UserMenu({
+  name,
+  email,
+  iban,
+}: {
+  name: string;
+  email: string;
+  iban: string | null;
+}) {
   const router = useRouter();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -85,7 +93,12 @@ export default function UserMenu({ name, email }: { name: string; email: string 
         </DropdownMenuContent>
       </DropdownMenu>
       {settingsOpen && (
-        <SettingsDialog name={name} email={email} onClose={() => setSettingsOpen(false)} />
+        <SettingsDialog
+          name={name}
+          email={email}
+          iban={iban}
+          onClose={() => setSettingsOpen(false)}
+        />
       )}
     </>
   );

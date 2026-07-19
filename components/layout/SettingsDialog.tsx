@@ -6,16 +6,17 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
-import { UserCircle, KeyRound } from "lucide-react";
+import { UserCircle, KeyRound, Landmark } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field";
+import { Field, FieldLabel, FieldError, FieldDescription, FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
+import { isValidIban } from "@/lib/iban";
 
-type Tab = "profile" | "password";
+type Tab = "profile" | "password" | "payment";
 
 // better-auth's client errors carry a stable `code` alongside an
 // English `message` — map the ones these two forms can actually hit to
@@ -39,6 +40,13 @@ const profileSchema = z.object({
 });
 type ProfileInput = z.infer<typeof profileSchema>;
 
+const paymentSchema = z.object({
+  iban: z.string().trim().refine((value) => value === "" || isValidIban(value), {
+    message: "Ungültige IBAN.",
+  }),
+});
+type PaymentInput = z.infer<typeof paymentSchema>;
+
 const passwordSchema = z
   .object({
     currentPassword: z.string().min(1, "Aktuelles Passwort ist erforderlich"),
@@ -56,10 +64,12 @@ type PasswordInput = z.infer<typeof passwordSchema>;
 export default function SettingsDialog({
   name,
   email,
+  iban,
   onClose,
 }: {
   name: string;
   email: string;
+  iban: string | null;
   onClose: () => void;
 }) {
   const [tab, setTab] = useState<Tab>("profile");
@@ -80,16 +90,23 @@ export default function SettingsDialog({
               <KeyRound />
               Passwort ändern
             </TabButton>
+            <TabButton active={tab === "payment"} onClick={() => setTab("payment")}>
+              <Landmark />
+              Zahlungsdetails
+            </TabButton>
           </nav>
-          {/* Both forms stay mounted, stacked in the same grid cell, so the
-              grid's height is driven by the taller one (password) — keeps
-              the dialog from jumping in height when switching tabs. */}
+          {/* All three forms stay mounted, stacked in the same grid cell, so
+              the grid's height is driven by the tallest one — keeps the
+              dialog from jumping in height when switching tabs. */}
           <div className="grid min-w-0 grow">
             <div className={cn("col-start-1 row-start-1", tab !== "profile" && "invisible")}>
               <ProfileForm name={name} email={email} />
             </div>
             <div className={cn("col-start-1 row-start-1", tab !== "password" && "invisible")}>
               <PasswordForm />
+            </div>
+            <div className={cn("col-start-1 row-start-1", tab !== "payment" && "invisible")}>
+              <PaymentForm iban={iban} />
             </div>
           </div>
         </div>
@@ -255,6 +272,61 @@ function PasswordForm() {
       <Button type="submit" disabled={pending} className="self-end">
         {pending && <Spinner />}
         Passwort ändern
+      </Button>
+    </form>
+  );
+}
+
+function PaymentForm({ iban }: { iban: string | null }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const form = useForm<PaymentInput>({
+    resolver: zodResolver(paymentSchema),
+    defaultValues: { iban: iban ?? "" },
+  });
+
+  function onSubmit(values: PaymentInput) {
+    startTransition(async () => {
+      const { error } = await authClient.updateUser({ iban: values.iban });
+      if (error) {
+        toast.error(authErrorMessage(error));
+        return;
+      }
+
+      toast.success("Zahlungsdetails aktualisiert.");
+      router.refresh();
+    });
+  }
+
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+      <FieldGroup>
+        <Controller
+          name="iban"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={field.name}>IBAN</FieldLabel>
+              <Input
+                {...field}
+                id={field.name}
+                placeholder="DE89 3704 0044 0532 0130 00"
+                aria-invalid={fieldState.invalid}
+              />
+              {fieldState.invalid ? (
+                <FieldError errors={[fieldState.error]} />
+              ) : (
+                <FieldDescription>
+                  Wird für den SEPA-Zahlungs-QR-Code in der Gasthistorie verwendet.
+                </FieldDescription>
+              )}
+            </Field>
+          )}
+        />
+      </FieldGroup>
+      <Button type="submit" disabled={pending} className="self-end">
+        {pending && <Spinner />}
+        Änderungen speichern
       </Button>
     </form>
   );

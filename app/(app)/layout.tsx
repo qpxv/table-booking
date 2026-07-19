@@ -18,6 +18,7 @@ export default async function AppLayout({
         name: session.user.name,
         email: session.user.email,
         role: session.user.role ?? "user",
+        iban: session.user.iban ?? null,
       }}
     >
       {children}

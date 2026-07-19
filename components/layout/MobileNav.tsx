@@ -31,10 +31,12 @@ export default function MobileNav({
   links,
   name,
   email,
+  iban,
 }: {
   links: NavLink[];
   name: string;
   email: string;
+  iban: string | null;
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -78,7 +80,12 @@ export default function MobileNav({
           click, the dialog's state has to live outside that subtree or it
           gets torn down before it can render. */}
       {settingsOpen && (
-        <SettingsDialog name={name} email={email} onClose={() => setSettingsOpen(false)} />
+        <SettingsDialog
+          name={name}
+          email={email}
+          iban={iban}
+          onClose={() => setSettingsOpen(false)}
+        />
       )}
     </SidebarProvider>
   );

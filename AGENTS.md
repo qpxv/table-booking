@@ -255,6 +255,52 @@ still throw normally since they aren't wrapped in this pattern.
   nothing when there's nobody else. The Spiel line's
   `!booking.table.allowMultipleBookings` gate is unrelated and unchanged —
   shared tables still never have a Spiel.
+- **Gasthistorie (`/gasthistorie`) is a live query, not a log table.** It
+  reads directly off existing `BookingGuest` rows (which already are the
+  historical record — `price` frozen at creation) joined with `guest`,
+  `booking.table`, and `booking.user`, so editing a booking's guests at any
+  time is reflected immediately, nothing is cached/duplicated.
+  `actions/guestHistory.ts`'s `listGuestHistory()` scopes by role: admins
+  get every `BookingGuest` (`status: ACTIVE`), everyone else only rows
+  where `booking.userId === session.user.id` (guests *they* brought) — same
+  scoping precedent as `listGuestsGroupedByBringer`. `BookingGuest.paid`
+  (new column) is the payment checkbox; `setBookingGuestPaid` permission =
+  admin OR the booking's creator (loads `booking.userId` first to check,
+  same owner-or-admin shape as `canEditBooking`). "Erster Besuch" vs a euro
+  amount in the Preis column is just `price === 0` — `calculateGuestPrice`
+  already guarantees a first visit prices at exactly 0.
+- **SEPA payment QR codes are a real EPC069-12 payload, not a "link".**
+  Looked this up properly before building it: an EPC/GiroCode QR is a fixed
+  11-line text payload (service tag, version, charset, IBAN, beneficiary
+  name, amount, reference, etc. — see `lib/sepaQr.ts`'s `buildEpcPayload`
+  for the exact field order/codes, verified against the EPC's own spec
+  cross-referenced across multiple independent sources) rendered as a QR
+  *image* for a banking app's camera to scan — there's no SEPA equivalent
+  of a clickable payment URL. `qrcode`'s `toDataURL()` renders it
+  server-side in `actions/guestHistory.ts`'s `getGuestPaymentReference` —
+  the raw IBAN never crosses the wire, only the rendered PNG data URL does,
+  so not even an admin ever sees another member's actual IBAN string.
+  Lazy: only generated when `PaymentDialog` actually opens, never for every
+  row up front.
+- **IBAN lives in a dedicated "Zahlungsdetails" settings tab, self-service
+  only.** `User.iban` is registered as a `better-auth` `additionalFields`
+  entry in `lib/auth.ts` (`input: true`, same mechanism `memberId` already
+  used admin-side) and set via `authClient.updateUser({ iban })` from
+  `SettingsDialog.tsx`'s `PaymentForm` — needed adding
+  `inferAdditionalFields<typeof auth>()` to `lib/auth-client.ts`'s plugins
+  for the client call to type-check at all (confirmed by reading
+  `better-auth`'s own source, not assumed: `input: true` additionalFields
+  *are* accepted through the self-service `update-user` endpoint, filtered
+  via `parseUserInput`). Validated with a real ISO 13616 MOD-97 checksum in
+  `lib/iban.ts`, not just a shape regex — this feeds real bank transfers.
+  Admins never see or edit another member's IBAN anywhere.
+- **Admins can always open the payment dialog, even with no IBAN on file.**
+  `Zahlung` in Gasthistorie's Aktionen column is normally disabled unless
+  `row.hasIban`, but `!isAdmin && !row.hasIban` is the actual gate — an
+  admin can always open it (e.g. to help a member who's having trouble),
+  and `PaymentDialog` shows an explicit "kein SEPA-QR-Code verfügbar" note
+  in place of the QR when the bringing member genuinely has no IBAN, rather
+  than silently showing nothing.
 
 ## Permissions
 

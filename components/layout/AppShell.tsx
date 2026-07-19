@@ -8,6 +8,7 @@ type AppShellUser = {
   name: string;
   email: string;
   role: string;
+  iban: string | null;
 };
 
 function NavButton({ href, children }: { href: string; children: React.ReactNode }) {
@@ -33,6 +34,7 @@ export default function AppShell({
   const links = [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/tische", label: "Reservieren" },
+    { href: "/gasthistorie", label: "Gasthistorie" },
     ...(isAdmin
       ? [
           { href: "/admin/tische", label: "Tischverwaltung" },
@@ -65,10 +67,10 @@ export default function AppShell({
           ))}
         </nav>
 
-        <MobileNav links={links} name={user.name} email={user.email} />
+        <MobileNav links={links} name={user.name} email={user.email} iban={user.iban} />
 
         <div className="hidden md:block">
-          <UserMenu name={user.name} email={user.email} />
+          <UserMenu name={user.name} email={user.email} iban={user.iban} />
         </div>
       </header>
       <main className="flex flex-1 flex-col p-6">{children}</main>
