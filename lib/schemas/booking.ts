@@ -33,6 +33,7 @@ export const createBookingSchema = z
     end: z.coerce.date(),
     game: z.string().trim().optional(),
     guests: z.array(guestInputSchema).default([]),
+    participantUserIds: z.array(z.string().min(1)).default([]),
   })
   .refine((data) => data.start < data.end, {
     message: "Start muss vor dem Ende liegen.",
@@ -54,6 +55,9 @@ export const updateBookingSchema = z
     // (drag/resize), which must not touch guest assignments. Only present
     // when the edit dialog explicitly submits a guest list.
     guests: z.array(guestInputSchema).optional(),
+    // Same optional-not-defaulted deal as guests — omitted on reschedule so
+    // participants added via Mitmachen aren't touched by a plain move/resize.
+    participantUserIds: z.array(z.string().min(1)).optional(),
   })
   .refine((data) => data.start < data.end, {
     message: "Start muss vor dem Ende liegen.",

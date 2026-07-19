@@ -10,9 +10,10 @@ import { formatBerlin } from "@/lib/datetime";
 import { joinBooking, leaveBooking } from "@/actions/bookings";
 import type { CalendarBooking } from "./BookingCalendar";
 
-// Shown when clicking an event on a "Mehrfachbuchung" (shared) table instead
-// of the normal edit dialog — any member can join/leave; only the creator or
-// an admin can jump to the full edit dialog to reschedule/cancel.
+// Shown when clicking any event, on any table, instead of jumping straight
+// to the edit dialog — any member can join/leave here; only the creator or
+// an admin can jump to the full edit dialog to reschedule/cancel. The
+// creator never gets a Verlassen button — they can't leave their own event.
 export default function BookingJoinDialog({
   tableName,
   booking,
@@ -29,6 +30,7 @@ export default function BookingJoinDialog({
   onClose: () => void;
 }) {
   const [pending, startTransition] = useTransition();
+  const isCreator = booking.userId === currentUserId;
   const isParticipant = booking.participants.some((p) => p.userId === currentUserId);
 
   function handleJoinToggle() {
@@ -58,8 +60,8 @@ export default function BookingJoinDialog({
           <div>
             <p className="mb-1.5 text-sm font-medium">
               {booking.participants.length === 1
-                ? "1 Angemeldet"
-                : `${booking.participants.length} Angemeldete`}
+                ? "1 Mitglied"
+                : `${booking.participants.length} Mitglieder`}
             </p>
             <ul className="flex flex-wrap gap-1.5">
               {booking.participants.map((participant) => (
@@ -72,6 +74,23 @@ export default function BookingJoinDialog({
               ))}
             </ul>
           </div>
+          {booking.guests.length > 0 && (
+            <div>
+              <p className="mb-1.5 text-sm font-medium">
+                {booking.guests.length === 1 ? "1 Gast" : `${booking.guests.length} Gäste`}
+              </p>
+              <ul className="flex flex-wrap gap-1.5">
+                {booking.guests.map((guest) => (
+                  <li
+                    key={guest.guestId}
+                    className="rounded-full bg-muted px-2.5 py-0.5 text-sm"
+                  >
+                    {guest.name}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
         <DialogFooter className="sm:justify-between">
           <div>
@@ -87,15 +106,17 @@ export default function BookingJoinDialog({
               <X />
               Schließen
             </Button>
-            <Button
-              type="button"
-              variant={isParticipant ? "destructive" : "default"}
-              onClick={handleJoinToggle}
-              disabled={pending}
-            >
-              {pending ? <Spinner /> : isParticipant ? <LogOut /> : <LogIn />}
-              {isParticipant ? "Verlassen" : "Mitmachen"}
-            </Button>
+            {!isCreator && (
+              <Button
+                type="button"
+                variant={isParticipant ? "destructive" : "default"}
+                onClick={handleJoinToggle}
+                disabled={pending}
+              >
+                {pending ? <Spinner /> : isParticipant ? <LogOut /> : <LogIn />}
+                {isParticipant ? "Verlassen" : "Mitmachen"}
+              </Button>
+            )}
           </div>
         </DialogFooter>
       </DialogContent>

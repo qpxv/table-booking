@@ -145,6 +145,17 @@ export async function deleteUser(userId: string): Promise<ActionResult> {
   }
 }
 
+/** Plain, non-admin-gated member roster for the booking dialog's Mitglieder picker. */
+export async function listMembers() {
+  const users = await prisma.user.findMany({
+    where: { banned: { not: true } },
+    select: { id: true, name: true, email: true },
+    orderBy: { name: "asc" },
+  });
+
+  return users.filter((user) => !isHiddenAccount(user.email)).map(({ id, name }) => ({ id, name }));
+}
+
 export async function listUsers() {
   const session = await getSession();
   if (!isAdmin(session)) {

@@ -25,6 +25,7 @@ import { updateBooking } from "@/actions/bookings";
 import BookingDialog from "./BookingDialog";
 import BookingJoinDialog from "./BookingJoinDialog";
 import type { GuestSelection } from "./GuestMultiCombobox";
+import type { MemberOption } from "./MemberMultiCombobox";
 
 export type CalendarBooking = {
   id: string;
@@ -77,6 +78,7 @@ export default function BookingCalendar({
   bookings,
   knownGuests,
   knownGames,
+  knownMembers,
 }: {
   tableId: string;
   tableName: string;
@@ -86,6 +88,7 @@ export default function BookingCalendar({
   bookings: CalendarBooking[];
   knownGuests: GuestWithVisits[];
   knownGames: Pick<Game, "id" | "name">[];
+  knownMembers: MemberOption[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -100,12 +103,11 @@ export default function BookingCalendar({
     () =>
       bookings.map((booking) => {
         const isOwn = booking.userId === currentUserId;
-        const isParticipant = tableAllowsMultiple
-          ? booking.participants.some((p) => p.userId === currentUserId)
-          : isOwn;
-        const attendees = tableAllowsMultiple
-          ? booking.participants.map((p) => p.name).join(", ")
-          : [booking.userName, ...booking.guests.map((g) => g.name)].join(", ");
+        const isParticipant = booking.participants.some((p) => p.userId === currentUserId);
+        const attendees = [
+          ...booking.participants.map((p) => p.name),
+          ...booking.guests.map((g) => g.name),
+        ].join(", ");
         return {
           id: booking.id,
           start: booking.start,
@@ -118,7 +120,7 @@ export default function BookingCalendar({
           extendedProps: { isOwn, attendees, game: booking.game },
         };
       }),
-    [bookings, currentUserId, isAdmin, tableAllowsMultiple],
+    [bookings, currentUserId, isAdmin],
   );
 
   const editingGuests: GuestSelection[] =
@@ -128,6 +130,15 @@ export default function BookingCalendar({
           .filter((g): g is GuestWithVisits => Boolean(g))
           .map((guest) => ({ type: "existing", guest }))
       : [];
+
+  const editingParticipants: MemberOption[] =
+    dialog?.mode === "edit"
+      ? dialog.booking.participants
+          .filter((p) => p.userId !== dialog.booking.userId)
+          .map((p) => ({ id: p.userId, name: p.name }))
+      : [];
+
+  const creatorUserId = dialog?.mode === "edit" ? dialog.booking.userId : currentUserId;
 
   function handleDatesSet(arg: DatesSetArg) {
     setTitle(arg.view.title);
@@ -149,15 +160,7 @@ export default function BookingCalendar({
   function handleEventClick(clickInfo: EventClickArg) {
     const booking = bookings.find((b) => b.id === clickInfo.event.id);
     if (!booking) return;
-
-    if (tableAllowsMultiple) {
-      setDialog({ mode: "join", booking });
-      return;
-    }
-
-    const isOwn = Boolean(clickInfo.event.extendedProps.isOwn);
-    if (!isOwn && !isAdmin) return;
-    setDialog({ mode: "edit", booking });
+    setDialog({ mode: "join", booking });
   }
 
   async function persistReschedule(
@@ -244,7 +247,7 @@ export default function BookingCalendar({
         eventTimeFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
         allDaySlot={false}
         selectable
-        selectOverlap={false}
+        selectOverlap={tableAllowsMultiple}
         selectMirror
         selectLongPressDelay={300}
         eventStartEditable
@@ -278,8 +281,11 @@ export default function BookingCalendar({
           initialEnd={dialog.mode === "create" ? dialog.end : dialog.booking.end.toISOString()}
           initialGame={dialog.mode === "edit" ? (dialog.booking.game ?? "") : ""}
           initialGuests={editingGuests}
+          initialParticipants={editingParticipants}
           knownGuests={knownGuests}
           knownGames={knownGames}
+          knownMembers={knownMembers}
+          creatorUserId={creatorUserId}
           tableAllowsMultiple={tableAllowsMultiple}
           onClose={() => setDialog(null)}
         />

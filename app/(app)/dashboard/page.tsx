@@ -15,8 +15,8 @@ export default async function DashboardPage() {
     where: {
       status: BookingStatus.ACTIVE,
       start: { gte: new Date() },
-      // Own bookings, or a "Mehrfachbuchung" event created by someone else
-      // that this user has joined as a participant.
+      // Own bookings, or any event created by someone else that this user
+      // has joined (or was added to) as a participant.
       OR: [{ userId: session.user.id }, { participants: { some: { userId: session.user.id } } }],
     },
     include: {
@@ -39,11 +39,9 @@ export default async function DashboardPage() {
 
       <div className="flex flex-col gap-3">
         {upcomingBookings.map((booking) => {
-          const otherParticipants = booking.table.allowMultipleBookings
-            ? booking.participants
-                .filter((p) => p.userId !== session.user.id)
-                .map((p) => p.user.name)
-            : [];
+          const otherParticipants = booking.participants
+            .filter((p) => p.userId !== session.user.id)
+            .map((p) => p.user.name);
           return (
             <Card key={booking.id}>
               <CardContent className="flex flex-col gap-1">

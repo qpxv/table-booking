@@ -6,6 +6,7 @@ import { isAdmin } from "@/lib/permissions";
 import { listBookingsForTable } from "@/actions/bookings";
 import { listGuests } from "@/actions/guests";
 import { listGames } from "@/actions/games";
+import { listMembers } from "@/actions/users";
 import BookingCalendar from "@/components/bookings/BookingCalendar";
 
 export default async function TableCalendarPage({
@@ -25,10 +26,11 @@ export default async function TableCalendarPage({
     notFound();
   }
 
-  const [bookings, knownGuests, knownGames] = await Promise.all([
+  const [bookings, knownGuests, knownGames, knownMembers] = await Promise.all([
     listBookingsForTable(tischId),
     listGuests(),
     listGames(),
+    listMembers(),
   ]);
 
   return (
@@ -53,6 +55,7 @@ export default async function TableCalendarPage({
           }))}
           knownGuests={knownGuests}
           knownGames={knownGames}
+          knownMembers={knownMembers}
         />
       </Suspense>
     </div>

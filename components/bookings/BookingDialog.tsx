@@ -20,6 +20,7 @@ import ConfirmDeleteDialog from "@/components/shared/ConfirmDeleteDialog";
 import DateTimeField from "./DateTimeField";
 import GameCombobox from "./GameCombobox";
 import GuestMultiCombobox, { type GuestSelection } from "./GuestMultiCombobox";
+import MemberMultiCombobox, { type MemberOption } from "./MemberMultiCombobox";
 import type { GuestWithVisits } from "@/actions/guests";
 import type { Game } from "@/generated/prisma/client";
 import { calculateGuestPrice } from "@/lib/pricing";
@@ -41,8 +42,11 @@ export default function BookingDialog({
   initialEnd,
   initialGame,
   initialGuests,
+  initialParticipants,
   knownGuests,
   knownGames,
+  knownMembers,
+  creatorUserId,
   tableAllowsMultiple,
   onClose,
 }: {
@@ -54,14 +58,25 @@ export default function BookingDialog({
   initialEnd: string;
   initialGame?: string;
   initialGuests?: GuestSelection[];
+  initialParticipants?: MemberOption[];
   knownGuests: GuestWithVisits[];
   knownGames: Pick<Game, "id" | "name">[];
+  knownMembers: MemberOption[];
+  creatorUserId: string;
   tableAllowsMultiple: boolean;
   onClose: () => void;
 }) {
   const [selectedGuests, setSelectedGuests] = useState<GuestSelection[]>(initialGuests ?? []);
+  const [selectedParticipants, setSelectedParticipants] = useState<MemberOption[]>(
+    initialParticipants ?? [],
+  );
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  const selectableMembers = useMemo(
+    () => knownMembers.filter((member) => member.id !== creatorUserId),
+    [knownMembers, creatorUserId],
+  );
 
   const form = useForm<BookingFieldsInput>({
     resolver: zodResolver(bookingFieldsSchema),
@@ -88,10 +103,12 @@ export default function BookingDialog({
             : { newName: selection.name },
       );
 
+      const participantUserIds = selectedParticipants.map((member) => member.id);
+
       const result =
         mode === "create"
-          ? await createBooking(tableId, { ...values, guests })
-          : await updateBooking(bookingId!, { ...values, guests });
+          ? await createBooking(tableId, { ...values, guests, participantUserIds })
+          : await updateBooking(bookingId!, { ...values, guests, participantUserIds });
 
       if (result.success) {
         toast.success(result.message);
@@ -138,6 +155,15 @@ export default function BookingDialog({
                 {form.formState.errors.end && <FieldError errors={[form.formState.errors.end]} />}
               </Field>
             </div>
+
+            <Field>
+              <FieldLabel>Mitglieder</FieldLabel>
+              <MemberMultiCombobox
+                value={selectedParticipants}
+                onChange={setSelectedParticipants}
+                knownMembers={selectableMembers}
+              />
+            </Field>
 
             {!tableAllowsMultiple && (
               <>

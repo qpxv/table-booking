@@ -29,17 +29,20 @@ export async function createBooking(
   const data = parsed.data;
 
   // Server-side overlap validation: a table must not be double-booked for
-  // the same time range.
-  const overlap = await prisma.booking.findFirst({
-    where: {
-      tableId,
-      status: BookingStatus.ACTIVE,
-      start: { lt: data.end },
-      end: { gt: data.start },
-    },
-  });
-  if (overlap) {
-    return { success: false, message: "Der Tisch ist im gewählten Zeitraum bereits belegt." };
+  // the same time range — except "Mehrfachbuchung" tables, which are
+  // specifically meant to allow multiple concurrent events.
+  if (!table.allowMultipleBookings) {
+    const overlap = await prisma.booking.findFirst({
+      where: {
+        tableId,
+        status: BookingStatus.ACTIVE,
+        start: { lt: data.end },
+        end: { gt: data.start },
+      },
+    });
+    if (overlap) {
+      return { success: false, message: "Der Tisch ist im gewählten Zeitraum bereits belegt." };
+    }
   }
 
   // Shared ("Mehrfachbuchung") tables are members-only signup — never
@@ -52,6 +55,15 @@ export async function createBooking(
       if (!guest) {
         return { success: false, message: "Ungültiger Gast." };
       }
+    }
+  }
+
+  const participantUserIds = new Set(data.participantUserIds);
+  participantUserIds.delete(session.user.id);
+  for (const userId of participantUserIds) {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return { success: false, message: "Ungültiges Mitglied." };
     }
   }
 
@@ -69,13 +81,14 @@ export async function createBooking(
         },
       });
 
-      // Shared ("Mehrfachbuchung") tables count the creator as the first
-      // participant, so participant counts are uniform everywhere instead
-      // of special-casing "+1 for the creator".
-      if (table.allowMultipleBookings) {
-        await tx.bookingParticipant.create({
-          data: { bookingId: newBooking.id, userId: session.user.id },
-        });
+      // Every booking counts its creator as the first participant, so
+      // participant counts/join-leave are uniform everywhere instead of
+      // special-casing "+1 for the creator".
+      await tx.bookingParticipant.create({
+        data: { bookingId: newBooking.id, userId: session.user.id },
+      });
+      for (const userId of participantUserIds) {
+        await tx.bookingParticipant.create({ data: { bookingId: newBooking.id, userId } });
       }
 
       for (const guestInput of guestInputs) {
@@ -137,23 +150,28 @@ export async function updateBooking(
   // submitted guests as not-submitted (same as a drag/resize reschedule),
   // so they're never created/removed here regardless of what the client sent.
   const guestsInput = booking.table.allowMultipleBookings ? undefined : data.guests;
+  const participantsInput = data.participantUserIds;
 
-  const overlap = await prisma.booking.findFirst({
-    where: {
-      tableId: booking.tableId,
-      status: BookingStatus.ACTIVE,
-      id: { not: id },
-      start: { lt: data.end },
-      end: { gt: data.start },
-    },
-  });
-  if (overlap) {
-    return { success: false, message: "Der Tisch ist im gewählten Zeitraum bereits belegt." };
+  // Overlap check is skipped for "Mehrfachbuchung" tables — they're
+  // specifically meant to allow multiple concurrent events.
+  if (!booking.table.allowMultipleBookings) {
+    const overlap = await prisma.booking.findFirst({
+      where: {
+        tableId: booking.tableId,
+        status: BookingStatus.ACTIVE,
+        id: { not: id },
+        start: { lt: data.end },
+        end: { gt: data.start },
+      },
+    });
+    if (overlap) {
+      return { success: false, message: "Der Tisch ist im gewählten Zeitraum bereits belegt." };
+    }
   }
 
-  // Guests are only reconciled when the caller actually submitted a list
-  // (the edit dialog does; drag/resize reschedules omit it entirely so
-  // existing guest assignments are left untouched).
+  // Guests/participants are only reconciled when the caller actually
+  // submitted a list (the edit dialog does; drag/resize reschedules omit
+  // both entirely so existing assignments are left untouched).
   if (guestsInput !== undefined) {
     for (const guestInput of guestsInput) {
       if ("guestId" in guestInput) {
@@ -161,6 +179,15 @@ export async function updateBooking(
         if (!guest) {
           return { success: false, message: "Ungültiger Gast." };
         }
+      }
+    }
+  }
+  if (participantsInput !== undefined) {
+    for (const userId of participantsInput) {
+      if (userId === booking.userId) continue;
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) {
+        return { success: false, message: "Ungültiges Mitglied." };
       }
     }
   }
@@ -176,47 +203,67 @@ export async function updateBooking(
         },
       });
 
-      if (guestsInput === undefined) return;
+      if (guestsInput !== undefined) {
+        const keepGuestIds = new Set<string>();
 
-      const keepGuestIds = new Set<string>();
+        for (const guestInput of guestsInput) {
+          if ("guestId" in guestInput) {
+            keepGuestIds.add(guestInput.guestId);
 
-      for (const guestInput of guestsInput) {
-        if ("guestId" in guestInput) {
-          keepGuestIds.add(guestInput.guestId);
-
-          const alreadyAttached = booking.guests.some((bg) => bg.guestId === guestInput.guestId);
-          if (!alreadyAttached) {
-            const previousVisitCount = await tx.bookingGuest.count({
-              where: { guestId: guestInput.guestId },
+            const alreadyAttached = booking.guests.some(
+              (bg) => bg.guestId === guestInput.guestId,
+            );
+            if (!alreadyAttached) {
+              const previousVisitCount = await tx.bookingGuest.count({
+                where: { guestId: guestInput.guestId },
+              });
+              const price = calculateGuestPrice(previousVisitCount);
+              await tx.bookingGuest.create({
+                data: { bookingId: id, guestId: guestInput.guestId, price },
+              });
+            }
+          } else {
+            // Guests are club-wide — reuse an existing one (case-insensitive)
+            // instead of creating a duplicate for the same real person.
+            const existingGuest = await tx.guest.findFirst({
+              where: { name: { equals: guestInput.newName, mode: "insensitive" } },
             });
+            const guestId =
+              existingGuest?.id ??
+              (
+                await tx.guest.create({
+                  data: { name: guestInput.newName, userId: booking.userId },
+                })
+              ).id;
+            const previousVisitCount = await tx.bookingGuest.count({ where: { guestId } });
             const price = calculateGuestPrice(previousVisitCount);
-            await tx.bookingGuest.create({
-              data: { bookingId: id, guestId: guestInput.guestId, price },
-            });
+            await tx.bookingGuest.create({ data: { bookingId: id, guestId, price } });
+            keepGuestIds.add(guestId);
           }
-        } else {
-          // Guests are club-wide — reuse an existing one (case-insensitive)
-          // instead of creating a duplicate for the same real person.
-          const existingGuest = await tx.guest.findFirst({
-            where: { name: { equals: guestInput.newName, mode: "insensitive" } },
-          });
-          const guestId =
-            existingGuest?.id ??
-            (
-              await tx.guest.create({
-                data: { name: guestInput.newName, userId: booking.userId },
-              })
-            ).id;
-          const previousVisitCount = await tx.bookingGuest.count({ where: { guestId } });
-          const price = calculateGuestPrice(previousVisitCount);
-          await tx.bookingGuest.create({ data: { bookingId: id, guestId, price } });
-          keepGuestIds.add(guestId);
+        }
+
+        const toRemove = booking.guests.filter((bg) => !keepGuestIds.has(bg.guestId));
+        if (toRemove.length > 0) {
+          await tx.bookingGuest.deleteMany({ where: { id: { in: toRemove.map((bg) => bg.id) } } });
         }
       }
 
-      const toRemove = booking.guests.filter((bg) => !keepGuestIds.has(bg.guestId));
-      if (toRemove.length > 0) {
-        await tx.bookingGuest.deleteMany({ where: { id: { in: toRemove.map((bg) => bg.id) } } });
+      if (participantsInput !== undefined) {
+        const keepUserIds = new Set(participantsInput);
+        // The creator always stays a participant regardless of what was submitted.
+        keepUserIds.add(booking.userId);
+
+        for (const userId of keepUserIds) {
+          await tx.bookingParticipant.upsert({
+            where: { bookingId_userId: { bookingId: id, userId } },
+            create: { bookingId: id, userId },
+            update: {},
+          });
+        }
+
+        await tx.bookingParticipant.deleteMany({
+          where: { bookingId: id, userId: { notIn: [...keepUserIds] } },
+        });
       }
     });
 
@@ -270,20 +317,14 @@ export async function listBookingsForTable(tableId: string) {
   });
 }
 
-/** Join a "Mehrfachbuchung" (shared) table's event as an additional participant. */
+/** Join any active booking as an additional participant. */
 export async function joinBooking(bookingId: string): Promise<ActionResult> {
   const session = await getSession();
   if (!session) return { success: false, message: "Nicht angemeldet." };
 
-  const booking = await prisma.booking.findUnique({
-    where: { id: bookingId },
-    include: { table: true },
-  });
+  const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
   if (!booking || booking.status !== BookingStatus.ACTIVE) {
     return { success: false, message: "Termin nicht gefunden." };
-  }
-  if (!booking.table.allowMultipleBookings) {
-    return { success: false, message: "Dieser Tisch erlaubt keine Mehrfachbuchung." };
   }
 
   try {
@@ -295,6 +336,7 @@ export async function joinBooking(bookingId: string): Promise<ActionResult> {
 
     revalidatePath(`/tische/${booking.tableId}`);
     revalidatePath("/tische");
+    revalidatePath("/dashboard");
 
     return { success: true, message: "Du bist jetzt angemeldet." };
   } catch (err) {
@@ -303,21 +345,25 @@ export async function joinBooking(bookingId: string): Promise<ActionResult> {
   }
 }
 
-/** Leave a "Mehrfachbuchung" event. Does not affect the booking itself. */
+/** Leave a booking. The creator can never leave their own event. */
 export async function leaveBooking(bookingId: string): Promise<ActionResult> {
   const session = await getSession();
   if (!session) return { success: false, message: "Nicht angemeldet." };
+
+  const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+  if (!booking) return { success: false, message: "Termin nicht gefunden." };
+  if (booking.userId === session.user.id) {
+    return { success: false, message: "Der Ersteller kann den Termin nicht verlassen." };
+  }
 
   try {
     await prisma.bookingParticipant.deleteMany({
       where: { bookingId, userId: session.user.id },
     });
 
-    const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
-    if (booking) {
-      revalidatePath(`/tische/${booking.tableId}`);
-      revalidatePath("/tische");
-    }
+    revalidatePath(`/tische/${booking.tableId}`);
+    revalidatePath("/tische");
+    revalidatePath("/dashboard");
 
     return { success: true, message: "Du bist abgemeldet." };
   } catch (err) {

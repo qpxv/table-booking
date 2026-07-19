@@ -180,29 +180,55 @@ still throw normally since they aren't wrapped in this pattern.
   1000ms default, not 0) — enough for a deliberate press-and-drag to
   register on mobile without hijacking normal page-scroll swipes. Don't
   "fix" this back to a round number without rereading why.
-- **"Mehrfachbuchung" (shared/community) tables.** `Table.allowMultipleBookings`
-  turns a table's booking slot from "one member owns it exclusively" into
-  "one event, many members join it." Toggled inline in Tischverwaltung's
-  table list, right next to the "Aktiv" switch (`columns.tsx` +
-  `TableManager.tsx`'s `handleToggleMultiple`, calling
-  `actions/tables.ts`'s `setTableAllowMultipleBookings` — a straight copy of
-  `setTableActive`'s pattern) — it is deliberately **not** part of
-  `TableFormDialog`'s create/edit form, same as `active` never was. A
-  `Booking` on such a table is still a single row (start/end/game, one
-  creator `userId`) — what changes is `BookingParticipant`, a join table
-  (`bookingId`, `userId`, unique per pair) recording who's signed up. The
-  creator is inserted as a participant too at creation time (`createBooking`
-  in `actions/bookings.ts`), so participant counts are always just
-  `participants.length` — no "+1 for the creator" special-casing anywhere.
-  `joinBooking`/`leaveBooking` add/remove the caller's own row; leaving
-  never deletes the booking itself (the creator cancels via the normal edit
-  dialog's "Stornieren" instead). No change was needed to the overlap check
-  in `createBooking`/`updateBooking` — joining adds a `BookingParticipant`
-  to the *existing* booking, it never creates a second overlapping one, so
-  one event per time range per table still holds.
-  `listTablesWithUpcomingWeekCounts` (used by `/tische`'s cards) returns a
-  `nextEvent: { start, end, participantCount } | null` for shared tables
-  instead of the usual weekly booking count.
+- **Every booking tracks participants — not just Mehrfachbuchung tables.**
+  `BookingParticipant` (`bookingId`, `userId`, unique per pair) started as a
+  Mehrfachbuchung-only concept but is now universal: `createBooking` always
+  inserts the creator as a participant (no more
+  `if (table.allowMultipleBookings)` gate on that insert), so participant
+  counts/join-leave work the same everywhere and never need "+1 for the
+  creator" special-casing. `joinBooking`/`leaveBooking` work on any active
+  booking now (the old `!table.allowMultipleBookings` rejection in
+  `joinBooking` is gone) — **except the creator can never leave their own
+  event**: `leaveBooking` rejects with a dedicated message when
+  `booking.userId === session.user.id`, and `BookingJoinDialog` hides the
+  Mitmachen/Verlassen button entirely for the creator (only Bearbeiten +
+  Schließen).
+- **"Mehrfachbuchung" (shared/community) tables** now specifically mean
+  "this table allows multiple *concurrent* bookings" — `Table.allowMultipleBookings`,
+  toggled inline in Tischverwaltung's table list next to "Aktiv"
+  (`columns.tsx` + `TableManager.tsx`'s `handleToggleMultiple`, calling
+  `actions/tables.ts`'s `setTableAllowMultipleBookings`, a copy of
+  `setTableActive`'s pattern) — deliberately not part of `TableFormDialog`'s
+  form, same as `active` never was. The overlap check in
+  `createBooking`/`updateBooking` (`prisma.booking.findFirst` for a
+  conflicting active booking) is now wrapped in
+  `if (!table.allowMultipleBookings)` — shared tables skip it entirely, so
+  several different events/creators/groups can book the same table at
+  overlapping times. `selectOverlap` on the `<FullCalendar>` in
+  `BookingCalendar.tsx` mirrors this (`tableAllowsMultiple` instead of a
+  hardcoded `false`) so a member can even drag-select a new range over an
+  existing event on a shared table. `listTablesWithUpcomingWeekCounts`
+  (used by `/tische`'s cards) still returns a single
+  `nextEvent: { start, end, participantCount } | null` (the soonest
+  upcoming one) for shared tables instead of the usual weekly booking count
+  — it doesn't attempt to summarize multiple concurrent events, out of
+  scope for now.
+- **Creating/editing any booking can pre-add members, not just guests.**
+  `BookingDialog` has a "Mitglieder" field (`MemberMultiCombobox`, new
+  component — same non-Popover dropdown pattern as `GuestMultiCombobox`,
+  minus the "create new" branch since members are a fixed roster, not
+  creatable ad hoc) shown unconditionally on every table, alongside the
+  Gäste picker (normal tables only). Submits `participantUserIds` to
+  `createBooking`/`updateBooking`, which validate each id exists then
+  create/reconcile `BookingParticipant` rows exactly like guests already
+  are reconciled (upsert the kept set — the creator is always force-kept
+  regardless of what was submitted — then `deleteMany` whatever's left out).
+  Omitted entirely on a drag/resize reschedule, same as guests, so a plain
+  move never touches participants. `knownMembers` comes from
+  `actions/users.ts`'s new `listMembers()` — deliberately **not**
+  `listUsers()`, which is admin-gated and goes through the better-auth admin
+  API; this picker is used by every member, so it needed a plain
+  session-agnostic Prisma loader instead.
 - **Shared tables never take guests or a Spiel.** Members-only signup, no
   per-event game — both v1 scope decisions, not just UI nicities.
   `BookingDialog` hides the entire Gäste combobox + Gastkosten section, and
@@ -217,16 +243,18 @@ still throw normally since they aren't wrapped in this pattern.
   `nextEvent` and the dashboard's per-booking Spiel line are both gated the
   same way (never shown for shared-table bookings, since the value is
   always null there now).
-- **Dashboard shows joined events too, plus who else is coming.**
-  `app/(app)/dashboard/page.tsx`'s upcoming-bookings query used to filter on
-  `booking.userId === session.user.id` only, which missed shared-table
-  events a member *joined* but didn't create (joining only adds a
-  `BookingParticipant` row, it doesn't touch `Booking.userId`). Fixed with
-  an `OR: [{ userId }, { participants: { some: { userId } } }]` clause. Each
-  card also lists other signed-up members ("Mit: ...") for
-  `allowMultipleBookings` bookings, filtering the current user out of
-  `booking.participants` — normal (non-shared) bookings don't show this
-  line at all.
+- **Dashboard shows joined events too, plus who else is coming — on every
+  table now, not just shared ones.** `app/(app)/dashboard/page.tsx`'s
+  upcoming-bookings query filters on
+  `OR: [{ userId }, { participants: { some: { userId } } }]`, since a
+  booking a member only joined (or was added to) never touches
+  `Booking.userId`. Every card lists other participants ("Mit: ...",
+  filtering the current user out of `booking.participants`) — this used to
+  be gated to `allowMultipleBookings` bookings only, but since every booking
+  tracks participants now, the gate was removed; it just naturally shows
+  nothing when there's nobody else. The Spiel line's
+  `!booking.table.allowMultipleBookings` gate is unrelated and unchanged —
+  shared tables still never have a Spiel.
 
 ## Permissions
 
@@ -247,18 +275,21 @@ still throw normally since they aren't wrapped in this pattern.
   is `RESTRICT`), then the `Guest` row, in a transaction. Confirmed via
   `ConfirmDeleteDialog`'s `"guest"` mode, whose description explicitly
   says so, since this is a broader blast radius than a normal delete.
-- **Shared-table events: anyone can join/leave, only creator/admin can
-  reschedule/cancel.** In `BookingCalendar.tsx`, clicking an event on a
-  `allowMultipleBookings` table always opens `BookingJoinDialog` (any
-  authenticated member — no `isOwn`/`isAdmin` gate, unlike normal tables),
-  which offers Mitmachen/Verlassen (`joinBooking`/`leaveBooking`). A
-  "Bearbeiten" button, shown only when `booking.userId === currentUserId ||
-  isAdmin`, swaps to the normal `BookingDialog` edit mode for
-  reschedule/cancel — `canEditBooking`'s existing owner-or-admin rule still
-  gates that path, this is purely an extra join/leave layer in front of it.
-  Drag/resize (`editable`) on the calendar itself is unchanged: still
-  creator/admin only, regardless of `allowMultipleBookings` — moving the
-  whole event's time is not something a joining member should be able to do.
+- **Every event: anyone can join/leave, only creator/admin can
+  reschedule/cancel.** In `BookingCalendar.tsx`, clicking *any* event, on
+  *any* table, always opens `BookingJoinDialog` now (this used to be
+  Mehrfachbuchung-only, with normal tables instead either opening the edit
+  dialog directly for the owner/admin or doing nothing for anyone else — that
+  branching is gone; `handleEventClick` unconditionally sets
+  `{ mode: "join", booking }`). The dialog shows Mitglieder badges, then
+  Gäste badges underneath (only rendered when non-empty — naturally empty
+  for shared tables). A "Bearbeiten" button, shown only when
+  `booking.userId === currentUserId || isAdmin`, swaps to the normal
+  `BookingDialog` edit mode for reschedule/cancel — `canEditBooking`'s
+  existing owner-or-admin rule still gates that path, this is purely an
+  extra join/leave layer in front of it. Drag/resize (`editable`) on the
+  calendar itself is unchanged: still creator/admin only — moving the whole
+  event's time is not something a joining member should be able to do.
 
 ## Test data
 
