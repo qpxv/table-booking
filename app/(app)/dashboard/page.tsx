@@ -13,11 +13,16 @@ export default async function DashboardPage() {
 
   const upcomingBookings = await prisma.booking.findMany({
     where: {
-      userId: session.user.id,
       status: BookingStatus.ACTIVE,
       start: { gte: new Date() },
+      // Own bookings, or a "Mehrfachbuchung" event created by someone else
+      // that this user has joined as a participant.
+      OR: [{ userId: session.user.id }, { participants: { some: { userId: session.user.id } } }],
     },
-    include: { table: true },
+    include: {
+      table: true,
+      participants: { include: { user: { select: { name: true } } } },
+    },
     orderBy: { start: "asc" },
     take: 10,
   });
@@ -33,17 +38,29 @@ export default async function DashboardPage() {
       )}
 
       <div className="flex flex-col gap-3">
-        {upcomingBookings.map((booking) => (
-          <Card key={booking.id}>
-            <CardContent className="flex flex-col gap-1">
-              <CardTitle>{booking.table.name}</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {formatBerlin(booking.start)} – {formatBerlin(booking.end, "HH:mm")}
-              </p>
-              {booking.game && <p className="text-sm">Spiel: {booking.game}</p>}
-            </CardContent>
-          </Card>
-        ))}
+        {upcomingBookings.map((booking) => {
+          const otherParticipants = booking.table.allowMultipleBookings
+            ? booking.participants
+                .filter((p) => p.userId !== session.user.id)
+                .map((p) => p.user.name)
+            : [];
+          return (
+            <Card key={booking.id}>
+              <CardContent className="flex flex-col gap-1">
+                <CardTitle>{booking.table.name}</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {formatBerlin(booking.start)} – {formatBerlin(booking.end, "HH:mm")}
+                </p>
+                {booking.game && <p className="text-sm">Spiel: {booking.game}</p>}
+                {otherParticipants.length > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    Mit: {otherParticipants.join(", ")}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

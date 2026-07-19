@@ -32,7 +32,7 @@ export default function AppShell({
 
   const links = [
     { href: "/dashboard", label: "Dashboard" },
-    { href: "/tische", label: "Tische" },
+    { href: "/tische", label: "Reservieren" },
     ...(isAdmin
       ? [
           { href: "/admin/tische", label: "Tischverwaltung" },

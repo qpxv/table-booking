@@ -10,9 +10,9 @@ export default async function TablesListPage() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">Tische</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Reservieren</h1>
         <p className="text-sm text-muted-foreground">
-          Wähle einen Tisch, um die Buchungen zu sehen.
+          Wähle einen Tisch, um ihn zu reservieren.
         </p>
       </div>
 

@@ -69,6 +69,27 @@ export async function setTableActive(id: string, active: boolean): Promise<Actio
   }
 }
 
+export async function setTableAllowMultipleBookings(
+  id: string,
+  allowMultipleBookings: boolean,
+): Promise<ActionResult> {
+  const authError = await requireAdmin();
+  if (authError) return authError;
+
+  try {
+    await prisma.table.update({ where: { id }, data: { allowMultipleBookings } });
+    revalidatePath("/admin/tische");
+    revalidatePath("/tische");
+    return {
+      success: true,
+      message: allowMultipleBookings ? "Mehrfachbuchung aktiviert." : "Mehrfachbuchung deaktiviert.",
+    };
+  } catch (err) {
+    console.error("error in setTableAllowMultipleBookings", err);
+    return { success: false, message: "Ein Fehler ist aufgetreten." };
+  }
+}
+
 export async function deleteTable(id: string): Promise<ActionResult> {
   const authError = await requireAdmin();
   if (authError) return authError;

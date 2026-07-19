@@ -276,6 +276,7 @@ export default function BookingCalendar({
           initialGame={dialog.mode === "edit" ? (dialog.booking.game ?? "") : ""}
           initialGuests={editingGuests}
           knownGuests={knownGuests}
+          tableAllowsMultiple={tableAllowsMultiple}
           onClose={() => setDialog(null)}
         />
       )}

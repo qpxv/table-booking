@@ -167,23 +167,47 @@ still throw normally since they aren't wrapped in this pattern.
   register on mobile without hijacking normal page-scroll swipes. Don't
   "fix" this back to a round number without rereading why.
 - **"Mehrfachbuchung" (shared/community) tables.** `Table.allowMultipleBookings`
-  (toggled in Tischverwaltung's `TableFormDialog`) turns a table's booking
-  slot from "one member owns it exclusively" into "one event, many members
-  join it." A `Booking` on such a table is still a single row (start/end/
-  game, one creator `userId`) — what changes is `BookingParticipant`, a new
-  join table (`bookingId`, `userId`, unique per pair) recording who's signed
-  up. The creator is inserted as a participant too at creation time
-  (`createBooking` in `actions/bookings.ts`), so participant counts are
-  always just `participants.length` — no "+1 for the creator" special-casing
-  anywhere. `joinBooking`/`leaveBooking` add/remove the caller's own row;
-  leaving never deletes the booking itself (the creator cancels via the
-  normal edit dialog's "Stornieren" instead). No change was needed to the
-  overlap check in `createBooking`/`updateBooking` — joining adds a
-  `BookingParticipant` to the *existing* booking, it never creates a second
-  overlapping one, so one event per time range per table still holds.
+  turns a table's booking slot from "one member owns it exclusively" into
+  "one event, many members join it." Toggled inline in Tischverwaltung's
+  table list, right next to the "Aktiv" switch (`columns.tsx` +
+  `TableManager.tsx`'s `handleToggleMultiple`, calling
+  `actions/tables.ts`'s `setTableAllowMultipleBookings` — a straight copy of
+  `setTableActive`'s pattern) — it is deliberately **not** part of
+  `TableFormDialog`'s create/edit form, same as `active` never was. A
+  `Booking` on such a table is still a single row (start/end/game, one
+  creator `userId`) — what changes is `BookingParticipant`, a join table
+  (`bookingId`, `userId`, unique per pair) recording who's signed up. The
+  creator is inserted as a participant too at creation time (`createBooking`
+  in `actions/bookings.ts`), so participant counts are always just
+  `participants.length` — no "+1 for the creator" special-casing anywhere.
+  `joinBooking`/`leaveBooking` add/remove the caller's own row; leaving
+  never deletes the booking itself (the creator cancels via the normal edit
+  dialog's "Stornieren" instead). No change was needed to the overlap check
+  in `createBooking`/`updateBooking` — joining adds a `BookingParticipant`
+  to the *existing* booking, it never creates a second overlapping one, so
+  one event per time range per table still holds.
   `listTablesWithUpcomingWeekCounts` (used by `/tische`'s cards) returns a
   `nextEvent: { start, end, game, participantCount } | null` for shared
   tables instead of the usual weekly booking count.
+- **Shared tables never take guests.** `BookingDialog` hides the entire
+  Gäste combobox + Gastkosten section when its `tableAllowsMultiple` prop is
+  true (members-only signup, v1 scope decision — not just a UI nicety).
+  Enforced server-side too, not just by hiding the picker:
+  `createBooking` forces its guest list to `[]`, and `updateBooking` forces
+  `data.guests` to `undefined` (same code path as a drag/resize reschedule,
+  which also omits guests) whenever `table.allowMultipleBookings` is true —
+  so guest rows can never be created/removed on a shared table's booking
+  regardless of what a client sends.
+- **Dashboard shows joined events too, plus who else is coming.**
+  `app/(app)/dashboard/page.tsx`'s upcoming-bookings query used to filter on
+  `booking.userId === session.user.id` only, which missed shared-table
+  events a member *joined* but didn't create (joining only adds a
+  `BookingParticipant` row, it doesn't touch `Booking.userId`). Fixed with
+  an `OR: [{ userId }, { participants: { some: { userId } } }]` clause. Each
+  card also lists other signed-up members ("Mit: ...") for
+  `allowMultipleBookings` bookings, filtering the current user out of
+  `booking.participants` — normal (non-shared) bookings don't show this
+  line at all.
 
 ## Permissions
 

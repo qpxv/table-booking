@@ -15,11 +15,13 @@ import type { Table as TableRecord } from "@/generated/prisma/client";
 export function createTableColumns({
   pending,
   onToggleActive,
+  onToggleMultiple,
   onEdit,
   onDelete,
 }: {
   pending: boolean;
   onToggleActive: (table: TableRecord) => void;
+  onToggleMultiple: (table: TableRecord) => void;
   onEdit: (table: TableRecord) => void;
   onDelete: (table: TableRecord) => void;
 }): ColumnDef<TableRecord>[] {
@@ -45,6 +47,19 @@ export function createTableColumns({
           <Switch
             checked={row.original.active}
             onCheckedChange={() => onToggleActive(row.original)}
+            disabled={pending}
+          />
+        </div>
+      ),
+    },
+    {
+      accessorKey: "allowMultipleBookings",
+      header: () => <div className="text-right">Mehrfachbuchung</div>,
+      cell: ({ row }) => (
+        <div className="flex justify-end">
+          <Switch
+            checked={row.original.allowMultipleBookings}
+            onCheckedChange={() => onToggleMultiple(row.original)}
             disabled={pending}
           />
         </div>

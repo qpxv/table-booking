@@ -6,16 +6,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Save, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import {
-  Field,
-  FieldLabel,
-  FieldError,
-  FieldGroup,
-  FieldDescription,
-} from "@/components/ui/field";
+import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/ui/spinner";
 import type { Table } from "@/generated/prisma/client";
 import { createTable, updateTable } from "@/actions/tables";
@@ -33,10 +26,7 @@ export default function TableFormDialog({
   const [pending, startTransition] = useTransition();
   const form = useForm<TableInput>({
     resolver: zodResolver(tableSchema),
-    defaultValues: {
-      name: table?.name ?? "",
-      allowMultipleBookings: table?.allowMultipleBookings ?? false,
-    },
+    defaultValues: { name: table?.name ?? "" },
   });
 
   function onSubmit(values: TableInput) {
@@ -67,26 +57,6 @@ export default function TableFormDialog({
                   <FieldLabel htmlFor={field.name}>Name</FieldLabel>
                   <Input {...field} id={field.name} autoFocus aria-invalid={fieldState.invalid} />
                   {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                </Field>
-              )}
-            />
-            <Controller
-              name="allowMultipleBookings"
-              control={form.control}
-              render={({ field }) => (
-                <Field orientation="horizontal">
-                  <div className="flex flex-col gap-0.5">
-                    <FieldLabel htmlFor={field.name}>Mehrfachbuchung</FieldLabel>
-                    <FieldDescription>
-                      Mehrere Mitglieder können sich für denselben Termin anmelden, statt dass ein
-                      Mitglied den Tisch exklusiv bucht.
-                    </FieldDescription>
-                  </div>
-                  <Switch
-                    id={field.name}
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
                 </Field>
               )}
             />

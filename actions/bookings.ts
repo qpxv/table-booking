@@ -42,7 +42,11 @@ export async function createBooking(
     return { success: false, message: "Der Tisch ist im gewählten Zeitraum bereits belegt." };
   }
 
-  for (const guestInput of data.guests) {
+  // Shared ("Mehrfachbuchung") tables are members-only signup — never
+  // attach guests, regardless of what the client sent.
+  const guestInputs = table.allowMultipleBookings ? [] : data.guests;
+
+  for (const guestInput of guestInputs) {
     if ("guestId" in guestInput) {
       const guest = await prisma.guest.findUnique({ where: { id: guestInput.guestId } });
       if (!guest) {
@@ -72,7 +76,7 @@ export async function createBooking(
         });
       }
 
-      for (const guestInput of data.guests) {
+      for (const guestInput of guestInputs) {
         let guestId: string;
         if ("guestId" in guestInput) {
           guestId = guestInput.guestId;
@@ -116,13 +120,21 @@ export async function updateBooking(
   values: UpdateBookingInput,
 ): Promise<ActionResult> {
   const session = await getSession();
-  const booking = await prisma.booking.findUnique({ where: { id }, include: { guests: true } });
+  const booking = await prisma.booking.findUnique({
+    where: { id },
+    include: { guests: true, table: true },
+  });
   if (!booking) return { success: false, message: "Buchung nicht gefunden." };
   if (!canEditBooking(session, booking)) return { success: false, message: "Nicht berechtigt." };
 
   const parsed = updateBookingSchema.safeParse(values);
   if (!parsed.success) return { success: false, message: "Ungültige Eingabe." };
   const data = parsed.data;
+
+  // Shared ("Mehrfachbuchung") tables are members-only signup — treat any
+  // submitted guests as not-submitted (same as a drag/resize reschedule),
+  // so they're never created/removed here regardless of what the client sent.
+  const guestsInput = booking.table.allowMultipleBookings ? undefined : data.guests;
 
   const overlap = await prisma.booking.findFirst({
     where: {
@@ -140,8 +152,8 @@ export async function updateBooking(
   // Guests are only reconciled when the caller actually submitted a list
   // (the edit dialog does; drag/resize reschedules omit it entirely so
   // existing guest assignments are left untouched).
-  if (data.guests !== undefined) {
-    for (const guestInput of data.guests) {
+  if (guestsInput !== undefined) {
+    for (const guestInput of guestsInput) {
       if ("guestId" in guestInput) {
         const guest = await prisma.guest.findUnique({ where: { id: guestInput.guestId } });
         if (!guest) {
@@ -158,11 +170,11 @@ export async function updateBooking(
         data: { start: data.start, end: data.end, game: data.game || null },
       });
 
-      if (data.guests === undefined) return;
+      if (guestsInput === undefined) return;
 
       const keepGuestIds = new Set<string>();
 
-      for (const guestInput of data.guests) {
+      for (const guestInput of guestsInput) {
         if ("guestId" in guestInput) {
           keepGuestIds.add(guestInput.guestId);
 

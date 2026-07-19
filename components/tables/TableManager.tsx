@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import ConfirmDeleteDialog from "@/components/shared/ConfirmDeleteDialog";
 import type { Table } from "@/generated/prisma/client";
-import { setTableActive, deleteTable } from "@/actions/tables";
+import { setTableActive, setTableAllowMultipleBookings, deleteTable } from "@/actions/tables";
 import { createTableColumns } from "./columns";
 import TableFormDialog from "./TableFormDialog";
 
@@ -35,11 +35,20 @@ export default function TableManager({ tables }: { tables: Table[] }) {
     });
   }
 
+  function handleToggleMultiple(table: Table) {
+    startTransition(async () => {
+      const result = await setTableAllowMultipleBookings(table.id, !table.allowMultipleBookings);
+      if (result.success) toast.success(result.message);
+      else toast.error(result.message);
+    });
+  }
+
   const columns = useMemo(
     () =>
       createTableColumns({
         pending: isPending,
         onToggleActive: handleToggleActive,
+        onToggleMultiple: handleToggleMultiple,
         onEdit: openEditDialog,
         onDelete: setDeleteTarget,
       }),

@@ -41,6 +41,7 @@ export default function BookingDialog({
   initialGame,
   initialGuests,
   knownGuests,
+  tableAllowsMultiple,
   onClose,
 }: {
   mode: "create" | "edit";
@@ -52,6 +53,7 @@ export default function BookingDialog({
   initialGame?: string;
   initialGuests?: GuestSelection[];
   knownGuests: GuestWithVisits[];
+  tableAllowsMultiple: boolean;
   onClose: () => void;
 }) {
   const [selectedGuests, setSelectedGuests] = useState<GuestSelection[]>(initialGuests ?? []);
@@ -145,18 +147,22 @@ export default function BookingDialog({
               />
             </Field>
 
-            <Separator />
-            <FieldGroup>
-              <Field>
-                <FieldLabel>Gäste</FieldLabel>
-                <GuestMultiCombobox
-                  value={selectedGuests}
-                  onChange={setSelectedGuests}
-                  knownGuests={knownGuests}
-                />
-              </Field>
-              <p className="text-sm font-semibold">Gastkosten: {guestCost.toFixed(2)} €</p>
-            </FieldGroup>
+            {!tableAllowsMultiple && (
+              <>
+                <Separator />
+                <FieldGroup>
+                  <Field>
+                    <FieldLabel>Gäste</FieldLabel>
+                    <GuestMultiCombobox
+                      value={selectedGuests}
+                      onChange={setSelectedGuests}
+                      knownGuests={knownGuests}
+                    />
+                  </Field>
+                  <p className="text-sm font-semibold">Gastkosten: {guestCost.toFixed(2)} €</p>
+                </FieldGroup>
+              </>
+            )}
 
             <DialogFooter className="sm:justify-between">
               <div>
