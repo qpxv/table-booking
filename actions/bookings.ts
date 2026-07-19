@@ -21,6 +21,9 @@ export async function createBooking(
   const session = await getSession();
   if (!session) return { success: false, message: "Nicht angemeldet." };
 
+  const table = await prisma.table.findUnique({ where: { id: tableId } });
+  if (!table) return { success: false, message: "Tisch nicht gefunden." };
+
   const parsed = createBookingSchema.safeParse(values);
   if (!parsed.success) return { success: false, message: "Ungültige Eingabe." };
   const data = parsed.data;
@@ -59,6 +62,15 @@ export async function createBooking(
           game: data.game || null,
         },
       });
+
+      // Shared ("Mehrfachbuchung") tables count the creator as the first
+      // participant, so participant counts are uniform everywhere instead
+      // of special-casing "+1 for the creator".
+      if (table.allowMultipleBookings) {
+        await tx.bookingParticipant.create({
+          data: { bookingId: newBooking.id, userId: session.user.id },
+        });
+      }
 
       for (const guestInput of data.guests) {
         let guestId: string;
@@ -234,7 +246,64 @@ export async function listBookingsForTable(tableId: string) {
     include: {
       user: { select: { name: true } },
       guests: { include: { guest: { select: { name: true } } } },
+      participants: { include: { user: { select: { name: true } } } },
     },
     orderBy: { start: "asc" },
   });
+}
+
+/** Join a "Mehrfachbuchung" (shared) table's event as an additional participant. */
+export async function joinBooking(bookingId: string): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return { success: false, message: "Nicht angemeldet." };
+
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: { table: true },
+  });
+  if (!booking || booking.status !== BookingStatus.ACTIVE) {
+    return { success: false, message: "Termin nicht gefunden." };
+  }
+  if (!booking.table.allowMultipleBookings) {
+    return { success: false, message: "Dieser Tisch erlaubt keine Mehrfachbuchung." };
+  }
+
+  try {
+    await prisma.bookingParticipant.upsert({
+      where: { bookingId_userId: { bookingId, userId: session.user.id } },
+      create: { bookingId, userId: session.user.id },
+      update: {},
+    });
+
+    revalidatePath(`/tische/${booking.tableId}`);
+    revalidatePath("/tische");
+
+    return { success: true, message: "Du bist jetzt angemeldet." };
+  } catch (err) {
+    console.error("error in joinBooking", err);
+    return { success: false, message: "Ein Fehler ist aufgetreten." };
+  }
+}
+
+/** Leave a "Mehrfachbuchung" event. Does not affect the booking itself. */
+export async function leaveBooking(bookingId: string): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return { success: false, message: "Nicht angemeldet." };
+
+  try {
+    await prisma.bookingParticipant.deleteMany({
+      where: { bookingId, userId: session.user.id },
+    });
+
+    const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+    if (booking) {
+      revalidatePath(`/tische/${booking.tableId}`);
+      revalidatePath("/tische");
+    }
+
+    return { success: true, message: "Du bist abgemeldet." };
+  } catch (err) {
+    console.error("error in leaveBooking", err);
+    return { success: false, message: "Ein Fehler ist aufgetreten." };
+  }
 }

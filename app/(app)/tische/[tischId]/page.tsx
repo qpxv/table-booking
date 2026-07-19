@@ -38,6 +38,7 @@ export default async function TableCalendarPage({
           tableName={table.name}
           currentUserId={session.user.id}
           isAdmin={isAdmin(session)}
+          tableAllowsMultiple={table.allowMultipleBookings}
           bookings={bookings.map((b) => ({
             id: b.id,
             start: b.start,
@@ -46,6 +47,7 @@ export default async function TableCalendarPage({
             userId: b.userId,
             userName: b.user.name,
             guests: b.guests.map((g) => ({ guestId: g.guestId, name: g.guest.name })),
+            participants: b.participants.map((p) => ({ userId: p.userId, name: p.user.name })),
           }))}
           knownGuests={knownGuests}
         />

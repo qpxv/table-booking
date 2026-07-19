@@ -31,8 +31,9 @@ model User {
   sessions Session[]
   accounts Account[]
 
-  bookings Booking[]
-  guests   Guest[]
+  bookings     Booking[]
+  guests       Guest[]
+  participants BookingParticipant[]
 
   @@map("user")
 }
@@ -86,11 +87,14 @@ model Verification {
 // --- Table booking -------------------------------------------------------
 
 model Table {
-  id        String   @id @default(cuid())
-  name      String
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  name                  String
+  active                Boolean  @default(true)
+  // "Mehrfachbuchung": a shared/community event slot multiple members can
+  // join, instead of one member owning the slot exclusively.
+  allowMultipleBookings Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   bookings Booking[]
 }
@@ -110,7 +114,8 @@ model Booking {
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
-  guests BookingGuest[]
+  guests       BookingGuest[]
+  participants BookingParticipant[]
 
   // Backs the overlap check: all active bookings for a table within range X..Y
   @@index([tableId, start, end])
@@ -142,4 +147,20 @@ model BookingGuest {
   guest   Guest  @relation(fields: [guestId], references: [id])
 
   @@index([guestId])
+}
+
+// A member signed up to a shared ("Mehrfachbuchung") table's event. The
+// creator is inserted as a participant too, so counting is uniform.
+model BookingParticipant {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  bookingId String
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([bookingId, userId])
+  @@index([bookingId])
 }

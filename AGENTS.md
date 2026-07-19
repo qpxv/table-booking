@@ -166,6 +166,24 @@ still throw normally since they aren't wrapped in this pattern.
   1000ms default, not 0) — enough for a deliberate press-and-drag to
   register on mobile without hijacking normal page-scroll swipes. Don't
   "fix" this back to a round number without rereading why.
+- **"Mehrfachbuchung" (shared/community) tables.** `Table.allowMultipleBookings`
+  (toggled in Tischverwaltung's `TableFormDialog`) turns a table's booking
+  slot from "one member owns it exclusively" into "one event, many members
+  join it." A `Booking` on such a table is still a single row (start/end/
+  game, one creator `userId`) — what changes is `BookingParticipant`, a new
+  join table (`bookingId`, `userId`, unique per pair) recording who's signed
+  up. The creator is inserted as a participant too at creation time
+  (`createBooking` in `actions/bookings.ts`), so participant counts are
+  always just `participants.length` — no "+1 for the creator" special-casing
+  anywhere. `joinBooking`/`leaveBooking` add/remove the caller's own row;
+  leaving never deletes the booking itself (the creator cancels via the
+  normal edit dialog's "Stornieren" instead). No change was needed to the
+  overlap check in `createBooking`/`updateBooking` — joining adds a
+  `BookingParticipant` to the *existing* booking, it never creates a second
+  overlapping one, so one event per time range per table still holds.
+  `listTablesWithUpcomingWeekCounts` (used by `/tische`'s cards) returns a
+  `nextEvent: { start, end, game, participantCount } | null` for shared
+  tables instead of the usual weekly booking count.
 
 ## Permissions
 
@@ -186,6 +204,18 @@ still throw normally since they aren't wrapped in this pattern.
   is `RESTRICT`), then the `Guest` row, in a transaction. Confirmed via
   `ConfirmDeleteDialog`'s `"guest"` mode, whose description explicitly
   says so, since this is a broader blast radius than a normal delete.
+- **Shared-table events: anyone can join/leave, only creator/admin can
+  reschedule/cancel.** In `BookingCalendar.tsx`, clicking an event on a
+  `allowMultipleBookings` table always opens `BookingJoinDialog` (any
+  authenticated member — no `isOwn`/`isAdmin` gate, unlike normal tables),
+  which offers Mitmachen/Verlassen (`joinBooking`/`leaveBooking`). A
+  "Bearbeiten" button, shown only when `booking.userId === currentUserId ||
+  isAdmin`, swaps to the normal `BookingDialog` edit mode for
+  reschedule/cancel — `canEditBooking`'s existing owner-or-admin rule still
+  gates that path, this is purely an extra join/leave layer in front of it.
+  Drag/resize (`editable`) on the calendar itself is unchanged: still
+  creator/admin only, regardless of `allowMultipleBookings` — moving the
+  whole event's time is not something a joining member should be able to do.
 
 ## Test data
 

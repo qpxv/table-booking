@@ -88,7 +88,12 @@ export async function listTables() {
   return prisma.table.findMany({ orderBy: { name: "asc" } });
 }
 
-/** Active tables with a count of their still-upcoming bookings through the end of this week. */
+/**
+ * Active tables with a count of their still-upcoming bookings through the
+ * end of this week. "Mehrfachbuchung" (shared) tables additionally get
+ * `nextEvent` — their soonest upcoming event and how many members joined it
+ * — since a single weekly count doesn't mean much for a shared event slot.
+ */
 export async function listTablesWithUpcomingWeekCounts() {
   const now = new Date();
   const weekEnd = endOfWeekBerlin(now);
@@ -110,8 +115,42 @@ export async function listTablesWithUpcomingWeekCounts() {
     },
   });
 
-  return tables.map((table) => ({
-    ...table,
-    upcomingWeekBookingCount: table._count.bookings,
-  }));
+  const sharedTableIds = tables.filter((t) => t.allowMultipleBookings).map((t) => t.id);
+
+  const upcomingSharedBookings = sharedTableIds.length
+    ? await prisma.booking.findMany({
+        where: {
+          tableId: { in: sharedTableIds },
+          status: BookingStatus.ACTIVE,
+          start: { gte: now },
+        },
+        orderBy: { start: "asc" },
+        include: { _count: { select: { participants: true } } },
+      })
+    : [];
+
+  // Bookings are ordered by start asc, so the first one seen per table is its
+  // soonest upcoming event.
+  const nextEventByTable = new Map<string, (typeof upcomingSharedBookings)[number]>();
+  for (const booking of upcomingSharedBookings) {
+    if (!nextEventByTable.has(booking.tableId)) {
+      nextEventByTable.set(booking.tableId, booking);
+    }
+  }
+
+  return tables.map((table) => {
+    const nextEvent = nextEventByTable.get(table.id);
+    return {
+      ...table,
+      upcomingWeekBookingCount: table._count.bookings,
+      nextEvent: nextEvent
+        ? {
+            start: nextEvent.start,
+            end: nextEvent.end,
+            game: nextEvent.game,
+            participantCount: nextEvent._count.participants,
+          }
+        : null,
+    };
+  });
 }
