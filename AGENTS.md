@@ -157,6 +157,20 @@ still throw normally since they aren't wrapped in this pattern.
   visit-count/pricing history. `listGuestsGroupedByBringer()` derives
   "who brought this guest" from actual `BookingGuest`→`Booking.userId`
   history, not `Guest.userId`.
+- **"Spiel" suggestions are admin-managed, but the field itself stays free
+  text.** `Game` (Spielverwaltung, `/admin/spiele`) is a standalone model
+  with **no relation to `Booking`** — `Booking.game` is still just a plain
+  string, exactly as before. `GameCombobox` takes a `games` prop (from
+  `actions/games.ts`'s `listGames()`) purely to drive its autocomplete
+  suggestions; typing a one-off value that isn't in the managed list is
+  still saved as-is. This means renaming/deleting a game in Spielverwaltung
+  never touches historical bookings — deliberately simpler than the
+  Guest/BookingGuest relation above, since there's no per-booking data (like
+  price/visit count) that needs a real foreign key here. `actions/games.ts`
+  mirrors `actions/tables.ts`'s plain CRUD pattern (own `requireAdmin()`,
+  `ActionResult` returns) minus the `active`/`allowMultipleBookings` toggle
+  logic — Spielverwaltung is just name + create/edit/delete, no switch
+  column needed since deleting a `Game` is always non-destructive.
 - **Hidden dev/test account**: set `DEV_ACCOUNT_EMAIL` in `.env` to hide
   that one admin account from Benutzerverwaltung (`lib/permissions.ts`'s
   `isHiddenAccount`) — a no-op if unset. `deleteUser` also refuses to
@@ -187,17 +201,22 @@ still throw normally since they aren't wrapped in this pattern.
   to the *existing* booking, it never creates a second overlapping one, so
   one event per time range per table still holds.
   `listTablesWithUpcomingWeekCounts` (used by `/tische`'s cards) returns a
-  `nextEvent: { start, end, game, participantCount } | null` for shared
-  tables instead of the usual weekly booking count.
-- **Shared tables never take guests.** `BookingDialog` hides the entire
-  Gäste combobox + Gastkosten section when its `tableAllowsMultiple` prop is
-  true (members-only signup, v1 scope decision — not just a UI nicety).
-  Enforced server-side too, not just by hiding the picker:
-  `createBooking` forces its guest list to `[]`, and `updateBooking` forces
-  `data.guests` to `undefined` (same code path as a drag/resize reschedule,
-  which also omits guests) whenever `table.allowMultipleBookings` is true —
-  so guest rows can never be created/removed on a shared table's booking
-  regardless of what a client sends.
+  `nextEvent: { start, end, participantCount } | null` for shared tables
+  instead of the usual weekly booking count.
+- **Shared tables never take guests or a Spiel.** Members-only signup, no
+  per-event game — both v1 scope decisions, not just UI nicities.
+  `BookingDialog` hides the entire Gäste combobox + Gastkosten section, and
+  the Spiel field, whenever its `tableAllowsMultiple` prop is true. Enforced
+  server-side too, not just by hiding the fields: in `actions/bookings.ts`,
+  `createBooking` forces the guest list to `[]` and `game` to `null`, and
+  `updateBooking` forces `data.guests` to `undefined` (same code path as a
+  drag/resize reschedule, which also omits guests) and `game` to `null`,
+  whenever `table.allowMultipleBookings`/`booking.table.allowMultipleBookings`
+  is true — so neither can ever be set on a shared table's booking
+  regardless of what a client sends. `listTablesWithUpcomingWeekCounts`'s
+  `nextEvent` and the dashboard's per-booking Spiel line are both gated the
+  same way (never shown for shared-table bookings, since the value is
+  always null there now).
 - **Dashboard shows joined events too, plus who else is coming.**
   `app/(app)/dashboard/page.tsx`'s upcoming-bookings query used to filter on
   `booking.userId === session.user.id` only, which missed shared-table
