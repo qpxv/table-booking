@@ -367,7 +367,54 @@ still throw normally since they aren't wrapped in this pattern.
   admin can always open it (e.g. to help a member who's having trouble),
   and `PaymentDialog` shows an explicit "kein SEPA-QR-Code verfügbar" note
   in place of the QR when the bringing member genuinely has no IBAN, rather
-  than silently showing nothing.
+  than silently showing nothing. This whole `hasIban` gate only applies
+  once a row is unsettled though (see below): a settled row's button is
+  disabled regardless of `isAdmin`/`hasIban`, since there's nothing left
+  to pay.
+- **IBAN input auto-formats into groups of 4 as you type.**
+  `lib/iban.ts`'s `formatIbanInput` (`cleaned.replace(/(.{4})/g, "$1 ").trim()`)
+  runs on every keystroke in `SettingsDialog.tsx`'s `PaymentForm` IBAN
+  `Controller`, so typing `DE0440` live-becomes `DE04 40`. Storing it with
+  spaces is fine end-to-end: `isValidIban` and `buildEpcPayload` both
+  already strip whitespace defensively before using it. Known
+  simplification: reformats the whole field value on every keystroke
+  without preserving mid-string cursor position — fine for the
+  overwhelmingly common left-to-right typing case, not worth manual
+  cursor-offset tracking for this field.
+- **Gasthistorie sorts unsettled (unpaid) entries first, automatically.**
+  A row counts as settled via a single shared predicate,
+  `columns.tsx`'s `isSettled(row) = row.paid || row.price === 0` (a free
+  "Erster Besuch" has nothing to collect, so it's treated as settled the
+  same as an actually-paid row) — used consistently for sort order, muted
+  row styling, the paid-checkbox's own disabled/checked state, and the
+  Zahlung button's disabled state below, so these four things can never
+  drift out of sync. `actions/guestHistory.ts`'s `listGuestHistory()`
+  default DB order is `orderBy: [{ paid: "asc" }, { booking: { start: "desc" } }]`.
+  On top of that, `GuestHistoryTable.tsx` owns the row list as local state
+  (synced from the `rows` prop via React's "adjust state during render"
+  pattern, not a `useEffect`, whenever a real refetch brings fresh server
+  data) and re-sorts it client-side through `sortRows` on every render, so
+  checking "Bezahlt" moves that row to the top of the settled group
+  *instantly* (optimistic, before the `setBookingGuestPaid` server round
+  trip even resolves) instead of leaving it stranded mid-list until
+  revalidation lands. Rolled back to its previous position if the server
+  call fails. An "Erster Besuch" row's checkbox is always shown checked
+  and `disabled` (not independently toggleable) since there's nothing to
+  mark paid.
+- **Zahlung button disables once a row is settled, with a tooltip only for
+  the genuinely-unsettled-no-IBAN case.** `columns.tsx`'s actions column
+  has three branches: enabled (unsettled + payable), settled-disabled
+  (plain native `disabled` `Button`, no tooltip: self-explanatory that a
+  paid/free row has nothing left to collect), and unsettled-but-no-IBAN
+  (styled-disabled via `aria-disabled` on a `TooltipTrigger`, not the real
+  `disabled` attribute, since a native `disabled` element never fires
+  hover/focus events in any browser — confirmed by reading
+  `@base-ui/react`'s own trigger source — which would kill the tooltip
+  that explains why it's disabled). That tooltip's `TooltipTrigger` also
+  sets `delay={0}`, overriding Base UI's 600ms default rest-hover delay
+  (`OPEN_DELAY` in `@base-ui/react/tooltip/utils/constants.js`): a delay
+  that long reads as "this is just broken" for a disabled button someone
+  is trying to understand, not a delightful hover reveal.
 
 ## Permissions
 

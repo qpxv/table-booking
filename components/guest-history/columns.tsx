@@ -127,12 +127,27 @@ export function createGuestHistoryColumns({
       id: "actions",
       header: () => <div className="text-right">Aktionen</div>,
       cell: ({ row }) => {
-        const canPay = isAdmin || row.original.hasIban;
+        const settled = isSettled(row.original);
+        const canPay = !settled && (isAdmin || row.original.hasIban);
 
         if (canPay) {
           return (
             <div className="flex justify-end">
               <Button variant="outline" size="sm" onClick={() => onOpenPayment(row.original)}>
+                <Landmark />
+                Zahlung
+              </Button>
+            </div>
+          );
+        }
+
+        if (settled) {
+          // Self-explanatory (nothing left to collect): no tooltip needed,
+          // so the plain native `disabled` attribute is fine here, unlike
+          // the no-IBAN case below.
+          return (
+            <div className="flex justify-end">
+              <Button variant="outline" size="sm" disabled>
                 <Landmark />
                 Zahlung
               </Button>
