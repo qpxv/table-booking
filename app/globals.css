@@ -136,6 +136,13 @@
   body {
     @apply bg-background text-foreground;
   }
+  html,
+  body {
+    /* Installed PWAs have no browser chrome to reveal on overscroll, so
+       without this the rubber-band bounce past the top/bottom shows blank
+       canvas instead of just stopping. */
+    overscroll-behavior-y: none;
+  }
   html {
     @apply font-sans;
   }

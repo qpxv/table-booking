@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -40,10 +40,11 @@ export default function MobileNav({
 
   return (
     <SidebarProvider defaultOpen={false} className="contents">
+      <EdgeSwipeToOpen />
       <MobileNavTrigger />
       <Sidebar side="right" collapsible="offcanvas">
         <SidebarHeader>
-          <Link href="/dashboard" className="flex items-center gap-2 px-2 py-1.5">
+          <Link href="/dashboard" className="flex items-center gap-2 px-2 py-1.5 outline-hidden">
             <Image
               src="/club-logo-light.png"
               alt=""
@@ -81,6 +82,55 @@ export default function MobileNav({
       )}
     </SidebarProvider>
   );
+}
+
+// Right edge, matching the drawer's own side="right" slide-in direction.
+const EDGE_ZONE_PX = 24;
+const OPEN_THRESHOLD_PX = 50;
+
+// Renders nothing — just listens for a right-edge swipe-left gesture and
+// opens the drawer, like a native edge-swipe drawer. Passive listeners
+// throughout (no preventDefault) so it never fights normal page scrolling.
+function EdgeSwipeToOpen() {
+  const { isMobile, openMobile, setOpenMobile } = useSidebar();
+  const startRef = useRef<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    if (!isMobile || openMobile) return;
+
+    function onTouchStart(e: TouchEvent) {
+      const touch = e.touches[0];
+      if (window.innerWidth - touch.clientX <= EDGE_ZONE_PX) {
+        startRef.current = { x: touch.clientX, y: touch.clientY };
+      }
+    }
+
+    function onTouchMove(e: TouchEvent) {
+      if (!startRef.current) return;
+      const touch = e.touches[0];
+      const deltaX = startRef.current.x - touch.clientX;
+      const deltaY = startRef.current.y - touch.clientY;
+      if (deltaX > OPEN_THRESHOLD_PX && Math.abs(deltaX) > Math.abs(deltaY)) {
+        setOpenMobile(true);
+        startRef.current = null;
+      }
+    }
+
+    function onTouchEnd() {
+      startRef.current = null;
+    }
+
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [isMobile, openMobile, setOpenMobile]);
+
+  return null;
 }
 
 function MobileNavTrigger() {

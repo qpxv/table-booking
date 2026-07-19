@@ -65,6 +65,41 @@ still throw normally since they aren't wrapped in this pattern.
   parent that persists (`MobileNav` itself), not in the footer component
   that's about to be unmounted.
 
+## PWA / mobile touch behavior
+
+- **No overscroll bounce.** `app/globals.css`'s `@layer base` sets
+  `overscroll-behavior-y: none` on `html, body`. Installed PWAs
+  (`display: "standalone"` in `app/manifest.ts`) have no browser chrome to
+  reveal on overscroll, so without this, dragging past the top/bottom of a
+  page rubber-banded into blank canvas instead of just stopping — looked
+  broken since there was nothing behind it to slide into view.
+- **Edge-swipe-to-open the mobile drawer**: `MobileNav.tsx`'s
+  `EdgeSwipeToOpen` renders nothing, just attaches passive
+  `touchstart`/`touchmove`/`touchend` listeners on `window` for as long as
+  it's mounted (always, on every authenticated page via `AppShell` →
+  `MobileNav`). A touch starting within 24px of the right screen edge
+  (`EDGE_ZONE_PX`) that then drags left past 50px (`OPEN_THRESHOLD_PX`),
+  more horizontally than vertically, opens the drawer. No `preventDefault`
+  anywhere, so it never fights normal vertical scrolling. Matches the
+  `Sidebar`'s existing `side="right"` slide-in direction. No gesture
+  library added — hand-rolled touch events, consistent with the
+  `selectLongPressDelay` tuning below. Swipe-to-close was deliberately
+  left out (backdrop-tap/X/nav-link already close it).
+- **Base UI auto-focuses the first focusable element in a popup on
+  open.** Confirmed by reading
+  `node_modules/@base-ui/react/utils/popups/popupStoreUtils.js`
+  (`createDefaultInitialFocus`): unless the open was triggered through a
+  real Base UI `Trigger` touch interaction (ours isn't — `Sheet` in
+  `components/ui/sidebar.tsx` is state-driven off `openMobile`, for both
+  the hamburger tap and the edge-swipe above), it focuses the first
+  focusable descendant of the popup. That's the club-logo `<Link>` in
+  `MobileNav.tsx`'s `SidebarHeader`, which — unlike every other
+  interactive element in `sidebar.tsx` — had no focus-ring styling, so it
+  showed the browser's bare native outline every time the drawer opened.
+  Fixed with `outline-hidden` on that `Link` (no replacement ring — this
+  one's reached by touch/gesture, not tabbed to, so an app-styled
+  focus-visible ring wasn't wanted here, unlike the rest of the sidebar).
+
 ## Error handling / dialog UI
 
 - **`app/error.tsx`** is the app's error boundary — catches unexpected
