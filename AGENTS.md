@@ -277,11 +277,38 @@ still throw normally since they aren't wrapped in this pattern.
   cross-referenced across multiple independent sources) rendered as a QR
   *image* for a banking app's camera to scan — there's no SEPA equivalent
   of a clickable payment URL. `qrcode`'s `toDataURL()` renders it
-  server-side in `actions/guestHistory.ts`'s `getGuestPaymentReference` —
-  the raw IBAN never crosses the wire, only the rendered PNG data URL does,
-  so not even an admin ever sees another member's actual IBAN string.
+  server-side in `actions/guestHistory.ts`'s `getGuestPaymentReference`.
   Lazy: only generated when `PaymentDialog` actually opens, never for every
   row up front.
+- **The raw IBAN *does* cross the wire for "Bezahlungsdetails kopieren"
+  — deliberately, this is a reversal from the QR path above.**
+  `getGuestPaymentReference` also returns a `paymentDetailsText` block
+  (IBAN/Empfänger/Betrag/Verwendungszweck, IBAN line cleanly omitted when
+  there isn't one) so a member who'd rather send a manual transfer request
+  over WhatsApp than deal with a QR code can just copy/paste it — the whole
+  point of the button is letting the viewer read the IBAN. No new exposure
+  beyond what the page already grants: the caller is always either the
+  bringing member themselves or an admin already trusted with everyone's
+  payment data here. `PaymentDialog`'s preview is a literal `<pre>` of
+  `paymentDetailsText` — never a summary — so what's shown is guaranteed to
+  match what "Bezahlungsdetails kopieren" actually copies.
+- **Bank-app QR-scanning help accordion, logos downloaded locally, not
+  hotlinked.** Below the QR in `PaymentDialog.tsx`, a collapsed-by-default
+  `Accordion` ("Wie kann ich einen QR-Code scannen?") lists buttons for
+  Sparkasse, Postbank, Commerzbank, ING, Deutsche Bank, DKB, N26, and
+  Volksbank/VR-Banking, each linking to that bank's own real help page on
+  scanning a GiroCode/EPC QR (verified to actually resolve, not guessed —
+  official pages where the bank has a clear one, `girocodegenerator.com`'s
+  consistent per-bank guides as fallback otherwise). Revolut was
+  deliberately left out — couldn't confirm its app supports scanning a
+  standard GiroCode the way German bank apps do. Logos are real SVGs
+  downloaded from Wikimedia Commons into `public/bank-logos/*.svg` (this
+  app has no other precedent for embedding third-party assets — everything
+  else, like the club logo, is local) — rendered via `next/image` with
+  `unoptimized` (Next's built-in optimizer doesn't handle SVG without
+  `dangerouslyAllowSVG`, confirmed via `node_modules/next/dist/docs`, so
+  `unoptimized` is the documented way to serve a local SVG through `Image`
+  without touching that config).
 - **IBAN lives in a dedicated "Zahlungsdetails" settings tab, self-service
   only.** `User.iban` is registered as a `better-auth` `additionalFields`
   entry in `lib/auth.ts` (`input: true`, same mechanism `memberId` already

@@ -1,16 +1,72 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { toast } from "sonner";
-import { Copy, X } from "lucide-react";
+import { Copy, ExternalLink, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion";
 import {
   getGuestPaymentReference,
   type GuestHistoryRow,
   type GuestPaymentReferenceResult,
 } from "@/actions/guestHistory";
+
+// Verified help pages on scanning a payment QR code (GiroCode/EPC), one per
+// bank — official pages where the bank has a clear one, girocodegenerator.com
+// (a GiroCode-focused site with consistent per-bank guides) as fallback
+// otherwise. Logos are downloaded locally from Wikimedia Commons
+// (public/bank-logos/) rather than hotlinked — this app has no precedent
+// for embedding third-party assets, and this keeps things self-contained.
+const BANK_HELP_LINKS = [
+  {
+    name: "Sparkasse",
+    logo: "/bank-logos/sparkasse.svg",
+    url: "https://www.sparkasse.de/pk/produkte/konten-und-karten/banking/ueberweisung/girocode.html",
+  },
+  {
+    name: "Postbank",
+    logo: "/bank-logos/postbank.svg",
+    url: "https://girocodegenerator.com/postbank",
+  },
+  {
+    name: "Commerzbank",
+    logo: "/bank-logos/commerzbank.svg",
+    url: "https://www.commerzbank.de/service/wie-taetige-ich-eine-fotoueberweisung/",
+  },
+  {
+    name: "ING",
+    logo: "/bank-logos/ing.svg",
+    url: "https://www.ing.de/wissen/fotoueberweisung/",
+  },
+  {
+    name: "Deutsche Bank",
+    logo: "/bank-logos/deutsche-bank.svg",
+    url: "https://www.girocodegenerator.com/deutsche-bank",
+  },
+  {
+    name: "DKB",
+    logo: "/bank-logos/dkb.svg",
+    url: "https://girocodegenerator.com/dkb",
+  },
+  {
+    name: "N26",
+    logo: "/bank-logos/n26.svg",
+    url: "https://www.girocodegenerator.com/n26",
+  },
+  {
+    name: "Volksbank / VR-Banking",
+    logo: "/bank-logos/volksbank.svg",
+    url: "https://www.girocodegenerator.com/volksbank",
+  },
+];
 
 // Fetches the Verwendungszweck text + SEPA QR image (if the bringing member
 // has an IBAN) lazily, only once this dialog actually opens — never
@@ -36,7 +92,7 @@ export default function PaymentDialog({
 
   function handleCopy() {
     if (!result?.success) return;
-    navigator.clipboard.writeText(result.referenceText);
+    navigator.clipboard.writeText(result.paymentDetailsText);
     toast.success("In Zwischenablage kopiert.");
   }
 
@@ -57,13 +113,14 @@ export default function PaymentDialog({
 
         {result && result.success && (
           <div className="flex flex-col gap-4">
-            <div className="rounded-lg bg-muted p-3 text-sm">
-              <p className="font-medium">{result.amount.toFixed(2)} €</p>
-              <p className="text-muted-foreground">{result.referenceText}</p>
-            </div>
+            {/* Shows exactly what "Bezahlungsdetails kopieren" copies —
+                same string, no drift possible between preview and clipboard. */}
+            <pre className="whitespace-pre-wrap rounded-lg bg-muted p-3 font-mono text-sm">
+              {result.paymentDetailsText}
+            </pre>
             <Button type="button" variant="outline" onClick={handleCopy}>
               <Copy />
-              Verwendungszweck kopieren
+              Bezahlungsdetails kopieren
             </Button>
             {result.qrDataUrl ? (
               <div className="flex flex-col items-center gap-2">
@@ -80,6 +137,40 @@ export default function PaymentDialog({
                 Kein SEPA-QR-Code verfügbar — dieses Mitglied hat noch keine IBAN in den
                 Zahlungsdetails hinterlegt.
               </p>
+            )}
+
+            {result.qrDataUrl && (
+              <Accordion>
+                <AccordionItem value="scan-help">
+                  <AccordionTrigger>Wie kann ich einen QR-Code scannen?</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="flex flex-col gap-2">
+                      {BANK_HELP_LINKS.map((bank) => (
+                        <Button
+                          key={bank.name}
+                          variant="outline"
+                          className="justify-start"
+                          nativeButton={false}
+                          render={
+                            <a href={bank.url} target="_blank" rel="noopener noreferrer" />
+                          }
+                        >
+                          <Image
+                            src={bank.logo}
+                            alt=""
+                            width={20}
+                            height={20}
+                            unoptimized
+                            className="size-5"
+                          />
+                          {bank.name}
+                          <ExternalLink className="ml-auto size-3.5 text-muted-foreground" />
+                        </Button>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             )}
           </div>
         )}

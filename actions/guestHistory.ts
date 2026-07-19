@@ -95,13 +95,25 @@ export async function setBookingGuestPaid(
 // amount, QR image), not just a toast message, so it gets its own small
 // discriminated result instead of forcing the mutation-shaped convention.
 export type GuestPaymentReferenceResult =
-  | { success: true; referenceText: string; amount: number; qrDataUrl: string | null }
+  | {
+      success: true;
+      referenceText: string;
+      amount: number;
+      qrDataUrl: string | null;
+      paymentDetailsText: string;
+    }
   | { success: false; message: string };
 
 /**
- * Builds the Verwendungszweck text for a guest's payment, plus a SEPA
- * (EPC/GiroCode) QR image if the bringing member has a valid IBAN saved.
- * The raw IBAN never leaves the server — only the rendered QR data URL does.
+ * Builds the Verwendungszweck text for a guest's payment, a full copyable
+ * "Bezahlungsdetails" block (IBAN/Empfänger/Betrag/Verwendungszweck) for
+ * members who'd rather send a manual transfer request than deal with a QR
+ * code, and a SEPA (EPC/GiroCode) QR image if the bringing member has a
+ * valid IBAN saved. Deliberately sends the IBAN back this time (unlike the
+ * QR path, which never did) — the whole point of "Bezahlungsdetails
+ * kopieren" is letting the viewer read/copy it, and the caller is already
+ * either the bringing member themselves or an admin trusted with full
+ * payment data on this page.
  */
 export async function getGuestPaymentReference(
   bookingGuestId: string,
@@ -132,15 +144,25 @@ export async function getGuestPaymentReference(
   const referenceText = `Gast ${bookingGuest.guest.name}, ${booking.table.name}, ${formatBerlin(booking.start, "dd.MM.yyyy")}`;
 
   let qrDataUrl: string | null = null;
-  if (booking.user.iban && isValidIban(booking.user.iban)) {
+  const hasValidIban = !!booking.user.iban && isValidIban(booking.user.iban);
+  if (hasValidIban) {
     const payload = buildEpcPayload({
       name: booking.user.name,
-      iban: booking.user.iban,
+      iban: booking.user.iban!,
       amount,
       reference: referenceText,
     });
     qrDataUrl = await QRCode.toDataURL(payload);
   }
 
-  return { success: true, referenceText, amount, qrDataUrl };
+  const paymentDetailsText = [
+    hasValidIban ? `IBAN: ${booking.user.iban}` : null,
+    `Empfänger: ${booking.user.name}`,
+    `Betrag: ${amount.toFixed(2)} €`,
+    `Verwendungszweck: ${referenceText}`,
+  ]
+    .filter((line): line is string => line !== null)
+    .join("\n");
+
+  return { success: true, referenceText, amount, qrDataUrl, paymentDetailsText };
 }
