@@ -27,7 +27,7 @@ import {
 // to one common cause (checked intrinsic-size units, missing width/height,
 // inline <style> blocks, DOCTYPEs — none of it lined up across all three).
 // Rasterizing sidesteps the whole class of bug: a bitmap's natural size is
-// unambiguous, so `object-contain` in a fixed `h-6 w-11` box behaves
+// unambiguous, so `object-contain` in a fixed `h-4 w-8` box behaves
 // identically for all eight. Sourced from Wikimedia Commons (plus one clean
 // vector-logo site for Postbank's current mark) rather than hotlinked — this
 // app has no other precedent for embedding third-party assets.
@@ -165,7 +165,7 @@ export default function PaymentDialog({
                           <img
                             src={bank.logo}
                             alt=""
-                            className="h-6 w-11 shrink-0 object-contain"
+                            className="h-4 w-8 shrink-0 object-contain"
                           />
                           {bank.name}
                           <ExternalLink className="ml-auto size-3.5 text-muted-foreground" />
