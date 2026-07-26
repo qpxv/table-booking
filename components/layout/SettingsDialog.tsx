@@ -81,7 +81,7 @@ export default function SettingsDialog({
           <DialogTitle>Einstellungen</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-4 sm:flex-row">
-          <nav className="flex shrink-0 flex-row gap-1 sm:w-44 sm:flex-col">
+          <nav className="flex shrink-0 flex-row flex-wrap gap-1 sm:w-44 sm:flex-col sm:flex-nowrap">
             <TabButton active={tab === "profile"} onClick={() => setTab("profile")}>
               <UserCircle />
               Persönliche Daten
