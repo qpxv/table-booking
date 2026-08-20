@@ -1,33 +1,37 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, type JSX } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import ConfirmDeleteDialog from "@/components/shared/ConfirmDeleteDialog";
 import type { Table } from "@/generated/prisma/client";
-import { setTableActive, setTableAllowMultipleBookings, deleteTable } from "@/actions/tables";
+import {
+  setTableActive,
+  setTableAllowMultipleBookings,
+  deleteTable,
+} from "@/service/table-service/table";
 import { createTableColumns } from "./columns";
 import TableFormDialog from "./TableFormDialog";
 
-export default function TableManager({ tables }: { tables: Table[] }) {
+export default function TableManager({ tables }: { tables: Table[] }): JSX.Element {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTable, setEditingTable] = useState<Table | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Table | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function openCreateDialog() {
+  function openCreateDialog(): void {
     setEditingTable(null);
     setDialogOpen(true);
   }
 
-  function openEditDialog(table: Table) {
+  function openEditDialog(table: Table): void {
     setEditingTable(table);
     setDialogOpen(true);
   }
 
-  function handleToggleActive(table: Table) {
+  function handleToggleActive(table: Table): void {
     startTransition(async () => {
       const result = await setTableActive(table.id, !table.active);
       if (result.success) toast.success(result.message);
@@ -35,7 +39,7 @@ export default function TableManager({ tables }: { tables: Table[] }) {
     });
   }
 
-  function handleToggleMultiple(table: Table) {
+  function handleToggleMultiple(table: Table): void {
     startTransition(async () => {
       const result = await setTableAllowMultipleBookings(table.id, !table.allowMultipleBookings);
       if (result.success) toast.success(result.message);

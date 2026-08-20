@@ -1,29 +1,31 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type JSX } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import ConfirmDeleteDialog from "@/components/shared/ConfirmDeleteDialog";
 import ResetPasswordDialog from "./ResetPasswordDialog";
-import { deleteUser } from "@/actions/users";
-import { deleteGuest, type MemberGuestSummary } from "@/actions/guests";
+import { deleteUser } from "@/service/user-service/user";
+import { deleteGuest } from "@/service/guest-service/guest";
+import type { MemberGuestSummary } from "@/lib/guest-types";
 import { createUserColumns } from "./columns";
-import UserFormDialog, { type AppUser } from "./UserFormDialog";
+import UserFormDialog from "./UserFormDialog";
+import type { AppUser } from "@/lib/user-types";
 
-export default function UserManager({ users }: { users: AppUser[] }) {
+export default function UserManager({ users }: { users: AppUser[] }): JSX.Element {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<AppUser | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AppUser | null>(null);
   const [resetPasswordTarget, setResetPasswordTarget] = useState<AppUser | null>(null);
   const [removeGuestTarget, setRemoveGuestTarget] = useState<MemberGuestSummary | null>(null);
 
-  function openCreateDialog() {
+  function openCreateDialog(): void {
     setEditingUser(null);
     setDialogOpen(true);
   }
 
-  function openEditDialog(user: AppUser) {
+  function openEditDialog(user: AppUser): void {
     setEditingUser(user);
     setDialogOpen(true);
   }

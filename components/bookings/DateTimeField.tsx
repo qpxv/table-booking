@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type JSX } from "react";
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
@@ -12,8 +12,8 @@ import { Button } from "@/components/ui/button";
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
 const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
 
-// Calendar + hour/minute selects instead of a native <input type="datetime-local">
-// — the native input's AM/PM-vs-24h display is locale-dependent and can't be
+// Calendar + hour/minute selects instead of a native <input type="datetime-local">:
+// the native input's AM/PM-vs-24h display is locale-dependent and can't be
 // forced from the page, this guarantees German 24h formatting everywhere.
 export default function DateTimeField({
   id,
@@ -23,26 +23,26 @@ export default function DateTimeField({
   id?: string;
   value: Date;
   onChange: (date: Date) => void;
-}) {
+}): JSX.Element {
   const [open, setOpen] = useState(false);
   const hour = String(value.getHours()).padStart(2, "0");
   const minute = String(value.getMinutes()).padStart(2, "0");
 
-  function setDate(date: Date | undefined) {
+  function setDate(date: Date | undefined): void {
     if (!date) return;
     const next = new Date(date);
     next.setHours(value.getHours(), value.getMinutes(), 0, 0);
     onChange(next);
   }
 
-  function setHour(nextHour: string | null) {
+  function setHour(nextHour: string | null): void {
     if (nextHour === null) return;
     const next = new Date(value);
     next.setHours(Number(nextHour));
     onChange(next);
   }
 
-  function setMinute(nextMinute: string | null) {
+  function setMinute(nextMinute: string | null): void {
     if (nextMinute === null) return;
     const next = new Date(value);
     next.setMinutes(Number(nextMinute));

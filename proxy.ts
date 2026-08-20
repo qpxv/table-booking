@@ -3,12 +3,12 @@ import type { NextRequest } from "next/server";
 import { getSessionCookie, getCookieCache } from "better-auth/cookies";
 
 // Next.js 16: "Proxy" (formerly Middleware). Only optimistic checks against
-// the session cookie here — no DB access (see the Next.js auth guide). The
+// the session cookie here: no DB access (see the Next.js auth guide). The
 // real, authoritative authorization happens in lib/permissions.ts inside
 // every Server Action.
 const PUBLIC_ROUTES = ["/login"];
 
-export async function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
 
@@ -39,7 +39,7 @@ export const config = {
   // PWA assets (manifest, service worker, its workbox runtime chunk) must
   // stay reachable unauthenticated: they're fetched by the browser off the
   // very first page load (often /login, before any session cookie exists),
-  // and the post-login redirect to /dashboard is a soft client-side nav —
+  // and the post-login redirect to /dashboard is a soft client-side nav:
   // it never gives the browser a second, authenticated shot at fetching
   // them. Redirecting sw.js to /login's HTML breaks service worker
   // registration outright, which is why the install icon never appeared.

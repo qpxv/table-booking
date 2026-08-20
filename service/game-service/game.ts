@@ -1,14 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { unstable_rethrow } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { isAdmin } from "@/lib/permissions";
 import { gameSchema, type GameInput } from "@/lib/schemas/game";
-import type { ActionResult } from "@/types/action-result";
+import type { ServiceResult } from "@/lib/service-types";
 
-/** Returns an ActionResult failure if the session isn't an admin, otherwise null. */
-async function requireAdmin(): Promise<ActionResult | null> {
+/** Returns a ServiceResult failure if the session isn't an admin, otherwise null. */
+async function requireAdmin(): Promise<ServiceResult | null> {
   const session = await getSession();
   if (!isAdmin(session)) {
     return { success: false, message: "Nicht berechtigt." };
@@ -16,7 +17,7 @@ async function requireAdmin(): Promise<ActionResult | null> {
   return null;
 }
 
-export async function createGame(values: GameInput): Promise<ActionResult> {
+export async function createGame(values: GameInput): Promise<ServiceResult> {
   const authError = await requireAdmin();
   if (authError) return authError;
 
@@ -28,12 +29,13 @@ export async function createGame(values: GameInput): Promise<ActionResult> {
     revalidatePath("/admin/spiele");
     return { success: true, message: "Spiel erstellt." };
   } catch (err) {
+    unstable_rethrow(err);
     console.error("error in createGame", err);
     return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
 }
 
-export async function updateGame(id: string, values: GameInput): Promise<ActionResult> {
+export async function updateGame(id: string, values: GameInput): Promise<ServiceResult> {
   const authError = await requireAdmin();
   if (authError) return authError;
 
@@ -45,12 +47,13 @@ export async function updateGame(id: string, values: GameInput): Promise<ActionR
     revalidatePath("/admin/spiele");
     return { success: true, message: "Spiel aktualisiert." };
   } catch (err) {
+    unstable_rethrow(err);
     console.error("error in updateGame", err);
     return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
 }
 
-export async function deleteGame(id: string): Promise<ActionResult> {
+export async function deleteGame(id: string): Promise<ServiceResult> {
   const authError = await requireAdmin();
   if (authError) return authError;
 
@@ -59,11 +62,8 @@ export async function deleteGame(id: string): Promise<ActionResult> {
     revalidatePath("/admin/spiele");
     return { success: true, message: "Spiel gelöscht." };
   } catch (err) {
+    unstable_rethrow(err);
     console.error("error in deleteGame", err);
     return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
-}
-
-export async function listGames() {
-  return prisma.game.findMany({ orderBy: { name: "asc" } });
 }

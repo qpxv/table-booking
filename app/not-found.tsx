@@ -1,8 +1,9 @@
+import type { JSX } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-export default function NotFound() {
+export default function NotFound(): JSX.Element {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-6 p-6 text-center">
       <Image

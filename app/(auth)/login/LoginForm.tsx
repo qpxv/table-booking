@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type JSX } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field";
@@ -8,10 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { signIn } from "@/actions/auth";
+import { signIn } from "@/service/auth/sign-in";
 import { signInSchema, type SignInInput } from "@/lib/schemas/auth";
 
-export default function LoginForm() {
+export default function LoginForm(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const form = useForm<SignInInput>({
@@ -19,7 +19,7 @@ export default function LoginForm() {
     defaultValues: { email: "", password: "" },
   });
 
-  function onSubmit(values: SignInInput) {
+  function onSubmit(values: SignInInput): void {
     setError(null);
     startTransition(async () => {
       const result = await signIn(values);

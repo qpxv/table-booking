@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, type JSX } from "react";
 import { ArrowUpDown, Landmark } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
@@ -9,7 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { formatBerlin } from "@/lib/datetime";
-import { setBookingGuestPaid, type GuestHistoryRow } from "@/actions/guestHistory";
+import { setBookingGuestPaid } from "@/service/guest-history-service/guest-history";
+import type { GuestHistoryRow } from "@/lib/guest-history-types";
 
 // A free first visit has nothing to collect: treated as settled the same
 // as an actually-paid row, both for muted styling and sort order.
@@ -17,7 +18,7 @@ export function isSettled(row: GuestHistoryRow): boolean {
   return row.paid || row.price === 0;
 }
 
-function mutedClass(settled: boolean) {
+function mutedClass(settled: boolean): string {
   return cn(settled && "text-muted-foreground opacity-60");
 }
 
@@ -27,7 +28,7 @@ function PaidCheckbox({
 }: {
   row: GuestHistoryRow;
   onTogglePaid: (rowId: string, paid: boolean) => void;
-}) {
+}): JSX.Element {
   const [pending, startTransition] = useTransition();
 
   // Nothing to collect for a free first visit: always shown as settled,
@@ -36,7 +37,7 @@ function PaidCheckbox({
     return <Checkbox checked disabled />;
   }
 
-  function handleChange(checked: boolean) {
+  function handleChange(checked: boolean): void {
     // Optimistic: re-sort immediately instead of waiting for the server
     // round trip, so a just-checked row doesn't sit as a stray in the
     // middle of the unpaid ones until the revalidation lands.

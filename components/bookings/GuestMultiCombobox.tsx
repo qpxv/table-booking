@@ -1,17 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type JSX } from "react";
 import { X } from "lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import type { GuestWithVisits } from "@/actions/guests";
+import type { GuestWithVisits } from "@/lib/guest-types";
+import type { GuestSelection } from "@/lib/booking-types";
 
-export type GuestSelection =
-  | { type: "existing"; guest: GuestWithVisits }
-  | { type: "new"; name: string };
-
-// Deliberately not built on Popover/PopoverTrigger — see GameCombobox for
+// Deliberately not built on Popover/PopoverTrigger: see GameCombobox for
 // why. Plain absolutely-positioned dropdown, dismissed via a manual
 // pointerdown-outside check instead.
 export default function GuestMultiCombobox({
@@ -22,7 +19,7 @@ export default function GuestMultiCombobox({
   value: GuestSelection[];
   onChange: (value: GuestSelection[]) => void;
   knownGuests: GuestWithVisits[];
-}) {
+}): JSX.Element {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -47,7 +44,7 @@ export default function GuestMultiCombobox({
 
   useEffect(() => {
     if (!open) return;
-    function handlePointerDown(event: PointerEvent) {
+    function handlePointerDown(event: PointerEvent): void {
       if (!containerRef.current?.contains(event.target as Node)) {
         setOpen(false);
       }
@@ -56,12 +53,12 @@ export default function GuestMultiCombobox({
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [open]);
 
-  function addGuest(selection: GuestSelection) {
+  function addGuest(selection: GuestSelection): void {
     onChange([...value, selection]);
     setSearch("");
   }
 
-  function removeGuest(index: number) {
+  function removeGuest(index: number): void {
     onChange(value.filter((_, i) => i !== index));
   }
 

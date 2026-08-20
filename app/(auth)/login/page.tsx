@@ -1,7 +1,8 @@
+import type { JSX } from "react";
 import Image from "next/image";
 import LoginForm from "./LoginForm";
 
-export default function LoginPage() {
+export default function LoginPage(): JSX.Element {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-6 p-6">
       <Image

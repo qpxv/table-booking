@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type JSX } from "react";
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import type { Game } from "@/generated/prisma/client";
 
-// Free-text input with pick-from-list suggestions — not a fixed choice, the
+// Free-text input with pick-from-list suggestions: not a fixed choice, the
 // typed value itself is what gets saved (matches the previous freeSolo Autocomplete).
 // Suggestions come from Spielverwaltung's admin-managed `games` list, not a
-// hardcoded array — typing a one-off value not in that list is still fine.
+// hardcoded array, so typing a one-off value not in that list is still fine.
 //
 // Deliberately not built on Popover/PopoverTrigger: that primitive ties
 // "is this the trigger" to "is this exempt from outside-press dismissal",
@@ -23,7 +23,7 @@ export default function GameCombobox({
   value: string;
   onChange: (value: string) => void;
   games: Pick<Game, "id" | "name">[];
-}) {
+}): JSX.Element {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const suggestions = games.filter((game) =>
@@ -32,7 +32,7 @@ export default function GameCombobox({
 
   useEffect(() => {
     if (!open) return;
-    function handlePointerDown(event: PointerEvent) {
+    function handlePointerDown(event: PointerEvent): void {
       if (!containerRef.current?.contains(event.target as Node)) {
         setOpen(false);
       }

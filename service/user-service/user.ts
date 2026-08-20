@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { unstable_rethrow } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
@@ -15,11 +16,11 @@ import {
   type UpdateUserInput,
   type ResetPasswordInput,
 } from "@/lib/schemas/user";
-import type { ActionResult } from "@/types/action-result";
+import type { ServiceResult } from "@/lib/service-types";
 
-/** Returns request headers if the session is an admin, otherwise an ActionResult failure. */
+/** Returns request headers if the session is an admin, otherwise a ServiceResult failure. */
 async function requireAdminHeaders(): Promise<
-  { headers: Headers; authError?: undefined } | { headers?: undefined; authError: ActionResult }
+  { headers: Headers; authError?: undefined } | { headers?: undefined; authError: ServiceResult }
 > {
   const session = await getSession();
   if (!isAdmin(session)) {
@@ -28,7 +29,7 @@ async function requireAdminHeaders(): Promise<
   return { headers: await headers() };
 }
 
-export async function createUser(values: CreateUserInput): Promise<ActionResult> {
+export async function createUser(values: CreateUserInput): Promise<ServiceResult> {
   const admin = await requireAdminHeaders();
   if (admin.authError) return admin.authError;
 
@@ -49,12 +50,13 @@ export async function createUser(values: CreateUserInput): Promise<ActionResult>
     revalidatePath("/admin/users");
     return { success: true, message: "Benutzer erstellt." };
   } catch (err) {
+    unstable_rethrow(err);
     console.error("error in createUser", err);
     return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
 }
 
-export async function updateUser(userId: string, values: UpdateUserInput): Promise<ActionResult> {
+export async function updateUser(userId: string, values: UpdateUserInput): Promise<ServiceResult> {
   const admin = await requireAdminHeaders();
   if (admin.authError) return admin.authError;
 
@@ -73,12 +75,13 @@ export async function updateUser(userId: string, values: UpdateUserInput): Promi
     revalidatePath("/admin/users");
     return { success: true, message: "Benutzer aktualisiert." };
   } catch (err) {
+    unstable_rethrow(err);
     console.error("error in updateUser", err);
     return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
 }
 
-export async function updateUserRole(userId: string, role: string): Promise<ActionResult> {
+export async function updateUserRole(userId: string, role: string): Promise<ServiceResult> {
   const admin = await requireAdminHeaders();
   if (admin.authError) return admin.authError;
 
@@ -94,6 +97,7 @@ export async function updateUserRole(userId: string, role: string): Promise<Acti
     revalidatePath("/admin/users");
     return { success: true, message: "Rolle aktualisiert." };
   } catch (err) {
+    unstable_rethrow(err);
     console.error("error in updateUserRole", err);
     return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
@@ -102,7 +106,7 @@ export async function updateUserRole(userId: string, role: string): Promise<Acti
 export async function resetUserPassword(
   userId: string,
   values: ResetPasswordInput,
-): Promise<ActionResult> {
+): Promise<ServiceResult> {
   const admin = await requireAdminHeaders();
   if (admin.authError) return admin.authError;
 
@@ -117,12 +121,13 @@ export async function resetUserPassword(
 
     return { success: true, message: "Passwort zurückgesetzt." };
   } catch (err) {
+    unstable_rethrow(err);
     console.error("error in resetUserPassword", err);
     return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
 }
 
-export async function deleteUser(userId: string): Promise<ActionResult> {
+export async function deleteUser(userId: string): Promise<ServiceResult> {
   const admin = await requireAdminHeaders();
   if (admin.authError) return admin.authError;
 
@@ -140,32 +145,8 @@ export async function deleteUser(userId: string): Promise<ActionResult> {
     revalidatePath("/admin/users");
     return { success: true, message: "Benutzer gelöscht." };
   } catch (err) {
+    unstable_rethrow(err);
     console.error("error in deleteUser", err);
     return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
-}
-
-/** Plain, non-admin-gated member roster for the booking dialog's Mitglieder picker. */
-export async function listMembers() {
-  const users = await prisma.user.findMany({
-    where: { banned: { not: true } },
-    select: { id: true, name: true, email: true },
-    orderBy: { name: "asc" },
-  });
-
-  return users.filter((user) => !isHiddenAccount(user.email)).map(({ id, name }) => ({ id, name }));
-}
-
-export async function listUsers() {
-  const session = await getSession();
-  if (!isAdmin(session)) {
-    throw new Error("Nicht berechtigt.");
-  }
-
-  const result = await auth.api.listUsers({
-    query: { sortBy: "name", sortDirection: "asc", limit: 200 },
-    headers: await headers(),
-  });
-
-  return result.users.filter((user) => !isHiddenAccount(user.email));
 }

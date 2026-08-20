@@ -1,19 +1,19 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, type JSX } from "react";
 import { toast } from "sonner";
 import { LogIn, LogOut, Pencil, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { formatBerlin } from "@/lib/datetime";
-import { joinBooking, leaveBooking } from "@/actions/bookings";
-import type { CalendarBooking } from "./BookingCalendar";
+import { joinBooking, leaveBooking } from "@/service/booking-service/booking";
+import type { CalendarBooking } from "@/lib/booking-types";
 
 // Shown when clicking any event, on any table, instead of jumping straight
-// to the edit dialog — any member can join/leave here; only the creator or
+// to the edit dialog: any member can join/leave here; only the creator or
 // an admin can jump to the full edit dialog to reschedule/cancel. The
-// creator never gets a Verlassen button — they can't leave their own event.
+// creator never gets a Verlassen button: they can't leave their own event.
 export default function BookingJoinDialog({
   tableName,
   booking,
@@ -28,12 +28,12 @@ export default function BookingJoinDialog({
   canEdit: boolean;
   onEdit: () => void;
   onClose: () => void;
-}) {
+}): JSX.Element {
   const [pending, startTransition] = useTransition();
   const isCreator = booking.userId === currentUserId;
   const isParticipant = booking.participants.some((p) => p.userId === currentUserId);
 
-  function handleJoinToggle() {
+  function handleJoinToggle(): void {
     startTransition(async () => {
       const result = isParticipant
         ? await leaveBooking(booking.id)

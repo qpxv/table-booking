@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type JSX } from "react";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,7 +19,7 @@ import { isValidIban, formatIbanInput } from "@/lib/iban";
 type Tab = "profile" | "password" | "payment";
 
 // better-auth's client errors carry a stable `code` alongside an
-// English `message` — map the ones these two forms can actually hit to
+// English `message`. Map the ones these two forms can actually hit to
 // German, since the raw API message is what would otherwise land in the
 // toast verbatim.
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
@@ -71,7 +71,7 @@ export default function SettingsDialog({
   email: string;
   iban: string | null;
   onClose: () => void;
-}) {
+}): JSX.Element {
   const [tab, setTab] = useState<Tab>("profile");
 
   return (
@@ -96,7 +96,7 @@ export default function SettingsDialog({
             </TabButton>
           </nav>
           {/* All three forms stay mounted, stacked in the same grid cell, so
-              the grid's height is driven by the tallest one — keeps the
+              the grid's height is driven by the tallest one: keeps the
               dialog from jumping in height when switching tabs. */}
           <div className="grid min-w-0 grow">
             <div className={cn("col-start-1 row-start-1", tab !== "profile" && "invisible")}>
@@ -123,7 +123,7 @@ function TabButton({
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
-}) {
+}): JSX.Element {
   return (
     <button
       type="button"
@@ -140,7 +140,7 @@ function TabButton({
   );
 }
 
-function ProfileForm({ name, email }: { name: string; email: string }) {
+function ProfileForm({ name, email }: { name: string; email: string }): JSX.Element {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const form = useForm<ProfileInput>({
@@ -148,7 +148,7 @@ function ProfileForm({ name, email }: { name: string; email: string }) {
     defaultValues: { name, email },
   });
 
-  function onSubmit(values: ProfileInput) {
+  function onSubmit(values: ProfileInput): void {
     startTransition(async () => {
       if (values.name !== name) {
         const { error } = await authClient.updateUser({ name: values.name });
@@ -205,14 +205,14 @@ function ProfileForm({ name, email }: { name: string; email: string }) {
   );
 }
 
-function PasswordForm() {
+function PasswordForm(): JSX.Element {
   const [pending, startTransition] = useTransition();
   const form = useForm<PasswordInput>({
     resolver: zodResolver(passwordSchema),
     defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
   });
 
-  function onSubmit(values: PasswordInput) {
+  function onSubmit(values: PasswordInput): void {
     startTransition(async () => {
       const { error } = await authClient.changePassword({
         currentPassword: values.currentPassword,
@@ -277,7 +277,7 @@ function PasswordForm() {
   );
 }
 
-function PaymentForm({ iban }: { iban: string | null }) {
+function PaymentForm({ iban }: { iban: string | null }): JSX.Element {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const form = useForm<PaymentInput>({
@@ -285,7 +285,7 @@ function PaymentForm({ iban }: { iban: string | null }) {
     defaultValues: { iban: iban ?? "" },
   });
 
-  function onSubmit(values: PaymentInput) {
+  function onSubmit(values: PaymentInput): void {
     startTransition(async () => {
       const { error } = await authClient.updateUser({ iban: values.iban });
       if (error) {

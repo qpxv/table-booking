@@ -1,8 +1,11 @@
-import { listTables } from "@/actions/tables";
+import type { JSX } from "react";
+import { listTables } from "@/lib/queries/tables";
 import TableManager from "@/components/tables/TableManager";
 
-export default async function AdminTablesPage() {
-  const tables = await listTables();
+export default async function AdminTablesPage(): Promise<JSX.Element> {
+  const result = await listTables();
+  if (!result.success) throw new Error(result.message);
+  const tables = result.tables;
 
   return (
     <div className="flex flex-col gap-4">

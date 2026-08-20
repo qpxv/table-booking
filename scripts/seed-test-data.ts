@@ -48,7 +48,7 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// Email local-parts need plain ASCII — transliterate German umlauts/ß
+// Email local-parts need plain ASCII: transliterate German umlauts/ß
 // rather than dropping them, so "Müller" becomes "mueller", not "mller".
 function toEmailSlug(value: string): string {
   return value
@@ -106,7 +106,7 @@ async function main() {
     guestsByName.set(name, { id: guest.id, name });
   }
 
-  // Deliberately overlapping picks across members — the same guest name
+  // Deliberately overlapping picks across members: the same guest name
   // can and should be picked by more than one member, so the club-wide
   // dedup/visit-count fix from last turn actually gets exercised.
   const guestNamesByMember = new Map<string, string[]>();
@@ -120,8 +120,17 @@ async function main() {
   const bookedRangesByTable = new Map<string, { start: Date; end: Date }[]>();
   for (const table of tables) bookedRangesByTable.set(table.id, []);
 
+  function getRanges(tableId: string): { start: Date; end: Date }[] {
+    let ranges = bookedRangesByTable.get(tableId);
+    if (!ranges) {
+      ranges = [];
+      bookedRangesByTable.set(tableId, ranges);
+    }
+    return ranges;
+  }
+
   function overlaps(tableId: string, start: Date, end: Date): boolean {
-    return bookedRangesByTable.get(tableId)!.some((b) => start < b.end && end > b.start);
+    return getRanges(tableId).some((b) => start < b.end && end > b.start);
   }
 
   const guestVisitCounts = new Map<string, number>();
@@ -159,13 +168,15 @@ async function main() {
             status: BookingStatus.ACTIVE,
           },
         });
-        bookedRangesByTable.get(table.id)!.push({ start, end });
+        getRanges(table.id).push({ start, end });
 
-        const memberGuestNames = guestNamesByMember.get(member.id)!;
+        const memberGuestNames = guestNamesByMember.get(member.id);
+        if (!memberGuestNames) throw new Error(`No guest pool for member ${member.id}`);
         const guestCount = Math.floor(Math.random() * 5); // 0-4
         const chosenGuestNames = shuffle(memberGuestNames).slice(0, guestCount);
         for (const guestName of chosenGuestNames) {
-          const guest = guestsByName.get(guestName)!;
+          const guest = guestsByName.get(guestName);
+          if (!guest) throw new Error(`Unknown guest name ${guestName}`);
           const previousVisitCount = guestVisitCounts.get(guest.id) ?? 0;
           const price = calculateGuestPrice(previousVisitCount);
           await prisma.bookingGuest.create({

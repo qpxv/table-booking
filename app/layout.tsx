@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import type { JSX } from "react";
 import { Work_Sans, Geist_Mono, Fraunces } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-// Pairs with the Fraunces display face used for headings — Fraunces has no
+// Pairs with the Fraunces display face used for headings: Fraunces has no
 // sans-serif sibling, so this is a separate but complementary body/UI face.
 const workSans = Work_Sans({
   variable: "--font-work-sans",
@@ -30,7 +31,7 @@ export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
-}>) {
+}>): JSX.Element {
   return (
     <html
       lang="de"

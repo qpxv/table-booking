@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, type JSX } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -10,8 +10,8 @@ import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { createUser, updateUser } from "@/actions/users";
-import type { MemberGuestSummary } from "@/actions/guests";
+import { createUser, updateUser } from "@/service/user-service/user";
+import type { AppUser } from "@/lib/user-types";
 import {
   createUserSchema,
   updateUserSchema,
@@ -19,16 +19,7 @@ import {
   type UpdateUserInput,
 } from "@/lib/schemas/user";
 
-export type AppUser = {
-  id: string;
-  name: string;
-  email: string;
-  memberId?: string | null;
-  role?: string | string[] | null;
-  guests?: MemberGuestSummary[];
-};
-
-// Only rendered by the parent while the dialog should be open — the initial
+// Only rendered by the parent while the dialog should be open. The initial
 // values are taken directly from props on mount (no reset effect needed).
 export default function UserFormDialog({
   user,
@@ -36,7 +27,7 @@ export default function UserFormDialog({
 }: {
   user: AppUser | null;
   onClose: () => void;
-}) {
+}): JSX.Element {
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
@@ -55,16 +46,16 @@ export default function UserFormDialog({
 
 // create and edit submit different (and differently shaped) data to
 // different actions, so each gets its own form typed to its own schema
-// output — no shared union type, so no cast is needed at the call site.
+// output, so no shared union type and no cast is needed at the call site.
 
-function CreateUserForm({ onClose }: { onClose: () => void }) {
+function CreateUserForm({ onClose }: { onClose: () => void }): JSX.Element {
   const [pending, startTransition] = useTransition();
   const form = useForm<CreateUserInput>({
     resolver: zodResolver(createUserSchema),
     defaultValues: { name: "", email: "", password: "", memberId: "" },
   });
 
-  function onSubmit(values: CreateUserInput) {
+  function onSubmit(values: CreateUserInput): void {
     startTransition(async () => {
       const result = await createUser(values);
       if (result.success) {
@@ -142,14 +133,14 @@ function CreateUserForm({ onClose }: { onClose: () => void }) {
   );
 }
 
-function EditUserForm({ user, onClose }: { user: AppUser; onClose: () => void }) {
+function EditUserForm({ user, onClose }: { user: AppUser; onClose: () => void }): JSX.Element {
   const [pending, startTransition] = useTransition();
   const form = useForm<UpdateUserInput>({
     resolver: zodResolver(updateUserSchema),
     defaultValues: { name: user.name, email: user.email, memberId: user.memberId ?? "" },
   });
 
-  function onSubmit(values: UpdateUserInput) {
+  function onSubmit(values: UpdateUserInput): void {
     startTransition(async () => {
       const result = await updateUser(user.id, values);
       if (result.success) {

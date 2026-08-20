@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, type JSX } from "react";
 import { ArrowUpDown, KeyRound, MoreHorizontal, Pencil, ShieldCheck, Sparkles, Trash2, User, X } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
@@ -20,15 +20,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { updateUserRole } from "@/actions/users";
-import type { MemberGuestSummary } from "@/actions/guests";
-import type { AppUser } from "./UserFormDialog";
+import { updateUserRole } from "@/service/user-service/user";
+import type { MemberGuestSummary } from "@/lib/guest-types";
+import type { AppUser } from "@/lib/user-types";
 
-function RoleCell({ user }: { user: AppUser }) {
+function RoleCell({ user }: { user: AppUser }): JSX.Element {
   const [pending, startTransition] = useTransition();
   const role = user.role === "admin" ? "admin" : "user";
 
-  function handleChange(nextRole: string | null) {
+  function handleChange(nextRole: string | null): void {
     if (!nextRole || nextRole === role) return;
     startTransition(async () => {
       const result = await updateUserRole(user.id, nextRole);

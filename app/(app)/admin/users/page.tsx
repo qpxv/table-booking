@@ -1,15 +1,19 @@
-import { listUsers } from "@/actions/users";
-import { listGuestsGroupedByBringer } from "@/actions/guests";
+import type { JSX } from "react";
+import { listUsers } from "@/lib/queries/users";
+import { listGuestsGroupedByBringer } from "@/lib/queries/guests";
 import UserManager from "@/components/users/UserManager";
 
-export default async function AdminUsersPage() {
-  const [users, guestsByMember] = await Promise.all([
+export default async function AdminUsersPage(): Promise<JSX.Element> {
+  const [usersResult, guestsByMemberResult] = await Promise.all([
     listUsers(),
     listGuestsGroupedByBringer(),
   ]);
-  const usersWithGuests = users.map((user) => ({
+  if (!usersResult.success) throw new Error(usersResult.message);
+  if (!guestsByMemberResult.success) throw new Error(guestsByMemberResult.message);
+
+  const usersWithGuests = usersResult.users.map((user) => ({
     ...user,
-    guests: guestsByMember[user.id] ?? [],
+    guests: guestsByMemberResult.guestsByMember[user.id] ?? [],
   }));
 
   return (

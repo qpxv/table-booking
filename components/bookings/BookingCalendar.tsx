@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type JSX } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import FullCalendar from "@fullcalendar/react";
@@ -19,24 +19,13 @@ import type {
 import type { EventResizeDoneArg } from "@fullcalendar/interaction";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { GuestWithVisits } from "@/actions/guests";
+import type { GuestWithVisits } from "@/lib/guest-types";
 import type { Game } from "@/generated/prisma/client";
-import { updateBooking } from "@/actions/bookings";
+import { updateBooking } from "@/service/booking-service/booking";
+import type { CalendarBooking, GuestSelection } from "@/lib/booking-types";
+import type { MemberOption } from "@/lib/user-types";
 import BookingDialog from "./BookingDialog";
 import BookingJoinDialog from "./BookingJoinDialog";
-import type { GuestSelection } from "./GuestMultiCombobox";
-import type { MemberOption } from "./MemberMultiCombobox";
-
-export type CalendarBooking = {
-  id: string;
-  start: Date;
-  end: Date;
-  game: string | null;
-  userId: string;
-  userName: string;
-  guests: { guestId: string; name: string }[];
-  participants: { userId: string; name: string }[];
-};
 
 type DialogState =
   | { mode: "create"; start: string; end: string }
@@ -52,7 +41,7 @@ function formatDuration(start: Date, end: Date): string {
   return `${hours} Std ${mins} Min`;
 }
 
-function renderEventContent(arg: EventContentArg) {
+function renderEventContent(arg: EventContentArg): JSX.Element {
   const { attendees, game } = arg.event.extendedProps as { attendees: string; game: string | null };
   const duration =
     arg.event.start && arg.event.end ? formatDuration(arg.event.start, arg.event.end) : "";
@@ -89,7 +78,7 @@ export default function BookingCalendar({
   knownGuests: GuestWithVisits[];
   knownGames: Pick<Game, "id" | "name">[];
   knownMembers: MemberOption[];
-}) {
+}): JSX.Element {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -112,7 +101,7 @@ export default function BookingCalendar({
           id: booking.id,
           start: booking.start,
           end: booking.end,
-          title: booking.game ? `${attendees} – ${booking.game}` : attendees,
+          title: booking.game ? `${attendees} (${booking.game})` : attendees,
           backgroundColor: isParticipant ? "var(--secondary)" : "#57534e",
           borderColor: isParticipant ? "var(--secondary)" : "#57534e",
           textColor: isParticipant ? "var(--secondary-foreground)" : "#ffffff",
@@ -140,7 +129,7 @@ export default function BookingCalendar({
 
   const creatorUserId = dialog?.mode === "edit" ? dialog.booking.userId : currentUserId;
 
-  function handleDatesSet(arg: DatesSetArg) {
+  function handleDatesSet(arg: DatesSetArg): void {
     setTitle(arg.view.title);
 
     const params = new URLSearchParams(searchParams.toString());
@@ -148,7 +137,7 @@ export default function BookingCalendar({
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }
 
-  function handleSelect(selectInfo: DateSelectArg) {
+  function handleSelect(selectInfo: DateSelectArg): void {
     selectInfo.view.calendar.unselect();
     setDialog({
       mode: "create",
@@ -157,7 +146,7 @@ export default function BookingCalendar({
     });
   }
 
-  function handleEventClick(clickInfo: EventClickArg) {
+  function handleEventClick(clickInfo: EventClickArg): void {
     const booking = bookings.find((b) => b.id === clickInfo.event.id);
     if (!booking) return;
     setDialog({ mode: "join", booking });
@@ -168,7 +157,7 @@ export default function BookingCalendar({
     start: Date,
     end: Date,
     revert: () => void,
-  ) {
+  ): Promise<void> {
     const booking = bookings.find((b) => b.id === bookingId);
     if (!booking) {
       revert();
@@ -189,7 +178,7 @@ export default function BookingCalendar({
     }
   }
 
-  function handleEventDrop(dropInfo: EventDropArg) {
+  function handleEventDrop(dropInfo: EventDropArg): void {
     const { event } = dropInfo;
     if (!event.start || !event.end) {
       dropInfo.revert();
@@ -198,7 +187,7 @@ export default function BookingCalendar({
     void persistReschedule(event.id, event.start, event.end, dropInfo.revert);
   }
 
-  function handleEventResize(resizeInfo: EventResizeDoneArg) {
+  function handleEventResize(resizeInfo: EventResizeDoneArg): void {
     const { event } = resizeInfo;
     if (!event.start || !event.end) {
       resizeInfo.revert();

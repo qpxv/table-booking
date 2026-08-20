@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, type JSX } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -11,10 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import type { Table } from "@/generated/prisma/client";
-import { createTable, updateTable } from "@/actions/tables";
+import { createTable, updateTable } from "@/service/table-service/table";
 import { tableSchema, type TableInput } from "@/lib/schemas/table";
 
-// Only rendered by the parent while the dialog should be open — the initial
+// Only rendered by the parent while the dialog should be open. The initial
 // values are taken directly from props on mount (no reset effect needed).
 export default function TableFormDialog({
   table,
@@ -22,14 +22,14 @@ export default function TableFormDialog({
 }: {
   table: Table | null;
   onClose: () => void;
-}) {
+}): JSX.Element {
   const [pending, startTransition] = useTransition();
   const form = useForm<TableInput>({
     resolver: zodResolver(tableSchema),
     defaultValues: { name: table?.name ?? "" },
   });
 
-  function onSubmit(values: TableInput) {
+  function onSubmit(values: TableInput): void {
     startTransition(async () => {
       const result = table ? await updateTable(table.id, values) : await createTable(values);
       if (result.success) {

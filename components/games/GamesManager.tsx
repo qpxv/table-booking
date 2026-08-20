@@ -1,26 +1,26 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type JSX } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import ConfirmDeleteDialog from "@/components/shared/ConfirmDeleteDialog";
 import type { Game } from "@/generated/prisma/client";
-import { deleteGame } from "@/actions/games";
+import { deleteGame } from "@/service/game-service/game";
 import { createGameColumns } from "./columns";
 import GameFormDialog from "./GameFormDialog";
 
-export default function GamesManager({ games }: { games: Game[] }) {
+export default function GamesManager({ games }: { games: Game[] }): JSX.Element {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingGame, setEditingGame] = useState<Game | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Game | null>(null);
 
-  function openCreateDialog() {
+  function openCreateDialog(): void {
     setEditingGame(null);
     setDialogOpen(true);
   }
 
-  function openEditDialog(game: Game) {
+  function openEditDialog(game: Game): void {
     setEditingGame(game);
     setDialogOpen(true);
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type JSX } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -22,9 +22,12 @@ import {
 import { authClient } from "@/lib/auth-client";
 import SettingsDialog from "./SettingsDialog";
 
-type NavLink = { href: string; label: string };
+type NavLink = {
+  href: string;
+  label: string;
+};
 
-// Scoped locally per AppShell instance, not the app root — this is a
+// Scoped locally per AppShell instance, not the app root: this is a
 // purely ephemeral mobile overlay, there's no persistent desktop sidebar
 // state to share across the app.
 export default function MobileNav({
@@ -37,7 +40,7 @@ export default function MobileNav({
   name: string;
   email: string;
   iban: string | null;
-}) {
+}): JSX.Element {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
@@ -74,7 +77,7 @@ export default function MobileNav({
           <AccountFooter name={name} email={email} onOpenSettings={() => setSettingsOpen(true)} />
         </SidebarFooter>
       </Sidebar>
-      {/* Rendered here, not inside AccountFooter — AccountFooter lives inside
+      {/* Rendered here, not inside AccountFooter: AccountFooter lives inside
           the Sidebar's own Sheet, which unmounts its children when the drawer
           closes. Since opening Settings also closes the drawer in the same
           click, the dialog's state has to live outside that subtree or it
@@ -95,24 +98,24 @@ export default function MobileNav({
 const EDGE_ZONE_PX = 24;
 const OPEN_THRESHOLD_PX = 50;
 
-// Renders nothing — just listens for a right-edge swipe-left gesture and
+// Renders nothing: just listens for a right-edge swipe-left gesture and
 // opens the drawer, like a native edge-swipe drawer. Passive listeners
 // throughout (no preventDefault) so it never fights normal page scrolling.
-function EdgeSwipeToOpen() {
+function EdgeSwipeToOpen(): null {
   const { isMobile, openMobile, setOpenMobile } = useSidebar();
   const startRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (!isMobile || openMobile) return;
 
-    function onTouchStart(e: TouchEvent) {
+    function onTouchStart(e: TouchEvent): void {
       const touch = e.touches[0];
       if (window.innerWidth - touch.clientX <= EDGE_ZONE_PX) {
         startRef.current = { x: touch.clientX, y: touch.clientY };
       }
     }
 
-    function onTouchMove(e: TouchEvent) {
+    function onTouchMove(e: TouchEvent): void {
       if (!startRef.current) return;
       const touch = e.touches[0];
       const deltaX = startRef.current.x - touch.clientX;
@@ -123,7 +126,7 @@ function EdgeSwipeToOpen() {
       }
     }
 
-    function onTouchEnd() {
+    function onTouchEnd(): void {
       startRef.current = null;
     }
 
@@ -140,7 +143,7 @@ function EdgeSwipeToOpen() {
   return null;
 }
 
-function MobileNavTrigger() {
+function MobileNavTrigger(): JSX.Element {
   const { toggleSidebar } = useSidebar();
   return (
     <Button
@@ -155,7 +158,7 @@ function MobileNavTrigger() {
   );
 }
 
-function NavMenuButton({ link }: { link: NavLink }) {
+function NavMenuButton({ link }: { link: NavLink }): JSX.Element {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
   return (
@@ -175,11 +178,11 @@ function AccountFooter({
   name: string;
   email: string;
   onOpenSettings: () => void;
-}) {
+}): JSX.Element {
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
 
-  async function handleLogout() {
+  async function handleLogout(): Promise<void> {
     await authClient.signOut();
     router.push("/login");
     router.refresh();

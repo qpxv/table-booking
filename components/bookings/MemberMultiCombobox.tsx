@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type JSX } from "react";
 import { X } from "lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import type { MemberOption } from "@/lib/user-types";
 
-export type MemberOption = { id: string; name: string };
-
-// Same non-Popover/PopoverTrigger dropdown pattern as GuestMultiCombobox —
+// Same non-Popover/PopoverTrigger dropdown pattern as GuestMultiCombobox:
 // see that component for why. Unlike guests, members aren't created ad hoc
 // here: this only picks from the fixed club roster, no "add new" branch.
 export default function MemberMultiCombobox({
@@ -19,7 +18,7 @@ export default function MemberMultiCombobox({
   value: MemberOption[];
   onChange: (value: MemberOption[]) => void;
   knownMembers: MemberOption[];
-}) {
+}): JSX.Element {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -33,7 +32,7 @@ export default function MemberMultiCombobox({
 
   useEffect(() => {
     if (!open) return;
-    function handlePointerDown(event: PointerEvent) {
+    function handlePointerDown(event: PointerEvent): void {
       if (!containerRef.current?.contains(event.target as Node)) {
         setOpen(false);
       }
@@ -42,12 +41,12 @@ export default function MemberMultiCombobox({
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [open]);
 
-  function addMember(member: MemberOption) {
+  function addMember(member: MemberOption): void {
     onChange([...value, member]);
     setSearch("");
   }
 
-  function removeMember(id: string) {
+  function removeMember(id: string): void {
     onChange(value.filter((member) => member.id !== id));
   }
 

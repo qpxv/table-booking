@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, type JSX } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -11,10 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import type { Game } from "@/generated/prisma/client";
-import { createGame, updateGame } from "@/actions/games";
+import { createGame, updateGame } from "@/service/game-service/game";
 import { gameSchema, type GameInput } from "@/lib/schemas/game";
 
-// Only rendered by the parent while the dialog should be open — the initial
+// Only rendered by the parent while the dialog should be open. The initial
 // values are taken directly from props on mount (no reset effect needed).
 export default function GameFormDialog({
   game,
@@ -22,14 +22,14 @@ export default function GameFormDialog({
 }: {
   game: Game | null;
   onClose: () => void;
-}) {
+}): JSX.Element {
   const [pending, startTransition] = useTransition();
   const form = useForm<GameInput>({
     resolver: zodResolver(gameSchema),
     defaultValues: { name: game?.name ?? "" },
   });
 
-  function onSubmit(values: GameInput) {
+  function onSubmit(values: GameInput): void {
     startTransition(async () => {
       const result = game ? await updateGame(game.id, values) : await createGame(values);
       if (result.success) {

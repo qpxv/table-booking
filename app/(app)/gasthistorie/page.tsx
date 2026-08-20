@@ -1,16 +1,19 @@
+import type { JSX } from "react";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { isAdmin } from "@/lib/permissions";
-import { listGuestHistory } from "@/actions/guestHistory";
+import { listGuestHistory } from "@/lib/queries/guest-history";
 import GuestHistoryTable from "@/components/guest-history/GuestHistoryTable";
 
-export default async function GuestHistoryPage() {
+export default async function GuestHistoryPage(): Promise<JSX.Element> {
   const session = await getSession();
   if (!session) {
     redirect("/login");
   }
 
-  const rows = await listGuestHistory();
+  const result = await listGuestHistory();
+  if (!result.success) throw new Error(result.message);
+  const rows = result.rows;
   const admin = isAdmin(session);
 
   return (

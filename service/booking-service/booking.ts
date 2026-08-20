@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { unstable_rethrow } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canEditBooking } from "@/lib/permissions";
@@ -12,12 +13,12 @@ import {
   type CreateBookingInput,
   type UpdateBookingInput,
 } from "@/lib/schemas/booking";
-import type { ActionResult } from "@/types/action-result";
+import type { ServiceResult } from "@/lib/service-types";
 
 export async function createBooking(
   tableId: string,
   values: CreateBookingInput,
-): Promise<ActionResult> {
+): Promise<ServiceResult> {
   const session = await getSession();
   if (!session) return { success: false, message: "Nicht angemeldet." };
 
@@ -29,7 +30,7 @@ export async function createBooking(
   const data = parsed.data;
 
   // Server-side overlap validation: a table must not be double-booked for
-  // the same time range — except "Mehrfachbuchung" tables, which are
+  // the same time range, except "Mehrfachbuchung" tables, which are
   // specifically meant to allow multiple concurrent events.
   if (!table.allowMultipleBookings) {
     const overlap = await prisma.booking.findFirst({
@@ -45,7 +46,7 @@ export async function createBooking(
     }
   }
 
-  // Shared ("Mehrfachbuchung") tables are members-only signup — never
+  // Shared ("Mehrfachbuchung") tables are members-only signup: never
   // attach guests, regardless of what the client sent.
   const guestInputs = table.allowMultipleBookings ? [] : data.guests;
 
@@ -76,7 +77,7 @@ export async function createBooking(
           start: data.start,
           end: data.end,
           // Shared ("Mehrfachbuchung") tables are a community event slot,
-          // not a per-booking game — never store a game for them.
+          // not a per-booking game: never store a game for them.
           game: table.allowMultipleBookings ? null : data.game || null,
         },
       });
@@ -96,7 +97,7 @@ export async function createBooking(
         if ("guestId" in guestInput) {
           guestId = guestInput.guestId;
         } else {
-          // Guests are club-wide — reuse an existing one (case-insensitive)
+          // Guests are club-wide: reuse an existing one (case-insensitive)
           // instead of creating a duplicate for the same real person.
           const existingGuest = await tx.guest.findFirst({
             where: { name: { equals: guestInput.newName, mode: "insensitive" } },
@@ -125,6 +126,7 @@ export async function createBooking(
 
     return { success: true, message: "Buchung erstellt." };
   } catch (err) {
+    unstable_rethrow(err);
     console.error("error in createBooking", err);
     return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
@@ -133,7 +135,7 @@ export async function createBooking(
 export async function updateBooking(
   id: string,
   values: UpdateBookingInput,
-): Promise<ActionResult> {
+): Promise<ServiceResult> {
   const session = await getSession();
   const booking = await prisma.booking.findUnique({
     where: { id },
@@ -146,13 +148,13 @@ export async function updateBooking(
   if (!parsed.success) return { success: false, message: "Ungültige Eingabe." };
   const data = parsed.data;
 
-  // Shared ("Mehrfachbuchung") tables are members-only signup — treat any
+  // Shared ("Mehrfachbuchung") tables are members-only signup: treat any
   // submitted guests as not-submitted (same as a drag/resize reschedule),
   // so they're never created/removed here regardless of what the client sent.
   const guestsInput = booking.table.allowMultipleBookings ? undefined : data.guests;
   const participantsInput = data.participantUserIds;
 
-  // Overlap check is skipped for "Mehrfachbuchung" tables — they're
+  // Overlap check is skipped for "Mehrfachbuchung" tables: they're
   // specifically meant to allow multiple concurrent events.
   if (!booking.table.allowMultipleBookings) {
     const overlap = await prisma.booking.findFirst({
@@ -223,7 +225,7 @@ export async function updateBooking(
               });
             }
           } else {
-            // Guests are club-wide — reuse an existing one (case-insensitive)
+            // Guests are club-wide: reuse an existing one (case-insensitive)
             // instead of creating a duplicate for the same real person.
             const existingGuest = await tx.guest.findFirst({
               where: { name: { equals: guestInput.newName, mode: "insensitive" } },
@@ -272,12 +274,13 @@ export async function updateBooking(
 
     return { success: true, message: "Buchung aktualisiert." };
   } catch (err) {
+    unstable_rethrow(err);
     console.error("error in updateBooking", err);
     return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
 }
 
-export async function cancelBooking(id: string): Promise<ActionResult> {
+export async function cancelBooking(id: string): Promise<ServiceResult> {
   const session = await getSession();
   const booking = await prisma.booking.findUnique({ where: { id } });
   if (!booking) return { success: false, message: "Buchung nicht gefunden." };
@@ -289,7 +292,7 @@ export async function cancelBooking(id: string): Promise<ActionResult> {
   }
 
   try {
-    // Soft delete via status — no hard delete, for traceability.
+    // Soft delete via status: no hard delete, for traceability.
     await prisma.booking.update({
       where: { id },
       data: { status: BookingStatus.CANCELLED },
@@ -300,25 +303,14 @@ export async function cancelBooking(id: string): Promise<ActionResult> {
 
     return { success: true, message: "Buchung storniert." };
   } catch (err) {
+    unstable_rethrow(err);
     console.error("error in cancelBooking", err);
     return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
 }
 
-export async function listBookingsForTable(tableId: string) {
-  return prisma.booking.findMany({
-    where: { tableId, status: BookingStatus.ACTIVE },
-    include: {
-      user: { select: { name: true } },
-      guests: { include: { guest: { select: { name: true } } } },
-      participants: { include: { user: { select: { name: true } } } },
-    },
-    orderBy: { start: "asc" },
-  });
-}
-
 /** Join any active booking as an additional participant. */
-export async function joinBooking(bookingId: string): Promise<ActionResult> {
+export async function joinBooking(bookingId: string): Promise<ServiceResult> {
   const session = await getSession();
   if (!session) return { success: false, message: "Nicht angemeldet." };
 
@@ -340,13 +332,14 @@ export async function joinBooking(bookingId: string): Promise<ActionResult> {
 
     return { success: true, message: "Du bist jetzt angemeldet." };
   } catch (err) {
+    unstable_rethrow(err);
     console.error("error in joinBooking", err);
     return { success: false, message: "Ein Fehler ist aufgetreten." };
   }
 }
 
 /** Leave a booking. The creator can never leave their own event. */
-export async function leaveBooking(bookingId: string): Promise<ActionResult> {
+export async function leaveBooking(bookingId: string): Promise<ServiceResult> {
   const session = await getSession();
   if (!session) return { success: false, message: "Nicht angemeldet." };
 
@@ -367,6 +360,7 @@ export async function leaveBooking(bookingId: string): Promise<ActionResult> {
 
     return { success: true, message: "Du bist abgemeldet." };
   } catch (err) {
+    unstable_rethrow(err);
     console.error("error in leaveBooking", err);
     return { success: false, message: "Ein Fehler ist aufgetreten." };
   }

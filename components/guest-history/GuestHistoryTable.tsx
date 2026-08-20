@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type JSX } from "react";
 import { Users, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
-import type { GuestHistoryRow } from "@/actions/guestHistory";
+import type { GuestHistoryRow } from "@/lib/guest-history-types";
 import { createGuestHistoryColumns, isSettled } from "./columns";
 import PaymentDialog from "./PaymentDialog";
 
@@ -29,7 +29,7 @@ export default function GuestHistoryTable({
   rows: GuestHistoryRow[];
   isAdmin: boolean;
   currentUserId: string;
-}) {
+}): JSX.Element {
   const [prevRows, setPrevRows] = useState(rows);
   const [localRows, setLocalRows] = useState(rows);
   const [onlyMine, setOnlyMine] = useState(false);

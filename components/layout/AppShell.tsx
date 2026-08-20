@@ -1,3 +1,4 @@
+import type { JSX } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ type AppShellUser = {
   iban: string | null;
 };
 
-function NavButton({ href, children }: { href: string; children: React.ReactNode }) {
+function NavButton({ href, children }: { href: string; children: React.ReactNode }): JSX.Element {
   return (
     <Button
       variant="ghost"
@@ -28,7 +29,7 @@ export default function AppShell({
 }: {
   user: AppShellUser;
   children: React.ReactNode;
-}) {
+}): JSX.Element {
   const isAdmin = user.role === "admin";
 
   const links = [

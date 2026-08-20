@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, type JSX } from "react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -13,7 +13,7 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { Spinner } from "@/components/ui/spinner";
-import type { ActionResult } from "@/types/action-result";
+import type { ServiceResult } from "@/lib/service-types";
 
 type Mode = "table" | "user" | "booking" | "guest" | "game";
 
@@ -49,7 +49,7 @@ const COPY: Record<
   },
 };
 
-// Only rendered by the parent while it should be open — same convention as
+// Only rendered by the parent while it should be open, same convention as
 // BookingDialog/UserFormDialog/TableFormDialog. Pending/toast handling lives
 // entirely in here, scoped to this one instance, so triggering it from a
 // table row never affects any other row.
@@ -61,13 +61,13 @@ export default function ConfirmDeleteDialog({
 }: {
   mode: Mode;
   name?: string;
-  onConfirm: () => Promise<ActionResult>;
+  onConfirm: () => Promise<ServiceResult>;
   onClose: () => void;
-}) {
+}): JSX.Element {
   const [pending, startTransition] = useTransition();
   const copy = COPY[mode];
 
-  function handleConfirm() {
+  function handleConfirm(): void {
     startTransition(async () => {
       const result = await onConfirm();
       if (result.success) {

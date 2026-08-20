@@ -1,11 +1,14 @@
+import type { JSX } from "react";
 import Link from "next/link";
 import { Dices, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
-import { listTablesWithUpcomingWeekCounts } from "@/actions/tables";
+import { listTablesWithUpcomingWeekCounts } from "@/lib/queries/tables";
 import { formatBerlin } from "@/lib/datetime";
 
-export default async function TablesListPage() {
-  const activeTables = await listTablesWithUpcomingWeekCounts();
+export default async function TablesListPage(): Promise<JSX.Element> {
+  const result = await listTablesWithUpcomingWeekCounts();
+  if (!result.success) throw new Error(result.message);
+  const activeTables = result.tables;
 
   return (
     <div className="flex flex-col gap-4">

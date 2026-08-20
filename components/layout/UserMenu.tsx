@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type JSX } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, LogOut, Settings } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -35,11 +35,11 @@ export default function UserMenu({
   name: string;
   email: string;
   iban: string | null;
-}) {
+}): JSX.Element {
   const router = useRouter();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  async function handleLogout() {
+  async function handleLogout(): Promise<void> {
     await authClient.signOut();
     router.push("/login");
     router.refresh();

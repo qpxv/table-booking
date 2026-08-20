@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, type JSX } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -19,9 +19,11 @@ import { Separator } from "@/components/ui/separator";
 import ConfirmDeleteDialog from "@/components/shared/ConfirmDeleteDialog";
 import DateTimeField from "./DateTimeField";
 import GameCombobox from "./GameCombobox";
-import GuestMultiCombobox, { type GuestSelection } from "./GuestMultiCombobox";
-import MemberMultiCombobox, { type MemberOption } from "./MemberMultiCombobox";
-import type { GuestWithVisits } from "@/actions/guests";
+import GuestMultiCombobox from "./GuestMultiCombobox";
+import MemberMultiCombobox from "./MemberMultiCombobox";
+import type { GuestSelection } from "@/lib/booking-types";
+import type { MemberOption } from "@/lib/user-types";
+import type { GuestWithVisits } from "@/lib/guest-types";
 import type { Game } from "@/generated/prisma/client";
 import { calculateGuestPrice } from "@/lib/pricing";
 import {
@@ -29,9 +31,9 @@ import {
   type BookingFieldsInput,
   type GuestInput,
 } from "@/lib/schemas/booking";
-import { createBooking, updateBooking, cancelBooking } from "@/actions/bookings";
+import { createBooking, updateBooking, cancelBooking } from "@/service/booking-service/booking";
 
-// Only rendered by the parent while the dialog should be open — the initial
+// Only rendered by the parent while the dialog should be open. The initial
 // values are taken directly from props on mount (no reset effect needed).
 export default function BookingDialog({
   mode,
@@ -65,7 +67,7 @@ export default function BookingDialog({
   creatorUserId: string;
   tableAllowsMultiple: boolean;
   onClose: () => void;
-}) {
+}): JSX.Element {
   const [selectedGuests, setSelectedGuests] = useState<GuestSelection[]>(initialGuests ?? []);
   const [selectedParticipants, setSelectedParticipants] = useState<MemberOption[]>(
     initialParticipants ?? [],
@@ -94,7 +96,7 @@ export default function BookingDialog({
     }, 0);
   }, [selectedGuests]);
 
-  function onSubmit(values: BookingFieldsInput) {
+  function onSubmit(values: BookingFieldsInput): void {
     startTransition(async () => {
       const guests = selectedGuests.map(
         (selection): GuestInput =>
@@ -105,10 +107,13 @@ export default function BookingDialog({
 
       const participantUserIds = selectedParticipants.map((member) => member.id);
 
-      const result =
-        mode === "create"
-          ? await createBooking(tableId, { ...values, guests, participantUserIds })
-          : await updateBooking(bookingId!, { ...values, guests, participantUserIds });
+      let result;
+      if (mode === "create") {
+        result = await createBooking(tableId, { ...values, guests, participantUserIds });
+      } else {
+        if (!bookingId) return;
+        result = await updateBooking(bookingId, { ...values, guests, participantUserIds });
+      }
 
       if (result.success) {
         toast.success(result.message);
@@ -229,7 +234,8 @@ export default function BookingDialog({
         <ConfirmDeleteDialog
           mode="booking"
           onConfirm={async () => {
-            const result = await cancelBooking(bookingId!);
+            if (!bookingId) return { success: false, message: "Keine Buchung ausgewählt." };
+            const result = await cancelBooking(bookingId);
             if (result.success) onClose();
             return result;
           }}

@@ -1,5 +1,7 @@
 // Auto-detected by @ducanh2912/next-pwa as the offline fallback (convention: app/~offline/page.tsx).
-export default function OfflinePage() {
+import type { JSX } from "react";
+
+export default function OfflinePage(): JSX.Element {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-2 p-8 text-center">
       <h1 className="text-xl font-semibold tracking-tight">Keine Internetverbindung</h1>

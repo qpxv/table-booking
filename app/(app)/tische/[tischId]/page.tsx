@@ -1,19 +1,19 @@
-import { Suspense } from "react";
+import { Suspense, type JSX } from "react";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { isAdmin } from "@/lib/permissions";
-import { listBookingsForTable } from "@/actions/bookings";
-import { listGuests } from "@/actions/guests";
-import { listGames } from "@/actions/games";
-import { listMembers } from "@/actions/users";
+import { listBookingsForTable } from "@/lib/queries/bookings";
+import { listGuests } from "@/lib/queries/guests";
+import { listGames } from "@/lib/queries/games";
+import { listMembers } from "@/lib/queries/users";
 import BookingCalendar from "@/components/bookings/BookingCalendar";
 
 export default async function TableCalendarPage({
   params,
 }: {
   params: Promise<{ tischId: string }>;
-}) {
+}): Promise<JSX.Element> {
   const { tischId } = await params;
 
   const session = await getSession();
@@ -26,12 +26,21 @@ export default async function TableCalendarPage({
     notFound();
   }
 
-  const [bookings, knownGuests, knownGames, knownMembers] = await Promise.all([
+  const [bookingsResult, guestsResult, gamesResult, membersResult] = await Promise.all([
     listBookingsForTable(tischId),
     listGuests(),
     listGames(),
     listMembers(),
   ]);
+  if (!bookingsResult.success) throw new Error(bookingsResult.message);
+  if (!guestsResult.success) throw new Error(guestsResult.message);
+  if (!gamesResult.success) throw new Error(gamesResult.message);
+  if (!membersResult.success) throw new Error(membersResult.message);
+
+  const bookings = bookingsResult.bookings;
+  const knownGuests = guestsResult.guests;
+  const knownGames = gamesResult.games;
+  const knownMembers = membersResult.members;
 
   return (
     <div className="flex flex-col gap-4">

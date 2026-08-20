@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type JSX } from "react";
 import { toast } from "sonner";
 import { Copy, ExternalLink, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -12,24 +12,21 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from "@/components/ui/accordion";
-import {
-  getGuestPaymentReference,
-  type GuestHistoryRow,
-  type GuestPaymentReferenceResult,
-} from "@/actions/guestHistory";
+import { getGuestPaymentReference } from "@/lib/queries/guest-payment-reference";
+import type { GuestHistoryRow, PaymentReferenceResult } from "@/lib/guest-history-types";
 
 // Verified help pages on scanning a payment QR code (GiroCode/EPC), one per
-// bank — official pages where the bank has a clear one, girocodegenerator.com
+// bank: official pages where the bank has a clear one, girocodegenerator.com
 // (a GiroCode-focused site with consistent per-bank guides) as fallback
-// otherwise. Logos are rasterized PNGs (public/bank-logos/*.png), not SVGs —
+// otherwise. Logos are rasterized PNGs (public/bank-logos/*.png), not SVGs:
 // several of the source SVGs (ING, DKB, N26) rendered `object-fit: contain`
 // inconsistently across sizing approaches for reasons that didn't trace back
 // to one common cause (checked intrinsic-size units, missing width/height,
-// inline <style> blocks, DOCTYPEs — none of it lined up across all three).
+// inline <style> blocks, DOCTYPEs; none of it lined up across all three).
 // Rasterizing sidesteps the whole class of bug: a bitmap's natural size is
 // unambiguous, so `object-contain` in a fixed `h-4 w-8` box behaves
 // identically for all eight. Sourced from Wikimedia Commons (plus one clean
-// vector-logo site for Postbank's current mark) rather than hotlinked — this
+// vector-logo site for Postbank's current mark) rather than hotlinked: this
 // app has no other precedent for embedding third-party assets.
 const BANK_HELP_LINKS = [
   {
@@ -75,7 +72,7 @@ const BANK_HELP_LINKS = [
 ];
 
 // Fetches the Verwendungszweck text + SEPA QR image (if the bringing member
-// has an IBAN) lazily, only once this dialog actually opens — never
+// has an IBAN) lazily, only once this dialog actually opens: never
 // generated up front for every row in the table.
 export default function PaymentDialog({
   row,
@@ -83,8 +80,8 @@ export default function PaymentDialog({
 }: {
   row: GuestHistoryRow;
   onClose: () => void;
-}) {
-  const [result, setResult] = useState<GuestPaymentReferenceResult | null>(null);
+}): JSX.Element {
+  const [result, setResult] = useState<PaymentReferenceResult | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,7 +93,7 @@ export default function PaymentDialog({
     };
   }, [row.id]);
 
-  function handleCopy() {
+  function handleCopy(): void {
     if (!result?.success) return;
     navigator.clipboard.writeText(result.paymentDetailsText);
     toast.success("In Zwischenablage kopiert.");
@@ -119,7 +116,7 @@ export default function PaymentDialog({
 
         {result && result.success && (
           <div className="flex flex-col gap-4">
-            {/* Shows exactly what "Bezahlungsdetails kopieren" copies —
+            {/* Shows exactly what "Bezahlungsdetails kopieren" copies:
                 same string, no drift possible between preview and clipboard. */}
             <pre className="whitespace-pre-wrap rounded-lg bg-muted p-3 font-mono text-sm">
               {result.paymentDetailsText}
@@ -130,7 +127,7 @@ export default function PaymentDialog({
             </Button>
             {result.qrDataUrl ? (
               <div className="flex flex-col items-center gap-2">
-                {/* Dynamically generated data URL, not a static asset —
+                {/* Dynamically generated data URL, not a static asset:
                     next/image isn't the right tool here. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={result.qrDataUrl} alt="SEPA-Zahlungs-QR-Code" className="size-48" />

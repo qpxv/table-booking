@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, type JSX } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -10,8 +10,8 @@ import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { resetUserPassword } from "@/actions/users";
-import type { AppUser } from "./UserFormDialog";
+import { resetUserPassword } from "@/service/user-service/user";
+import type { AppUser } from "@/lib/user-types";
 
 const resetPasswordFormSchema = z
   .object({
@@ -32,14 +32,14 @@ export default function ResetPasswordDialog({
 }: {
   user: AppUser;
   onClose: () => void;
-}) {
+}): JSX.Element {
   const [pending, startTransition] = useTransition();
   const form = useForm<ResetPasswordFormInput>({
     resolver: zodResolver(resetPasswordFormSchema),
     defaultValues: { newPassword: "", confirmPassword: "" },
   });
 
-  function onSubmit(values: ResetPasswordFormInput) {
+  function onSubmit(values: ResetPasswordFormInput): void {
     startTransition(async () => {
       const result = await resetUserPassword(user.id, { newPassword: values.newPassword });
       if (result.success) {
