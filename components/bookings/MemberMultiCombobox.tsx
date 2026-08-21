@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { MemberOption } from "@/lib/user-types";
 
 // Same non-Popover/PopoverTrigger dropdown pattern as GuestMultiCombobox:
@@ -33,7 +34,7 @@ export default function MemberMultiCombobox({
   useEffect(() => {
     if (!open) return;
     function handlePointerDown(event: PointerEvent): void {
-      if (!containerRef.current?.contains(event.target as Node)) {
+      if (event.target instanceof Node && !containerRef.current?.contains(event.target)) {
         setOpen(false);
       }
     }
@@ -57,13 +58,16 @@ export default function MemberMultiCombobox({
           {value.map((member) => (
             <Badge key={member.id} variant="secondary" className="gap-1">
               {member.name}
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-xs"
+                className="ml-0.5 rounded-full [&_svg]:size-3"
                 onClick={() => removeMember(member.id)}
-                className="ml-0.5 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <X className="size-3" />
-              </button>
+                <X />
+                <span className="sr-only">{member.name} entfernen</span>
+              </Button>
             </Badge>
           ))}
         </div>

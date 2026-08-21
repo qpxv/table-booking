@@ -3,7 +3,6 @@
 import { useMemo, useState, useTransition, type JSX } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
 import { CalendarX, Save, X } from "lucide-react";
 import {
   Dialog,
@@ -21,7 +20,7 @@ import DateTimeField from "./DateTimeField";
 import GameCombobox from "./GameCombobox";
 import GuestMultiCombobox from "./GuestMultiCombobox";
 import MemberMultiCombobox from "./MemberMultiCombobox";
-import type { GuestSelection } from "@/lib/booking-types";
+import { isExistingGuestSelection, type GuestSelection } from "@/lib/booking-types";
 import type { MemberOption } from "@/lib/user-types";
 import type { GuestWithVisits } from "@/lib/guest-types";
 import type { Game } from "@/generated/prisma/client";
@@ -32,6 +31,8 @@ import {
   type GuestInput,
 } from "@/lib/schemas/booking";
 import { createBooking, updateBooking, cancelBooking } from "@/service/booking-service/booking";
+import { showToast } from "@/lib/toast";
+import { DIALOG_MODE, CONFIRM_MODE, MESSAGES } from "@/lib/constants";
 
 // Only rendered by the parent while the dialog should be open. The initial
 // values are taken directly from props on mount (no reset effect needed).
@@ -52,7 +53,7 @@ export default function BookingDialog({
   tableAllowsMultiple,
   onClose,
 }: {
-  mode: "create" | "edit";
+  mode: typeof DIALOG_MODE.CREATE | typeof DIALOG_MODE.EDIT;
   tableId: string;
   tableName: string;
   bookingId?: string;
@@ -91,7 +92,7 @@ export default function BookingDialog({
 
   const guestCost = useMemo(() => {
     return selectedGuests.reduce((total, selection) => {
-      const previousVisitCount = selection.type === "existing" ? selection.guest.visitCount : 0;
+      const previousVisitCount = isExistingGuestSelection(selection) ? selection.guest.visitCount : 0;
       return total + calculateGuestPrice(previousVisitCount);
     }, 0);
   }, [selectedGuests]);
@@ -107,20 +108,16 @@ export default function BookingDialog({
 
       const participantUserIds = selectedParticipants.map((member) => member.id);
 
-      let result;
-      if (mode === "create") {
-        result = await createBooking(tableId, { ...values, guests, participantUserIds });
-      } else {
-        if (!bookingId) return;
-        result = await updateBooking(bookingId, { ...values, guests, participantUserIds });
-      }
+      const result =
+        mode === DIALOG_MODE.CREATE
+          ? await createBooking(tableId, { ...values, guests, participantUserIds })
+          : bookingId
+            ? await updateBooking(bookingId, { ...values, guests, participantUserIds })
+            : null;
+      if (!result) return;
 
-      if (result.success) {
-        toast.success(result.message);
-        onClose();
-      } else {
-        toast.error(result.message);
-      }
+      showToast(result);
+      if (result.success) onClose();
     });
   }
 
@@ -130,7 +127,7 @@ export default function BookingDialog({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {tableName}: {mode === "create" ? "Neue Buchung" : "Buchung bearbeiten"}
+              {tableName}: {mode === DIALOG_MODE.CREATE ? "Neue Buchung" : "Buchung bearbeiten"}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
@@ -204,7 +201,7 @@ export default function BookingDialog({
 
             <DialogFooter className="sm:justify-between">
               <div>
-                {mode === "edit" && (
+                {mode === DIALOG_MODE.EDIT && (
                   <Button
                     type="button"
                     variant="destructive"
@@ -232,9 +229,9 @@ export default function BookingDialog({
       </Dialog>
       {confirmCancelOpen && (
         <ConfirmDeleteDialog
-          mode="booking"
+          mode={CONFIRM_MODE.BOOKING}
           onConfirm={async () => {
-            if (!bookingId) return { success: false, message: "Keine Buchung ausgewählt." };
+            if (!bookingId) return { success: false, message: MESSAGES.BOOKING.NO_BOOKING_SELECTED };
             const result = await cancelBooking(bookingId);
             if (result.success) onClose();
             return result;

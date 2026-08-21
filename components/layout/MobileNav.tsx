@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type JSX } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { LogOut, Menu, Settings } from "lucide-react";
@@ -19,7 +19,8 @@ import {
   SidebarProvider,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { authClient } from "@/lib/auth-client";
+import { useSignOut } from "@/hooks/use-sign-out";
+import { ROUTES } from "@/lib/constants";
 import SettingsDialog from "./SettingsDialog";
 
 type NavLink = {
@@ -49,7 +50,7 @@ export default function MobileNav({
       <MobileNavTrigger />
       <Sidebar side="right" collapsible="offcanvas">
         <SidebarHeader>
-          <Link href="/dashboard" className="flex items-center gap-2 px-2 py-1.5 outline-hidden">
+          <Link href={ROUTES.DASHBOARD} className="flex items-center gap-2 px-2 py-1.5 outline-hidden">
             <Image
               src="/club-logo-light.png"
               alt=""
@@ -179,14 +180,8 @@ function AccountFooter({
   email: string;
   onOpenSettings: () => void;
 }): JSX.Element {
-  const router = useRouter();
   const { setOpenMobile } = useSidebar();
-
-  async function handleLogout(): Promise<void> {
-    await authClient.signOut();
-    router.push("/login");
-    router.refresh();
-  }
+  const handleLogout = useSignOut();
 
   return (
     <>

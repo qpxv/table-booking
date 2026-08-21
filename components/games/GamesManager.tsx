@@ -7,6 +7,7 @@ import { DataTable } from "@/components/ui/data-table";
 import ConfirmDeleteDialog from "@/components/shared/ConfirmDeleteDialog";
 import type { Game } from "@/generated/prisma/client";
 import { deleteGame } from "@/service/game-service/game";
+import { CONFIRM_MODE } from "@/lib/constants";
 import { createGameColumns } from "./columns";
 import GameFormDialog from "./GameFormDialog";
 
@@ -42,7 +43,7 @@ export default function GamesManager({ games }: { games: Game[] }): JSX.Element 
       {dialogOpen && <GameFormDialog game={editingGame} onClose={() => setDialogOpen(false)} />}
       {deleteTarget && (
         <ConfirmDeleteDialog
-          mode="game"
+          mode={CONFIRM_MODE.GAME}
           name={deleteTarget.name}
           onConfirm={() => deleteGame(deleteTarget.id)}
           onClose={() => setDeleteTarget(null)}

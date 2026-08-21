@@ -1,7 +1,6 @@
 "use client";
 
 import { useTransition, type JSX } from "react";
-import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -13,41 +12,45 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { Spinner } from "@/components/ui/spinner";
+import { showToast } from "@/lib/toast";
+import { CONFIRM_MODE, MESSAGES } from "@/lib/constants";
 import type { ServiceResult } from "@/lib/service-types";
 
-type Mode = "table" | "user" | "booking" | "guest" | "game";
+type Mode = (typeof CONFIRM_MODE)[keyof typeof CONFIRM_MODE];
 
-const COPY: Record<
-  Mode,
-  { title: string; confirmLabel: string; description: (name?: string) => string }
-> = {
-  table: {
-    title: "Tisch löschen",
-    confirmLabel: "Löschen",
-    description: (name) => `„${name}" wirklich löschen? Dies kann nicht rückgängig gemacht werden.`,
-  },
-  user: {
-    title: "Benutzer löschen",
-    confirmLabel: "Löschen",
-    description: (name) => `„${name}" wirklich löschen? Dies kann nicht rückgängig gemacht werden.`,
-  },
-  booking: {
-    title: "Buchung stornieren",
-    confirmLabel: "Stornieren",
-    description: () => "Diese Buchung wirklich stornieren?",
-  },
-  guest: {
-    title: "Gast entfernen",
-    confirmLabel: "Entfernen",
-    description: (name) =>
-      `„${name}" wirklich entfernen? Der Gast wird bei allen Mitgliedern entfernt, die ihn ebenfalls eingetragen haben.`,
-  },
-  game: {
-    title: "Spiel löschen",
-    confirmLabel: "Löschen",
-    description: (name) => `„${name}" wirklich löschen? Dies kann nicht rückgängig gemacht werden.`,
-  },
+type Copy = {
+  title: string;
+  confirmLabel: string;
+  description: (name?: string) => string;
 };
+
+const COPY = {
+  [CONFIRM_MODE.TABLE]: {
+    title: MESSAGES.CONFIRM_DELETE.TABLE_TITLE,
+    confirmLabel: MESSAGES.CONFIRM_DELETE.CONFIRM_LABEL_DELETE,
+    description: MESSAGES.CONFIRM_DELETE.genericDeleteDescription,
+  },
+  [CONFIRM_MODE.USER]: {
+    title: MESSAGES.CONFIRM_DELETE.USER_TITLE,
+    confirmLabel: MESSAGES.CONFIRM_DELETE.CONFIRM_LABEL_DELETE,
+    description: MESSAGES.CONFIRM_DELETE.genericDeleteDescription,
+  },
+  [CONFIRM_MODE.BOOKING]: {
+    title: MESSAGES.CONFIRM_DELETE.BOOKING_TITLE,
+    confirmLabel: MESSAGES.CONFIRM_DELETE.CONFIRM_LABEL_CANCEL_BOOKING,
+    description: () => MESSAGES.CONFIRM_DELETE.BOOKING_DESCRIPTION,
+  },
+  [CONFIRM_MODE.GUEST]: {
+    title: MESSAGES.CONFIRM_DELETE.GUEST_TITLE,
+    confirmLabel: MESSAGES.CONFIRM_DELETE.CONFIRM_LABEL_REMOVE,
+    description: MESSAGES.CONFIRM_DELETE.guestRemoveDescription,
+  },
+  [CONFIRM_MODE.GAME]: {
+    title: MESSAGES.CONFIRM_DELETE.GAME_TITLE,
+    confirmLabel: MESSAGES.CONFIRM_DELETE.CONFIRM_LABEL_DELETE,
+    description: MESSAGES.CONFIRM_DELETE.genericDeleteDescription,
+  },
+} satisfies { [K in Mode]: Copy };
 
 // Only rendered by the parent while it should be open, same convention as
 // BookingDialog/UserFormDialog/TableFormDialog. Pending/toast handling lives
@@ -70,12 +73,8 @@ export default function ConfirmDeleteDialog({
   function handleConfirm(): void {
     startTransition(async () => {
       const result = await onConfirm();
-      if (result.success) {
-        toast.success(result.message);
-        onClose();
-      } else {
-        toast.error(result.message);
-      }
+      showToast(result);
+      if (result.success) onClose();
     });
   }
 

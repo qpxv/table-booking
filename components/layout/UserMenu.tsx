@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type JSX } from "react";
-import { useRouter } from "next/navigation";
 import { ChevronDown, LogOut, Settings } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { authClient } from "@/lib/auth-client";
+import { useSignOut } from "@/hooks/use-sign-out";
 import SettingsDialog from "./SettingsDialog";
 
 function getInitials(name: string): string {
@@ -36,14 +35,8 @@ export default function UserMenu({
   email: string;
   iban: string | null;
 }): JSX.Element {
-  const router = useRouter();
   const [settingsOpen, setSettingsOpen] = useState(false);
-
-  async function handleLogout(): Promise<void> {
-    await authClient.signOut();
-    router.push("/login");
-    router.refresh();
-  }
+  const handleLogout = useSignOut();
 
   return (
     <>

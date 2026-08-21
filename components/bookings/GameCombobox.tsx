@@ -33,7 +33,7 @@ export default function GameCombobox({
   useEffect(() => {
     if (!open) return;
     function handlePointerDown(event: PointerEvent): void {
-      if (!containerRef.current?.contains(event.target as Node)) {
+      if (event.target instanceof Node && !containerRef.current?.contains(event.target)) {
         setOpen(false);
       }
     }

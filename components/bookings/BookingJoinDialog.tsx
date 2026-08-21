@@ -1,13 +1,13 @@
 "use client";
 
 import { useTransition, type JSX } from "react";
-import { toast } from "sonner";
 import { LogIn, LogOut, Pencil, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { formatBerlin } from "@/lib/datetime";
 import { joinBooking, leaveBooking } from "@/service/booking-service/booking";
+import { showToast } from "@/lib/toast";
 import type { CalendarBooking } from "@/lib/booking-types";
 
 // Shown when clicking any event, on any table, instead of jumping straight
@@ -38,12 +38,8 @@ export default function BookingJoinDialog({
       const result = isParticipant
         ? await leaveBooking(booking.id)
         : await joinBooking(booking.id);
-      if (result.success) {
-        toast.success(result.message);
-        onClose();
-      } else {
-        toast.error(result.message);
-      }
+      showToast(result);
+      if (result.success) onClose();
     });
   }
 

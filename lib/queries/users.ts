@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { getSession } from "@/lib/session";
 import { isAdmin, isHiddenAccount } from "@/lib/permissions";
+import { MESSAGES } from "@/lib/constants";
 import type { MemberOption } from "@/lib/user-types";
 
 /** Plain, non-admin-gated member roster for the booking dialog's Mitglieder picker. */
@@ -27,19 +28,21 @@ export async function listMembers(): Promise<{
   } catch (err) {
     unstable_rethrow(err);
     console.error("error in listMembers", err);
-    return { success: false, members: [], message: "Ein Fehler ist aufgetreten." };
+    return { success: false, members: [], message: MESSAGES.COMMON.GENERIC_ERROR };
   }
 }
 
+type ListedUsers = Awaited<ReturnType<typeof auth.api.listUsers>>["users"];
+
 export async function listUsers(): Promise<{
   success: boolean;
-  users: Awaited<ReturnType<typeof auth.api.listUsers>>["users"];
+  users: ListedUsers;
   message?: string;
 }> {
   try {
     const session = await getSession();
     if (!isAdmin(session)) {
-      return { success: false, users: [], message: "Nicht berechtigt." };
+      return { success: false, users: [], message: MESSAGES.COMMON.UNAUTHORIZED };
     }
 
     const result = await auth.api.listUsers({
@@ -51,6 +54,6 @@ export async function listUsers(): Promise<{
   } catch (err) {
     unstable_rethrow(err);
     console.error("error in listUsers", err);
-    return { success: false, users: [], message: "Ein Fehler ist aufgetreten." };
+    return { success: false, users: [], message: MESSAGES.COMMON.GENERIC_ERROR };
   }
 }

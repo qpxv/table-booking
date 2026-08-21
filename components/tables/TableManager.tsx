@@ -2,7 +2,6 @@
 
 import { useMemo, useState, useTransition, type JSX } from "react";
 import { Plus } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import ConfirmDeleteDialog from "@/components/shared/ConfirmDeleteDialog";
@@ -12,6 +11,8 @@ import {
   setTableAllowMultipleBookings,
   deleteTable,
 } from "@/service/table-service/table";
+import { showToast } from "@/lib/toast";
+import { CONFIRM_MODE } from "@/lib/constants";
 import { createTableColumns } from "./columns";
 import TableFormDialog from "./TableFormDialog";
 
@@ -34,16 +35,14 @@ export default function TableManager({ tables }: { tables: Table[] }): JSX.Eleme
   function handleToggleActive(table: Table): void {
     startTransition(async () => {
       const result = await setTableActive(table.id, !table.active);
-      if (result.success) toast.success(result.message);
-      else toast.error(result.message);
+      showToast(result);
     });
   }
 
   function handleToggleMultiple(table: Table): void {
     startTransition(async () => {
       const result = await setTableAllowMultipleBookings(table.id, !table.allowMultipleBookings);
-      if (result.success) toast.success(result.message);
-      else toast.error(result.message);
+      showToast(result);
     });
   }
 
@@ -73,7 +72,7 @@ export default function TableManager({ tables }: { tables: Table[] }): JSX.Eleme
       )}
       {deleteTarget && (
         <ConfirmDeleteDialog
-          mode="table"
+          mode={CONFIRM_MODE.TABLE}
           name={deleteTarget.name}
           onConfirm={() => deleteTable(deleteTarget.id)}
           onClose={() => setDeleteTarget(null)}

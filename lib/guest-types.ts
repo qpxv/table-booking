@@ -11,3 +11,7 @@ export type MemberGuestSummary = {
   visitCount: number;
   isFirstTimer: boolean;
 };
+
+export type GuestsByMember = {
+  [memberId: string]: MemberGuestSummary[];
+};

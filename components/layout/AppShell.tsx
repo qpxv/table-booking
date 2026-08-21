@@ -2,6 +2,7 @@ import type { JSX } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { ROLES, ROUTES } from "@/lib/constants";
 import MobileNav from "./MobileNav";
 import UserMenu from "./UserMenu";
 
@@ -30,17 +31,17 @@ export default function AppShell({
   user: AppShellUser;
   children: React.ReactNode;
 }): JSX.Element {
-  const isAdmin = user.role === "admin";
+  const isAdmin = user.role === ROLES.ADMIN;
 
   const links = [
-    { href: "/dashboard", label: "Dashboard" },
-    { href: "/tische", label: "Reservieren" },
-    { href: "/gasthistorie", label: "Gasthistorie" },
+    { href: ROUTES.DASHBOARD, label: "Dashboard" },
+    { href: ROUTES.TISCHE, label: "Reservieren" },
+    { href: ROUTES.GASTHISTORIE, label: "Gasthistorie" },
     ...(isAdmin
       ? [
-          { href: "/admin/tische", label: "Tischverwaltung" },
-          { href: "/admin/spiele", label: "Spielverwaltung" },
-          { href: "/admin/users", label: "Benutzerverwaltung" },
+          { href: ROUTES.ADMIN_TISCHE, label: "Tischverwaltung" },
+          { href: ROUTES.ADMIN_SPIELE, label: "Spielverwaltung" },
+          { href: ROUTES.ADMIN_USERS, label: "Benutzerverwaltung" },
         ]
       : []),
   ];
@@ -48,7 +49,7 @@ export default function AppShell({
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="flex items-center gap-2 border-b bg-header px-4 py-3 text-header-foreground">
-        <Link href="/dashboard" className="flex min-w-0 grow items-center gap-2 truncate">
+        <Link href={ROUTES.DASHBOARD} className="flex min-w-0 grow items-center gap-2 truncate">
           <Image
             src="/club-logo-dark.png"
             alt=""

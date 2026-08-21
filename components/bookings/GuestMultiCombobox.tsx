@@ -5,8 +5,9 @@ import { X } from "lucide-react";
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { GuestWithVisits } from "@/lib/guest-types";
-import type { GuestSelection } from "@/lib/booking-types";
+import { isExistingGuestSelection, type GuestSelection } from "@/lib/booking-types";
 
 // Deliberately not built on Popover/PopoverTrigger: see GameCombobox for
 // why. Plain absolutely-positioned dropdown, dismissed via a manual
@@ -25,11 +26,7 @@ export default function GuestMultiCombobox({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const selectedIds = new Set(
-    value
-      .filter((selection): selection is Extract<GuestSelection, { type: "existing" }> =>
-        selection.type === "existing",
-      )
-      .map((selection) => selection.guest.id),
+    value.filter(isExistingGuestSelection).map((selection) => selection.guest.id),
   );
 
   const trimmedSearch = search.trim();
@@ -45,7 +42,7 @@ export default function GuestMultiCombobox({
   useEffect(() => {
     if (!open) return;
     function handlePointerDown(event: PointerEvent): void {
-      if (!containerRef.current?.contains(event.target as Node)) {
+      if (event.target instanceof Node && !containerRef.current?.contains(event.target)) {
         setOpen(false);
       }
     }
@@ -66,18 +63,24 @@ export default function GuestMultiCombobox({
     <div className="flex flex-col gap-2">
       {value.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {value.map((selection, index) => (
-            <Badge key={index} variant="secondary" className="gap-1">
-              {selection.type === "existing" ? selection.guest.name : selection.name}
-              <button
-                type="button"
-                onClick={() => removeGuest(index)}
-                className="ml-0.5 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <X className="size-3" />
-              </button>
-            </Badge>
-          ))}
+          {value.map((selection, index) => {
+            const guestName = isExistingGuestSelection(selection) ? selection.guest.name : selection.name;
+            return (
+              <Badge key={index} variant="secondary" className="gap-1">
+                {guestName}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="ml-0.5 rounded-full [&_svg]:size-3"
+                  onClick={() => removeGuest(index)}
+                >
+                  <X />
+                  <span className="sr-only">{guestName} entfernen</span>
+                </Button>
+              </Badge>
+            );
+          })}
         </div>
       )}
       <div ref={containerRef} className="relative">

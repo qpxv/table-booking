@@ -2,6 +2,7 @@ import "server-only";
 import { unstable_rethrow } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { endOfWeekBerlin } from "@/lib/datetime";
+import { MESSAGES } from "@/lib/constants";
 import { BookingStatus } from "@/generated/prisma/enums";
 import type { Table } from "@/generated/prisma/client";
 import type { TableWithUpcomingWeekCount } from "@/lib/table-types";
@@ -17,7 +18,22 @@ export async function listTables(): Promise<{
   } catch (err) {
     unstable_rethrow(err);
     console.error("error in listTables", err);
-    return { success: false, tables: [], message: "Ein Fehler ist aufgetreten." };
+    return { success: false, tables: [], message: MESSAGES.COMMON.GENERIC_ERROR };
+  }
+}
+
+export async function getTableById(id: string): Promise<{
+  success: boolean;
+  table: Table | null;
+  message?: string;
+}> {
+  try {
+    const table = await prisma.table.findUnique({ where: { id } });
+    return { success: true, table };
+  } catch (err) {
+    unstable_rethrow(err);
+    console.error("error in getTableById", err);
+    return { success: false, table: null, message: MESSAGES.COMMON.GENERIC_ERROR };
   }
 }
 
@@ -95,6 +111,6 @@ export async function listTablesWithUpcomingWeekCounts(): Promise<{
   } catch (err) {
     unstable_rethrow(err);
     console.error("error in listTablesWithUpcomingWeekCounts", err);
-    return { success: false, tables: [], message: "Ein Fehler ist aufgetreten." };
+    return { success: false, tables: [], message: MESSAGES.COMMON.GENERIC_ERROR };
   }
 }

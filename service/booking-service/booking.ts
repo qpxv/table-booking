@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canEditBooking } from "@/lib/permissions";
 import { calculateGuestPrice } from "@/lib/pricing";
+import { ROUTES, MESSAGES } from "@/lib/constants";
 import { BookingStatus } from "@/generated/prisma/enums";
 import {
   createBookingSchema,
@@ -20,13 +21,13 @@ export async function createBooking(
   values: CreateBookingInput,
 ): Promise<ServiceResult> {
   const session = await getSession();
-  if (!session) return { success: false, message: "Nicht angemeldet." };
+  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
 
   const table = await prisma.table.findUnique({ where: { id: tableId } });
-  if (!table) return { success: false, message: "Tisch nicht gefunden." };
+  if (!table) return { success: false, message: MESSAGES.TABLE.NOT_FOUND };
 
   const parsed = createBookingSchema.safeParse(values);
-  if (!parsed.success) return { success: false, message: "Ungültige Eingabe." };
+  if (!parsed.success) return { success: false, message: MESSAGES.COMMON.INVALID_INPUT };
   const data = parsed.data;
 
   // Server-side overlap validation: a table must not be double-booked for
@@ -42,7 +43,7 @@ export async function createBooking(
       },
     });
     if (overlap) {
-      return { success: false, message: "Der Tisch ist im gewählten Zeitraum bereits belegt." };
+      return { success: false, message: MESSAGES.TABLE.OVERLAP };
     }
   }
 
@@ -54,7 +55,7 @@ export async function createBooking(
     if ("guestId" in guestInput) {
       const guest = await prisma.guest.findUnique({ where: { id: guestInput.guestId } });
       if (!guest) {
-        return { success: false, message: "Ungültiger Gast." };
+        return { success: false, message: MESSAGES.GUEST.INVALID_GUEST };
       }
     }
   }
@@ -64,7 +65,7 @@ export async function createBooking(
   for (const userId of participantUserIds) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
-      return { success: false, message: "Ungültiges Mitglied." };
+      return { success: false, message: MESSAGES.GUEST.INVALID_MEMBER };
     }
   }
 
@@ -121,14 +122,14 @@ export async function createBooking(
       }
     });
 
-    revalidatePath(`/tische/${tableId}`);
-    revalidatePath("/dashboard");
+    revalidatePath(`${ROUTES.TISCHE}/${tableId}`);
+    revalidatePath(ROUTES.DASHBOARD);
 
-    return { success: true, message: "Buchung erstellt." };
+    return { success: true, message: MESSAGES.BOOKING.CREATED };
   } catch (err) {
     unstable_rethrow(err);
     console.error("error in createBooking", err);
-    return { success: false, message: "Ein Fehler ist aufgetreten." };
+    return { success: false, message: MESSAGES.COMMON.GENERIC_ERROR };
   }
 }
 
@@ -141,11 +142,11 @@ export async function updateBooking(
     where: { id },
     include: { guests: true, table: true },
   });
-  if (!booking) return { success: false, message: "Buchung nicht gefunden." };
-  if (!canEditBooking(session, booking)) return { success: false, message: "Nicht berechtigt." };
+  if (!booking) return { success: false, message: MESSAGES.BOOKING.NOT_FOUND };
+  if (!canEditBooking(session, booking)) return { success: false, message: MESSAGES.COMMON.UNAUTHORIZED };
 
   const parsed = updateBookingSchema.safeParse(values);
-  if (!parsed.success) return { success: false, message: "Ungültige Eingabe." };
+  if (!parsed.success) return { success: false, message: MESSAGES.COMMON.INVALID_INPUT };
   const data = parsed.data;
 
   // Shared ("Mehrfachbuchung") tables are members-only signup: treat any
@@ -167,7 +168,7 @@ export async function updateBooking(
       },
     });
     if (overlap) {
-      return { success: false, message: "Der Tisch ist im gewählten Zeitraum bereits belegt." };
+      return { success: false, message: MESSAGES.TABLE.OVERLAP };
     }
   }
 
@@ -179,7 +180,7 @@ export async function updateBooking(
       if ("guestId" in guestInput) {
         const guest = await prisma.guest.findUnique({ where: { id: guestInput.guestId } });
         if (!guest) {
-          return { success: false, message: "Ungültiger Gast." };
+          return { success: false, message: MESSAGES.GUEST.INVALID_GUEST };
         }
       }
     }
@@ -189,7 +190,7 @@ export async function updateBooking(
       if (userId === booking.userId) continue;
       const user = await prisma.user.findUnique({ where: { id: userId } });
       if (!user) {
-        return { success: false, message: "Ungültiges Mitglied." };
+        return { success: false, message: MESSAGES.GUEST.INVALID_MEMBER };
       }
     }
   }
@@ -269,26 +270,26 @@ export async function updateBooking(
       }
     });
 
-    revalidatePath(`/tische/${booking.tableId}`);
-    revalidatePath("/dashboard");
+    revalidatePath(`${ROUTES.TISCHE}/${booking.tableId}`);
+    revalidatePath(ROUTES.DASHBOARD);
 
-    return { success: true, message: "Buchung aktualisiert." };
+    return { success: true, message: MESSAGES.BOOKING.UPDATED };
   } catch (err) {
     unstable_rethrow(err);
     console.error("error in updateBooking", err);
-    return { success: false, message: "Ein Fehler ist aufgetreten." };
+    return { success: false, message: MESSAGES.COMMON.GENERIC_ERROR };
   }
 }
 
 export async function cancelBooking(id: string): Promise<ServiceResult> {
   const session = await getSession();
   const booking = await prisma.booking.findUnique({ where: { id } });
-  if (!booking) return { success: false, message: "Buchung nicht gefunden." };
+  if (!booking) return { success: false, message: MESSAGES.BOOKING.NOT_FOUND };
 
   // Admins can cancel any booking; members only their own
   // (canEditBooking already covers "owner OR admin").
   if (!canEditBooking(session, booking)) {
-    return { success: false, message: "Nicht berechtigt." };
+    return { success: false, message: MESSAGES.COMMON.UNAUTHORIZED };
   }
 
   try {
@@ -298,25 +299,25 @@ export async function cancelBooking(id: string): Promise<ServiceResult> {
       data: { status: BookingStatus.CANCELLED },
     });
 
-    revalidatePath(`/tische/${booking.tableId}`);
-    revalidatePath("/dashboard");
+    revalidatePath(`${ROUTES.TISCHE}/${booking.tableId}`);
+    revalidatePath(ROUTES.DASHBOARD);
 
-    return { success: true, message: "Buchung storniert." };
+    return { success: true, message: MESSAGES.BOOKING.CANCELLED };
   } catch (err) {
     unstable_rethrow(err);
     console.error("error in cancelBooking", err);
-    return { success: false, message: "Ein Fehler ist aufgetreten." };
+    return { success: false, message: MESSAGES.COMMON.GENERIC_ERROR };
   }
 }
 
 /** Join any active booking as an additional participant. */
 export async function joinBooking(bookingId: string): Promise<ServiceResult> {
   const session = await getSession();
-  if (!session) return { success: false, message: "Nicht angemeldet." };
+  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
 
   const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
   if (!booking || booking.status !== BookingStatus.ACTIVE) {
-    return { success: false, message: "Termin nicht gefunden." };
+    return { success: false, message: MESSAGES.BOOKING.EVENT_NOT_FOUND };
   }
 
   try {
@@ -326,27 +327,27 @@ export async function joinBooking(bookingId: string): Promise<ServiceResult> {
       update: {},
     });
 
-    revalidatePath(`/tische/${booking.tableId}`);
-    revalidatePath("/tische");
-    revalidatePath("/dashboard");
+    revalidatePath(`${ROUTES.TISCHE}/${booking.tableId}`);
+    revalidatePath(ROUTES.TISCHE);
+    revalidatePath(ROUTES.DASHBOARD);
 
-    return { success: true, message: "Du bist jetzt angemeldet." };
+    return { success: true, message: MESSAGES.BOOKING.JOINED };
   } catch (err) {
     unstable_rethrow(err);
     console.error("error in joinBooking", err);
-    return { success: false, message: "Ein Fehler ist aufgetreten." };
+    return { success: false, message: MESSAGES.COMMON.GENERIC_ERROR };
   }
 }
 
 /** Leave a booking. The creator can never leave their own event. */
 export async function leaveBooking(bookingId: string): Promise<ServiceResult> {
   const session = await getSession();
-  if (!session) return { success: false, message: "Nicht angemeldet." };
+  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
 
   const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
-  if (!booking) return { success: false, message: "Termin nicht gefunden." };
+  if (!booking) return { success: false, message: MESSAGES.BOOKING.EVENT_NOT_FOUND };
   if (booking.userId === session.user.id) {
-    return { success: false, message: "Der Ersteller kann den Termin nicht verlassen." };
+    return { success: false, message: MESSAGES.BOOKING.CREATOR_CANNOT_LEAVE };
   }
 
   try {
@@ -354,14 +355,14 @@ export async function leaveBooking(bookingId: string): Promise<ServiceResult> {
       where: { bookingId, userId: session.user.id },
     });
 
-    revalidatePath(`/tische/${booking.tableId}`);
-    revalidatePath("/tische");
-    revalidatePath("/dashboard");
+    revalidatePath(`${ROUTES.TISCHE}/${booking.tableId}`);
+    revalidatePath(ROUTES.TISCHE);
+    revalidatePath(ROUTES.DASHBOARD);
 
-    return { success: true, message: "Du bist abgemeldet." };
+    return { success: true, message: MESSAGES.BOOKING.LEFT };
   } catch (err) {
     unstable_rethrow(err);
     console.error("error in leaveBooking", err);
-    return { success: false, message: "Ein Fehler ist aufgetreten." };
+    return { success: false, message: MESSAGES.COMMON.GENERIC_ERROR };
   }
 }

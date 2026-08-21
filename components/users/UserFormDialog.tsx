@@ -3,7 +3,6 @@
 import { useTransition, type JSX } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
 import { Save, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field";
@@ -11,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { createUser, updateUser } from "@/service/user-service/user";
+import { showToast } from "@/lib/toast";
 import type { AppUser } from "@/lib/user-types";
 import {
   createUserSchema,
@@ -58,12 +58,8 @@ function CreateUserForm({ onClose }: { onClose: () => void }): JSX.Element {
   function onSubmit(values: CreateUserInput): void {
     startTransition(async () => {
       const result = await createUser(values);
-      if (result.success) {
-        toast.success(result.message);
-        onClose();
-      } else {
-        toast.error(result.message);
-      }
+      showToast(result);
+      if (result.success) onClose();
     });
   }
 
@@ -143,12 +139,8 @@ function EditUserForm({ user, onClose }: { user: AppUser; onClose: () => void })
   function onSubmit(values: UpdateUserInput): void {
     startTransition(async () => {
       const result = await updateUser(user.id, values);
-      if (result.success) {
-        toast.success(result.message);
-        onClose();
-      } else {
-        toast.error(result.message);
-      }
+      showToast(result);
+      if (result.success) onClose();
     });
   }
 

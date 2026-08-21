@@ -3,7 +3,6 @@
 import { useTransition, type JSX } from "react";
 import { ArrowUpDown, KeyRound, MoreHorizontal, Pencil, ShieldCheck, Sparkles, Trash2, User, X } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
@@ -21,19 +20,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { updateUserRole } from "@/service/user-service/user";
+import { showToast } from "@/lib/toast";
+import { ROLES } from "@/lib/constants";
 import type { MemberGuestSummary } from "@/lib/guest-types";
 import type { AppUser } from "@/lib/user-types";
 
 function RoleCell({ user }: { user: AppUser }): JSX.Element {
   const [pending, startTransition] = useTransition();
-  const role = user.role === "admin" ? "admin" : "user";
+  const role = user.role === ROLES.ADMIN ? ROLES.ADMIN : ROLES.USER;
 
   function handleChange(nextRole: string | null): void {
     if (!nextRole || nextRole === role) return;
     startTransition(async () => {
       const result = await updateUserRole(user.id, nextRole);
-      if (result.success) toast.success(result.message);
-      else toast.error(result.message);
+      showToast(result);
     });
   }
 
@@ -43,18 +43,18 @@ function RoleCell({ user }: { user: AppUser }): JSX.Element {
         <SelectValue>
           {(value: "admin" | "user") => (
             <span className="flex items-center gap-1.5">
-              {pending ? <Spinner /> : value === "admin" ? <ShieldCheck /> : <User />}
-              {value === "admin" ? "Vorstand" : "Mitglied"}
+              {pending ? <Spinner /> : value === ROLES.ADMIN ? <ShieldCheck /> : <User />}
+              {value === ROLES.ADMIN ? "Vorstand" : "Mitglied"}
             </span>
           )}
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="user">
+        <SelectItem value={ROLES.USER}>
           <User />
           Mitglied
         </SelectItem>
-        <SelectItem value="admin">
+        <SelectItem value={ROLES.ADMIN}>
           <ShieldCheck />
           Vorstand
         </SelectItem>
@@ -121,14 +121,16 @@ export function createUserColumns({
                     neu
                   </>
                 )}
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="ml-0.5 rounded-full [&_svg]:size-3"
                   onClick={() => onRemoveGuest(guest)}
-                  className="ml-0.5 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <X className="size-3" />
+                  <X />
                   <span className="sr-only">{guest.name} entfernen</span>
-                </button>
+                </Button>
               </Badge>
             ))}
           </div>

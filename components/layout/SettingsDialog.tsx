@@ -15,6 +15,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
 import { isValidIban, formatIbanInput } from "@/lib/iban";
+import { MESSAGES } from "@/lib/constants";
 
 type Tab = "profile" | "password" | "payment";
 
@@ -23,38 +24,38 @@ type Tab = "profile" | "password" | "payment";
 // German, since the raw API message is what would otherwise land in the
 // toast verbatim.
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
-  INVALID_PASSWORD: "Aktuelles Passwort ist falsch.",
-  PASSWORD_TOO_SHORT: "Passwort ist zu kurz.",
-  PASSWORD_TOO_LONG: "Passwort ist zu lang.",
-  CREDENTIAL_ACCOUNT_NOT_FOUND: "Für dieses Konto ist kein Passwort hinterlegt.",
-  CHANGE_EMAIL_DISABLED: "E-Mail-Änderung ist deaktiviert.",
+  INVALID_PASSWORD: MESSAGES.SETTINGS.INVALID_PASSWORD,
+  PASSWORD_TOO_SHORT: MESSAGES.SETTINGS.PASSWORD_TOO_SHORT,
+  PASSWORD_TOO_LONG: MESSAGES.SETTINGS.PASSWORD_TOO_LONG,
+  CREDENTIAL_ACCOUNT_NOT_FOUND: MESSAGES.SETTINGS.CREDENTIAL_ACCOUNT_NOT_FOUND,
+  CHANGE_EMAIL_DISABLED: MESSAGES.SETTINGS.CHANGE_EMAIL_DISABLED,
 };
 
 function authErrorMessage(error: { code?: string | null | undefined }): string {
-  return (error.code && AUTH_ERROR_MESSAGES[error.code]) || "Ein Fehler ist aufgetreten.";
+  return (error.code && AUTH_ERROR_MESSAGES[error.code]) || MESSAGES.COMMON.GENERIC_ERROR;
 }
 
 const profileSchema = z.object({
-  name: z.string().trim().min(1, "Name ist erforderlich"),
-  email: z.email("Ungültige E-Mail-Adresse"),
+  name: z.string().trim().min(1, MESSAGES.VALIDATION.NAME_REQUIRED),
+  email: z.email(MESSAGES.VALIDATION.EMAIL_INVALID),
 });
 type ProfileInput = z.infer<typeof profileSchema>;
 
 const paymentSchema = z.object({
   iban: z.string().trim().refine((value) => value === "" || isValidIban(value), {
-    message: "Ungültige IBAN.",
+    message: MESSAGES.VALIDATION.IBAN_INVALID,
   }),
 });
 type PaymentInput = z.infer<typeof paymentSchema>;
 
 const passwordSchema = z
   .object({
-    currentPassword: z.string().min(1, "Aktuelles Passwort ist erforderlich"),
-    newPassword: z.string().min(8, "Passwort muss mindestens 8 Zeichen haben"),
-    confirmPassword: z.string().min(1, "Bitte Passwort bestätigen"),
+    currentPassword: z.string().min(1, MESSAGES.VALIDATION.CURRENT_PASSWORD_REQUIRED),
+    newPassword: z.string().min(8, MESSAGES.VALIDATION.PASSWORD_MIN_LENGTH),
+    confirmPassword: z.string().min(1, MESSAGES.VALIDATION.PASSWORD_CONFIRM_REQUIRED),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Passwörter stimmen nicht überein.",
+    message: MESSAGES.VALIDATION.PASSWORDS_DO_NOT_MATCH,
     path: ["confirmPassword"],
   });
 type PasswordInput = z.infer<typeof passwordSchema>;
@@ -166,7 +167,7 @@ function ProfileForm({ name, email }: { name: string; email: string }): JSX.Elem
         }
       }
 
-      toast.success("Profil aktualisiert.");
+      toast.success(MESSAGES.SETTINGS.PROFILE_UPDATED);
       router.refresh();
     });
   }
@@ -223,7 +224,7 @@ function PasswordForm(): JSX.Element {
         return;
       }
 
-      toast.success("Passwort geändert.");
+      toast.success(MESSAGES.SETTINGS.PASSWORD_CHANGED);
       form.reset();
     });
   }
@@ -293,7 +294,7 @@ function PaymentForm({ iban }: { iban: string | null }): JSX.Element {
         return;
       }
 
-      toast.success("Zahlungsdetails aktualisiert.");
+      toast.success(MESSAGES.SETTINGS.PAYMENT_DETAILS_UPDATED);
       router.refresh();
     });
   }

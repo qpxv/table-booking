@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type JSX } from "react";
+import { useTransition, type JSX } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field";
@@ -12,7 +12,6 @@ import { signIn } from "@/service/auth/sign-in";
 import { signInSchema, type SignInInput } from "@/lib/schemas/auth";
 
 export default function LoginForm(): JSX.Element {
-  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const form = useForm<SignInInput>({
     resolver: zodResolver(signInSchema),
@@ -20,18 +19,17 @@ export default function LoginForm(): JSX.Element {
   });
 
   function onSubmit(values: SignInInput): void {
-    setError(null);
     startTransition(async () => {
       const result = await signIn(values);
-      if (result && !result.success) setError(result.message);
+      if (result && !result.success) form.setError("root", { message: result.message });
     });
   }
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="flex w-full max-w-sm flex-col gap-4">
-      {error && (
+      {form.formState.errors.root && (
         <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{form.formState.errors.root.message}</AlertDescription>
         </Alert>
       )}
       <FieldGroup>

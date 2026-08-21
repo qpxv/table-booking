@@ -3,26 +3,15 @@
 import { useTransition, type JSX } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
-import { z } from "zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { resetUserPassword } from "@/service/user-service/user";
+import { showToast } from "@/lib/toast";
 import type { AppUser } from "@/lib/user-types";
-
-const resetPasswordFormSchema = z
-  .object({
-    newPassword: z.string().min(8, "Passwort muss mindestens 8 Zeichen haben"),
-    confirmPassword: z.string().min(1, "Bitte Passwort bestätigen"),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Passwörter stimmen nicht überein.",
-    path: ["confirmPassword"],
-  });
-type ResetPasswordFormInput = z.infer<typeof resetPasswordFormSchema>;
+import { resetPasswordFormSchema, type ResetPasswordFormInput } from "@/lib/schemas/user";
 
 // Only rendered by the parent while the dialog should be open, same
 // convention as the other dialogs in the app.
@@ -42,12 +31,8 @@ export default function ResetPasswordDialog({
   function onSubmit(values: ResetPasswordFormInput): void {
     startTransition(async () => {
       const result = await resetUserPassword(user.id, { newPassword: values.newPassword });
-      if (result.success) {
-        toast.success(result.message);
-        onClose();
-      } else {
-        toast.error(result.message);
-      }
+      showToast(result);
+      if (result.success) onClose();
     });
   }
 

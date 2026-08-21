@@ -2,6 +2,7 @@
 
 import { redirect, unstable_rethrow } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { ROUTES, MESSAGES } from "@/lib/constants";
 import type { SignInInput } from "@/lib/schemas/auth";
 import type { ServiceResult } from "@/lib/service-types";
 
@@ -11,8 +12,8 @@ export async function signIn(values: SignInInput): Promise<ServiceResult> {
   } catch (err) {
     unstable_rethrow(err);
     console.error("error in signIn", err);
-    return { success: false, message: "Anmeldung fehlgeschlagen." };
+    return { success: false, message: MESSAGES.AUTH.SIGN_IN_FAILED };
   }
 
-  redirect("/dashboard");
+  redirect(ROUTES.DASHBOARD);
 }

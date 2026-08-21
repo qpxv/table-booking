@@ -3,13 +3,13 @@
 import { useTransition, type JSX } from "react";
 import { ArrowUpDown, Landmark } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { formatBerlin } from "@/lib/datetime";
 import { setBookingGuestPaid } from "@/service/guest-history-service/guest-history";
+import { showToast } from "@/lib/toast";
 import type { GuestHistoryRow } from "@/lib/guest-history-types";
 
 // A free first visit has nothing to collect: treated as settled the same
@@ -44,12 +44,8 @@ function PaidCheckbox({
     onTogglePaid(row.id, checked);
     startTransition(async () => {
       const result = await setBookingGuestPaid(row.id, checked);
-      if (result.success) {
-        toast.success(result.message);
-      } else {
-        onTogglePaid(row.id, !checked);
-        toast.error(result.message);
-      }
+      showToast(result);
+      if (!result.success) onTogglePaid(row.id, !checked);
     });
   }
 

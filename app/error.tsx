@@ -4,6 +4,7 @@ import { useEffect, type JSX } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/lib/constants";
 
 export default function GlobalError({
   error,
@@ -33,7 +34,7 @@ export default function GlobalError({
           Etwas ist schiefgelaufen. Bitte kehre zum Dashboard zurück.
         </p>
       </div>
-      <Button nativeButton={false} render={<Link href="/dashboard">Zurück zum Dashboard</Link>} />
+      <Button nativeButton={false} render={<Link href={ROUTES.DASHBOARD}>Zurück zum Dashboard</Link>} />
     </div>
   );
 }

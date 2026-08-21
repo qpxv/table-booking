@@ -1,37 +1,20 @@
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
-import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/session";
+import { checkSession } from "@/lib/session";
+import { listUpcomingBookingsForUser } from "@/lib/queries/bookings";
 import { formatBerlin } from "@/lib/datetime";
-import { redirect } from "next/navigation";
-import { BookingStatus } from "@/generated/prisma/enums";
 
 export default async function DashboardPage() {
-  const session = await getSession();
-  if (!session) {
-    redirect("/login");
-  }
+  const session = await checkSession();
 
-  const upcomingBookings = await prisma.booking.findMany({
-    where: {
-      status: BookingStatus.ACTIVE,
-      start: { gte: new Date() },
-      // Own bookings, or any event created by someone else that this user
-      // has joined (or was added to) as a participant.
-      OR: [{ userId: session.user.id }, { participants: { some: { userId: session.user.id } } }],
-    },
-    include: {
-      table: true,
-      participants: { include: { user: { select: { name: true } } } },
-    },
-    orderBy: { start: "asc" },
-    take: 10,
-  });
+  const result = await listUpcomingBookingsForUser();
+  if (!result.success) throw new Error(result.message);
+  const upcomingBookings = result.bookings;
 
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-semibold tracking-tight">Deine anstehenden Reservierungen</h1>
 
-      {upcomingBookings.length === 0 && (
+      {!upcomingBookings.length && (
         <p className="text-sm text-muted-foreground">
           Du hast aktuell keine anstehenden Reservierungen.
         </p>

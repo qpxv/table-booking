@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type JSX } from "react";
+import { useEffect, useRef, useState, type JSX } from "react";
 import { toast } from "sonner";
 import { Copy, ExternalLink, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -13,6 +13,7 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import { getGuestPaymentReference } from "@/lib/queries/guest-payment-reference";
+import { MESSAGES } from "@/lib/constants";
 import type { GuestHistoryRow, PaymentReferenceResult } from "@/lib/guest-history-types";
 
 // Verified help pages on scanning a payment QR code (GiroCode/EPC), one per
@@ -83,20 +84,22 @@ export default function PaymentDialog({
 }): JSX.Element {
   const [result, setResult] = useState<PaymentReferenceResult | null>(null);
 
+  const cancelledRef = useRef(false);
+
   useEffect(() => {
-    let cancelled = false;
+    cancelledRef.current = false;
     getGuestPaymentReference(row.id).then((res) => {
-      if (!cancelled) setResult(res);
+      if (!cancelledRef.current) setResult(res);
     });
     return () => {
-      cancelled = true;
+      cancelledRef.current = true;
     };
   }, [row.id]);
 
   function handleCopy(): void {
     if (!result?.success) return;
     navigator.clipboard.writeText(result.paymentDetailsText);
-    toast.success("In Zwischenablage kopiert.");
+    toast.success(MESSAGES.PAYMENT.COPIED_TO_CLIPBOARD);
   }
 
   return (

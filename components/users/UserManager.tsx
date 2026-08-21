@@ -12,6 +12,7 @@ import type { MemberGuestSummary } from "@/lib/guest-types";
 import { createUserColumns } from "./columns";
 import UserFormDialog from "./UserFormDialog";
 import type { AppUser } from "@/lib/user-types";
+import { CONFIRM_MODE } from "@/lib/constants";
 
 export default function UserManager({ users }: { users: AppUser[] }): JSX.Element {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -55,7 +56,7 @@ export default function UserManager({ users }: { users: AppUser[] }): JSX.Elemen
       )}
       {deleteTarget && (
         <ConfirmDeleteDialog
-          mode="user"
+          mode={CONFIRM_MODE.USER}
           name={deleteTarget.name}
           onConfirm={() => deleteUser(deleteTarget.id)}
           onClose={() => setDeleteTarget(null)}
@@ -69,7 +70,7 @@ export default function UserManager({ users }: { users: AppUser[] }): JSX.Elemen
       )}
       {removeGuestTarget && (
         <ConfirmDeleteDialog
-          mode="guest"
+          mode={CONFIRM_MODE.GUEST}
           name={removeGuestTarget.name}
           onConfirm={() => deleteGuest(removeGuestTarget.id)}
           onClose={() => setRemoveGuestTarget(null)}

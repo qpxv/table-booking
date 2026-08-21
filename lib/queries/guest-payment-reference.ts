@@ -12,6 +12,7 @@ import { isAdmin } from "@/lib/permissions";
 import { isValidIban } from "@/lib/iban";
 import { buildEpcPayload } from "@/lib/sepaQr";
 import { formatBerlin } from "@/lib/datetime";
+import { MESSAGES } from "@/lib/constants";
 import type { PaymentReferenceResult } from "@/lib/guest-history-types";
 
 /**
@@ -30,7 +31,7 @@ export async function getGuestPaymentReference(bookingGuestId: string): Promise<
 
   try {
     const session = await getSession();
-    if (!session) return { success: false, ...empty, message: "Nicht angemeldet." };
+    if (!session) return { success: false, ...empty, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
 
     const bookingGuest = await prisma.bookingGuest.findUnique({
       where: { id: bookingGuestId },
@@ -44,11 +45,11 @@ export async function getGuestPaymentReference(bookingGuestId: string): Promise<
         },
       },
     });
-    if (!bookingGuest) return { success: false, ...empty, message: "Eintrag nicht gefunden." };
+    if (!bookingGuest) return { success: false, ...empty, message: MESSAGES.GUEST.NOT_FOUND };
 
     const { booking } = bookingGuest;
     if (booking.userId !== session.user.id && !isAdmin(session)) {
-      return { success: false, ...empty, message: "Nicht berechtigt." };
+      return { success: false, ...empty, message: MESSAGES.COMMON.UNAUTHORIZED };
     }
 
     const amount = Number(bookingGuest.price);
@@ -80,6 +81,6 @@ export async function getGuestPaymentReference(bookingGuestId: string): Promise<
   } catch (err) {
     unstable_rethrow(err);
     console.error("error in getGuestPaymentReference", err);
-    return { success: false, ...empty, message: "Ein Fehler ist aufgetreten." };
+    return { success: false, ...empty, message: MESSAGES.COMMON.GENERIC_ERROR };
   }
 }

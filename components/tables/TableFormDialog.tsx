@@ -3,7 +3,6 @@
 import { useTransition, type JSX } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
 import { Save, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field";
@@ -13,6 +12,7 @@ import { Spinner } from "@/components/ui/spinner";
 import type { Table } from "@/generated/prisma/client";
 import { createTable, updateTable } from "@/service/table-service/table";
 import { tableSchema, type TableInput } from "@/lib/schemas/table";
+import { showToast } from "@/lib/toast";
 
 // Only rendered by the parent while the dialog should be open. The initial
 // values are taken directly from props on mount (no reset effect needed).
@@ -32,12 +32,8 @@ export default function TableFormDialog({
   function onSubmit(values: TableInput): void {
     startTransition(async () => {
       const result = table ? await updateTable(table.id, values) : await createTable(values);
-      if (result.success) {
-        toast.success(result.message);
-        onClose();
-      } else {
-        toast.error(result.message);
-      }
+      showToast(result);
+      if (result.success) onClose();
     });
   }
 

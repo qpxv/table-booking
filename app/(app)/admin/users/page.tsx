@@ -4,11 +4,10 @@ import { listGuestsGroupedByBringer } from "@/lib/queries/guests";
 import UserManager from "@/components/users/UserManager";
 
 export default async function AdminUsersPage(): Promise<JSX.Element> {
-  const [usersResult, guestsByMemberResult] = await Promise.all([
-    listUsers(),
-    listGuestsGroupedByBringer(),
-  ]);
+  const usersResult = await listUsers();
   if (!usersResult.success) throw new Error(usersResult.message);
+
+  const guestsByMemberResult = await listGuestsGroupedByBringer();
   if (!guestsByMemberResult.success) throw new Error(guestsByMemberResult.message);
 
   const usersWithGuests = usersResult.users.map((user) => ({

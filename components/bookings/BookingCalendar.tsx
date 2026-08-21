@@ -2,7 +2,6 @@
 
 import { useMemo, useRef, useState, type JSX } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { toast } from "sonner";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -22,15 +21,17 @@ import { Button } from "@/components/ui/button";
 import type { GuestWithVisits } from "@/lib/guest-types";
 import type { Game } from "@/generated/prisma/client";
 import { updateBooking } from "@/service/booking-service/booking";
+import { showToast } from "@/lib/toast";
+import { DIALOG_MODE, SEARCH_PARAMS } from "@/lib/constants";
 import type { CalendarBooking, GuestSelection } from "@/lib/booking-types";
 import type { MemberOption } from "@/lib/user-types";
 import BookingDialog from "./BookingDialog";
 import BookingJoinDialog from "./BookingJoinDialog";
 
 type DialogState =
-  | { mode: "create"; start: string; end: string }
-  | { mode: "edit"; booking: CalendarBooking }
-  | { mode: "join"; booking: CalendarBooking };
+  | { mode: typeof DIALOG_MODE.CREATE; start: string; end: string }
+  | { mode: typeof DIALOG_MODE.EDIT; booking: CalendarBooking }
+  | { mode: typeof DIALOG_MODE.JOIN; booking: CalendarBooking };
 
 function formatDuration(start: Date, end: Date): string {
   const minutes = Math.round((end.getTime() - start.getTime()) / 60000);
@@ -86,7 +87,7 @@ export default function BookingCalendar({
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [title, setTitle] = useState("");
 
-  const initialDate = searchParams.get("date") ?? undefined;
+  const initialDate = searchParams.get(SEARCH_PARAMS.DATE) ?? undefined;
 
   const events: EventInput[] = useMemo(
     () =>
@@ -113,7 +114,7 @@ export default function BookingCalendar({
   );
 
   const editingGuests: GuestSelection[] =
-    dialog?.mode === "edit"
+    dialog?.mode === DIALOG_MODE.EDIT
       ? dialog.booking.guests
           .map((g) => knownGuests.find((kg) => kg.id === g.guestId))
           .filter((g): g is GuestWithVisits => Boolean(g))
@@ -121,26 +122,26 @@ export default function BookingCalendar({
       : [];
 
   const editingParticipants: MemberOption[] =
-    dialog?.mode === "edit"
+    dialog?.mode === DIALOG_MODE.EDIT
       ? dialog.booking.participants
           .filter((p) => p.userId !== dialog.booking.userId)
           .map((p) => ({ id: p.userId, name: p.name }))
       : [];
 
-  const creatorUserId = dialog?.mode === "edit" ? dialog.booking.userId : currentUserId;
+  const creatorUserId = dialog?.mode === DIALOG_MODE.EDIT ? dialog.booking.userId : currentUserId;
 
   function handleDatesSet(arg: DatesSetArg): void {
     setTitle(arg.view.title);
 
     const params = new URLSearchParams(searchParams.toString());
-    params.set("date", arg.startStr.slice(0, 10));
+    params.set(SEARCH_PARAMS.DATE, arg.startStr.slice(0, 10));
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }
 
   function handleSelect(selectInfo: DateSelectArg): void {
     selectInfo.view.calendar.unselect();
     setDialog({
-      mode: "create",
+      mode: DIALOG_MODE.CREATE,
       start: selectInfo.startStr,
       end: selectInfo.endStr,
     });
@@ -149,7 +150,7 @@ export default function BookingCalendar({
   function handleEventClick(clickInfo: EventClickArg): void {
     const booking = bookings.find((b) => b.id === clickInfo.event.id);
     if (!booking) return;
-    setDialog({ mode: "join", booking });
+    setDialog({ mode: DIALOG_MODE.JOIN, booking });
   }
 
   async function persistReschedule(
@@ -170,12 +171,8 @@ export default function BookingCalendar({
       game: booking.game ?? undefined,
     });
 
-    if (result.success) {
-      toast.success(result.message);
-    } else {
-      toast.error(result.message);
-      revert();
-    }
+    showToast(result);
+    if (!result.success) revert();
   }
 
   function handleEventDrop(dropInfo: EventDropArg): void {
@@ -248,27 +245,29 @@ export default function BookingCalendar({
         events={events}
         height="auto"
       />
-      {dialog && dialog.mode === "join" && (
+      {dialog && dialog.mode === DIALOG_MODE.JOIN && (
         <BookingJoinDialog
           tableName={tableName}
           booking={dialog.booking}
           currentUserId={currentUserId}
           canEdit={dialog.booking.userId === currentUserId || isAdmin}
-          onEdit={() => setDialog({ mode: "edit", booking: dialog.booking })}
+          onEdit={() => setDialog({ mode: DIALOG_MODE.EDIT, booking: dialog.booking })}
           onClose={() => setDialog(null)}
         />
       )}
-      {dialog && dialog.mode !== "join" && (
+      {dialog && dialog.mode !== DIALOG_MODE.JOIN && (
         <BookingDialog
           mode={dialog.mode}
           tableId={tableId}
           tableName={tableName}
-          bookingId={dialog.mode === "edit" ? dialog.booking.id : undefined}
+          bookingId={dialog.mode === DIALOG_MODE.EDIT ? dialog.booking.id : undefined}
           initialStart={
-            dialog.mode === "create" ? dialog.start : dialog.booking.start.toISOString()
+            dialog.mode === DIALOG_MODE.CREATE ? dialog.start : dialog.booking.start.toISOString()
           }
-          initialEnd={dialog.mode === "create" ? dialog.end : dialog.booking.end.toISOString()}
-          initialGame={dialog.mode === "edit" ? (dialog.booking.game ?? "") : ""}
+          initialEnd={
+            dialog.mode === DIALOG_MODE.CREATE ? dialog.end : dialog.booking.end.toISOString()
+          }
+          initialGame={dialog.mode === DIALOG_MODE.EDIT ? (dialog.booking.game ?? "") : ""}
           initialGuests={editingGuests}
           initialParticipants={editingParticipants}
           knownGuests={knownGuests}

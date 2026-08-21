@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MESSAGES } from "@/lib/constants";
 
 export const guestInputSchema = z.union([
   z.object({ guestId: z.string().min(1) }),
@@ -21,7 +22,7 @@ export const bookingFieldsSchema = z
     game: z.string().trim().optional(),
   })
   .refine((data) => data.start < data.end, {
-    message: "Start muss vor dem Ende liegen.",
+    message: MESSAGES.VALIDATION.START_BEFORE_END,
     path: ["end"],
   });
 
@@ -36,7 +37,7 @@ export const createBookingSchema = z
     participantUserIds: z.array(z.string().min(1)).default([]),
   })
   .refine((data) => data.start < data.end, {
-    message: "Start muss vor dem Ende liegen.",
+    message: MESSAGES.VALIDATION.START_BEFORE_END,
     path: ["end"],
   });
 
@@ -60,7 +61,7 @@ export const updateBookingSchema = z
     participantUserIds: z.array(z.string().min(1)).optional(),
   })
   .refine((data) => data.start < data.end, {
-    message: "Start muss vor dem Ende liegen.",
+    message: MESSAGES.VALIDATION.START_BEFORE_END,
     path: ["end"],
   });
 
