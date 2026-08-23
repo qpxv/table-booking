@@ -37,6 +37,7 @@ model User {
   bookings     Booking[]
   guests       Guest[]
   participants BookingParticipant[]
+  drinkTallies DrinkTally[]
 
   @@map("user")
 }
@@ -178,4 +179,33 @@ model Game {
   name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Admin-set drink stock for a given calendar month (Getränke-Tracking).
+model DrinkMonthlyBudget {
+  id           String   @id @default(cuid())
+  year         Int
+  month        Int // 1-12
+  initialCount Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([year, month])
+}
+
+// Running per-member drink count for a calendar month. Drinks taken by a
+// guest are rolled into the bringing member's own count, not tracked
+// separately, since the admin report only needs one number per member.
+model DrinkTally {
+  id        String   @id @default(cuid())
+  year      Int
+  month     Int
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([userId, year, month])
+  @@index([year, month])
 }

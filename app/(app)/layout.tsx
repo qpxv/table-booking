@@ -1,6 +1,7 @@
 import type { JSX } from "react";
 import { checkSession } from "@/lib/session";
 import { ROLES } from "@/lib/constants";
+import { getDrinkWidgetData } from "@/lib/queries/drinks";
 import AppShell from "@/components/layout/AppShell";
 
 export default async function AppLayout({
@@ -10,6 +11,9 @@ export default async function AppLayout({
 }): Promise<JSX.Element> {
   const session = await checkSession();
 
+  const drinkResult = await getDrinkWidgetData();
+  if (!drinkResult.success) throw new Error(drinkResult.message);
+
   return (
     <AppShell
       user={{
@@ -18,6 +22,7 @@ export default async function AppLayout({
         role: session.user.role ?? ROLES.USER,
         iban: session.user.iban ?? null,
       }}
+      drinkWidget={{ ownCount: drinkResult.ownCount, guests: drinkResult.guests }}
     >
       {children}
     </AppShell>

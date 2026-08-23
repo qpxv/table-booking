@@ -3,6 +3,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { ROLES, ROUTES } from "@/lib/constants";
+import type { DrinkWidgetData } from "@/lib/drink-types";
+import { DrinkWidgetHeaderButton } from "@/components/drinks/DrinkWidget";
 import MobileNav from "./MobileNav";
 import UserMenu from "./UserMenu";
 
@@ -26,9 +28,11 @@ function NavButton({ href, children }: { href: string; children: React.ReactNode
 
 export default function AppShell({
   user,
+  drinkWidget,
   children,
 }: {
   user: AppShellUser;
+  drinkWidget: DrinkWidgetData;
   children: React.ReactNode;
 }): JSX.Element {
   const isAdmin = user.role === ROLES.ADMIN;
@@ -42,6 +46,7 @@ export default function AppShell({
           { href: ROUTES.ADMIN_TISCHE, label: "Tischverwaltung" },
           { href: ROUTES.ADMIN_SPIELE, label: "Spielverwaltung" },
           { href: ROUTES.ADMIN_USERS, label: "Benutzerverwaltung" },
+          { href: ROUTES.ADMIN_GETRAENKE, label: "Getränke" },
         ]
       : []),
   ];
@@ -69,9 +74,16 @@ export default function AppShell({
           ))}
         </nav>
 
-        <MobileNav links={links} name={user.name} email={user.email} iban={user.iban} />
+        <MobileNav
+          links={links}
+          name={user.name}
+          email={user.email}
+          iban={user.iban}
+          drinkWidget={drinkWidget}
+        />
 
-        <div className="hidden md:block">
+        <div className="hidden items-center gap-1 md:flex">
+          <DrinkWidgetHeaderButton ownCount={drinkWidget.ownCount} guests={drinkWidget.guests} />
           <UserMenu name={user.name} email={user.email} iban={user.iban} />
         </div>
       </header>

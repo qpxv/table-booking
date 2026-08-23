@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/sidebar";
 import { useSignOut } from "@/hooks/use-sign-out";
 import { ROUTES } from "@/lib/constants";
+import type { DrinkWidgetData } from "@/lib/drink-types";
+import { DrinkWidgetSidebarItem } from "@/components/drinks/DrinkWidget";
 import SettingsDialog from "./SettingsDialog";
 
 type NavLink = {
@@ -36,11 +38,13 @@ export default function MobileNav({
   name,
   email,
   iban,
+  drinkWidget,
 }: {
   links: NavLink[];
   name: string;
   email: string;
   iban: string | null;
+  drinkWidget: DrinkWidgetData;
 }): JSX.Element {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -70,6 +74,7 @@ export default function MobileNav({
                     <NavMenuButton link={link} />
                   </SidebarMenuItem>
                 ))}
+                <DrinkWidgetSidebarItem ownCount={drinkWidget.ownCount} guests={drinkWidget.guests} />
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

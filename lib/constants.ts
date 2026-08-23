@@ -6,6 +6,7 @@ export const ROUTES = {
   ADMIN_TISCHE: "/admin/tische",
   ADMIN_SPIELE: "/admin/spiele",
   ADMIN_USERS: "/admin/users",
+  ADMIN_GETRAENKE: "/admin/getraenke",
   tischDetail: (tableId: string): string => `/tische/${tableId}`,
 } as const;
 
@@ -30,6 +31,8 @@ export const CONFIRM_MODE = {
 
 export const SEARCH_PARAMS = {
   DATE: "date",
+  YEAR: "year",
+  MONTH: "month",
 } as const;
 
 export const MESSAGES = {
@@ -69,6 +72,11 @@ export const MESSAGES = {
     CREATED: "Spiel erstellt.",
     UPDATED: "Spiel aktualisiert.",
     DELETED: "Spiel gelöscht.",
+  },
+  DRINKS: {
+    ADDED: "Getränk hinzugefügt.",
+    REMOVED: "Getränk entfernt.",
+    BUDGET_UPDATED: "Getränkebudget aktualisiert.",
   },
   USER: {
     CREATED: "Benutzer erstellt.",
