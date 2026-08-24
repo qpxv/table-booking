@@ -3,6 +3,7 @@ import WebsiteChrome from "@/components/website/WebsiteChrome";
 import Hero from "@/components/website/Hero";
 import AboutSection from "@/components/website/AboutSection";
 import FeaturesSection from "@/components/website/FeaturesSection";
+import TestimonialsSection from "@/components/website/TestimonialsSection";
 import HowItWorksSection from "@/components/website/HowItWorksSection";
 import ContactSection from "@/components/website/ContactSection";
 
@@ -15,6 +16,7 @@ export default function Home(): JSX.Element {
       <Hero />
       <AboutSection />
       <FeaturesSection />
+      <TestimonialsSection />
       <HowItWorksSection />
       <ContactSection />
     </WebsiteChrome>

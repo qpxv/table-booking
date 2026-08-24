@@ -56,6 +56,125 @@ export const FEATURES = {
   ],
 } as const;
 
+export const TESTIMONIALS = {
+  eyebrow: "Stimmen aus dem Verein",
+  heading: "Was Mitglieder über den Dice-Bock sagen",
+  items: [
+    {
+      quote:
+        "Ich bin als kompletter Neuling reingekommen und hatte nach einem Abend schon meine erste Armee auf dem Tisch stehen. Keiner hat komisch geguckt, dass ich noch nicht wusste, wie man einen Würfelwurf modifiziert. Genau diese Geduld am Tisch ist es, die mich seitdem jede Woche wiederkommen lässt.",
+      name: "Jonas Berger",
+      role: "Mitglied seit 2023",
+    },
+    {
+      quote: "Endlich ein Verein, bei dem die Tischreservierung nicht über einen Zettel am Kühlschrank läuft.",
+      name: "Elena Vogt",
+      role: "Mitglied seit 2021",
+    },
+    {
+      quote:
+        "Für mich ist der Dice-Bock vor allem die Terrain-Werkstatt am Donnerstag. Da wird gebaut, gefachsimpelt und nebenbei die nächste Kampagne geplant. Manchmal kommt dabei mehr Terrain raus als an einem ganzen Wochenende alleine zuhause, einfach weil man sich gegenseitig anspornt.",
+      name: "Timo Reuter",
+      role: "Terrain-Team",
+    },
+    {
+      quote:
+        "Ich male seit Jahren Miniaturen, aber erst hier hatte ich wieder regelmäßig Leute, gegen die ich tatsächlich antreten konnte, statt die Armee nur im Regal zu bewundern.",
+      name: "Sabine Krüger",
+      role: "Hobby-Malerin",
+    },
+    {
+      quote:
+        "Meine Tochter und ich sind zusammen beigetreten. Sie hat mit 12 ihre erste eigene Armee zusammengestellt und wird am Tisch genauso ernst genommen wie alle anderen. Das war für mich der eigentliche Grund zu bleiben, nicht die Regeln.",
+      name: "Markus Lindner",
+      role: "Mitglied seit 2022",
+    },
+    {
+      quote: "Die Schlachtabende fallen so gut wie nie aus. Klingt banal, ist aber der Grund, warum ich bleibe.",
+      name: "Nadine Fischer",
+      role: "Mitglied seit 2019",
+    },
+    {
+      quote:
+        "Als Wiedereinsteiger nach zehn Jahren Pause war ich überrascht, wie schnell mir am Tisch geholfen wurde, wieder reinzukommen. Regeln erklären statt Punkte zählen, das hat mir wirklich gefehlt.",
+      name: "Philipp Adler",
+      role: "Wiedereinsteiger",
+    },
+    {
+      quote: "Ich komme eigentlich nur wegen der Community.",
+      name: "Carla Hoffmann",
+      role: "Mitglied seit 2020",
+    },
+    {
+      quote:
+        "Der Vorstand ist bei Fragen zur Mitgliedschaft immer schnell erreichbar. Von der ersten Nachricht bis zum ersten Schlachtabend hat es bei mir keine zwei Wochen gedauert, inklusive einer kompletten Einführung ins Regelwerk.",
+      name: "David Schuster",
+      role: "Mitglied seit 2024",
+    },
+    {
+      quote: "Bester Verein.",
+      name: "Robin Kaiser",
+      role: "Mitglied seit 2023",
+    },
+    {
+      quote:
+        "Ich muss ehrlich sagen, ich war anfangs skeptisch, weil ich in einem anderen Verein mal richtig schlechte Erfahrungen gemacht habe, wo neue Mitglieder eigentlich nur als Kanonenfutter für die alten Hasen gedient haben und man wochenlang nur zugucken durfte, bevor man überhaupt mal ein eigenes Modell auf den Tisch stellen durfte. Beim Dice-Bock war das komplett anders. Schon am zweiten Abend durfte ich mit einer geliehenen Armee mitspielen, jemand hat mir in Ruhe die Grundregeln erklärt, ohne dabei genervt zu wirken, und am Ende des Abends hatte ich schon eine Telefonnummer für den nächsten Malabend. Mittlerweile bin ich selbst derjenige, der neuen Leuten die Regeln erklärt, und ich versuche, genau die gleiche Geduld zurückzugeben, die ich damals bekommen habe.",
+      name: "Anna-Lena Wolter",
+      role: "Mitglied seit 2018",
+    },
+    {
+      quote: "Feste Tische, feste Zeiten, keine Ausreden mehr.",
+      name: "Ben Thalheim",
+      role: "Mitglied seit 2022",
+    },
+    {
+      quote:
+        "Man unterschätzt total, wie viel Zeit man spart, wenn die Tischreservierung digital läuft. Früher haben wir gefühlt jede Woche eine halbe Stunde in der WhatsApp-Gruppe verbracht, um herauszufinden, wer wann kommt und ob ein Tisch frei ist. Jetzt schaue ich kurz in die App und weiß Bescheid.",
+      name: "Katharina Lenz",
+      role: "Mitglied seit 2021",
+    },
+    {
+      quote: "Die Terrain-Werkstatt ist mein liebster Abend der Woche.",
+      name: "Ole Petersen",
+      role: "Terrain-Team",
+    },
+    {
+      quote:
+        "Ich bin über einen Kollegen zum Dice-Bock gekommen, der mich quasi mit sanfter Gewalt zu einem Schlachtabend mitgeschleppt hat, weil ich vorher noch nie Warhammer gespielt hatte, geschweige denn irgendein Tabletop-Strategiespiel, und ich hatte auch ehrlich gesagt keine große Lust, weil ich dachte, das wäre nur was für Leute, die schon seit Jahren dabei sind und ihre Armeen bis ins letzte Detail auswendig kennen. Am Ende habe ich einen der besten Abende seit Langem gehabt, weil mir jemand geduldig Schritt für Schritt erklärt hat, wie die Runden ablaufen, und ich sogar noch gewonnen habe, was vermutlich reines Anfängerglück war.",
+      name: "Finn Albrecht",
+      role: "Mitglied seit 2024",
+    },
+    {
+      quote: "Toller Verein, tolle Leute, tolle Tische.",
+      name: "Miriam Groth",
+      role: "Mitglied seit 2020",
+    },
+    {
+      quote:
+        "Was mich am meisten überzeugt hat, ist, wie ernst der Vorstand die Mitgliedschaft nimmt, ohne dabei bürokratisch zu wirken. Man merkt einfach, dass hier Leute mit Herzblut organisieren.",
+      name: "Sebastian Kraus",
+      role: "Mitglied seit 2019",
+    },
+    {
+      quote:
+        "Die App ist für mich der eigentliche Grund, warum ich regelmäßiger komme als früher. Ich sehe auf einen Blick, welcher Tisch frei ist, buche in zehn Sekunden und muss niemanden erst fragen, ob noch Platz ist.",
+      name: "Leon Vogt",
+      role: "Mitglied seit 2022",
+    },
+    {
+      quote: "Die Reservierungs-App ist verdammt gut gemacht, ehrlich gesagt besser als bei manchen Restaurants.",
+      name: "Julia Sander",
+      role: "Mitglied seit 2023",
+    },
+    {
+      quote:
+        "Als jemand, der beruflich selbst Software baut, bin ich ziemlich anspruchsvoll, was Apps angeht, aber die Buchungs-App vom Dice-Bock macht wirklich alles richtig: schnell, übersichtlich, keine unnötigen Klicks. Genau so sollte ein Tool für einen Verein aussehen.",
+      name: "Tobias Ehrlich",
+      role: "Mitglied seit 2021",
+    },
+  ],
+} as const;
+
 export const HOW_IT_WORKS = {
   eyebrow: "Ablauf",
   heading: "So wird aus Interesse ein Schlachtabend",
