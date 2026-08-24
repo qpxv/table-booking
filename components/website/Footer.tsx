@@ -25,9 +25,9 @@ export default function Footer(): JSX.Element {
           <span className="text-xs font-semibold tracking-[0.2em] text-header-foreground/50 uppercase">
             {FOOTER.navLabel}
           </span>
-          <nav className="flex flex-col gap-2 text-sm text-header-foreground/70">
+          <nav className="flex flex-col items-start gap-2 text-sm text-header-foreground/70">
             {WEBSITE_NAV_LINKS.map((link) => (
-              <a key={link.href} href={link.href} className="hover:text-header-foreground hover:underline">
+              <a key={link.href} href={link.href} className="hover:text-header-foreground">
                 {link.label}
               </a>
             ))}
@@ -38,9 +38,9 @@ export default function Footer(): JSX.Element {
           <span className="text-xs font-semibold tracking-[0.2em] text-header-foreground/50 uppercase">
             {FOOTER.communityLabel}
           </span>
-          <nav className="flex flex-col gap-2 text-sm text-header-foreground/70">
+          <nav className="flex flex-col items-start gap-2 text-sm text-header-foreground/70">
             {FOOTER.communityLinks.map((link) => (
-              <a key={link.label} href={link.href} className="hover:text-header-foreground hover:underline">
+              <a key={link.label} href={link.href} className="hover:text-header-foreground">
                 {link.label}
               </a>
             ))}
@@ -51,9 +51,9 @@ export default function Footer(): JSX.Element {
           <span className="text-xs font-semibold tracking-[0.2em] text-header-foreground/50 uppercase">
             {FOOTER.legalLabel}
           </span>
-          <nav className="flex flex-col gap-2 text-sm text-header-foreground/70">
+          <nav className="flex flex-col items-start gap-2 text-sm text-header-foreground/70">
             {FOOTER.legalLinks.map((link) => (
-              <Link key={link.href} href={link.href} className="hover:text-header-foreground hover:underline">
+              <Link key={link.href} href={link.href} className="hover:text-header-foreground">
                 {link.label}
               </Link>
             ))}

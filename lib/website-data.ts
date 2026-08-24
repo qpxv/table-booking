@@ -86,9 +86,9 @@ export const CONTACT = {
   eyebrow: "Kontakt",
   heading: "Bereit beizutreten?",
   description:
-    "Fragen zur Mitgliedschaft, zu Schlachtfeldern oder zum nächsten Schlachtabend? Der Vorstand meldet sich zurück.",
+    "Fragen zur Mitgliedschaft, zu Schlachtfeldern oder zum nächsten Schlachtabend? Der Vorstand meldet sich schnellstmöglich zurück.",
   board: [
-    { role: "Gründer & Vorstand", name: "Max Schwiperich", email: "vorstand@dice-bock.de" },
+    { role: "Mitgründer & Vorstand", name: "Max Schwiperich", email: "vorstand@dice-bock.de" },
   ],
   channels: [
     { icon: "WhatsApp", label: "WhatsApp", href: "#" },
