@@ -11,8 +11,18 @@ const STEP_ICONS: Record<string, LucideIcon> = {
 
 export default function HowItWorksSection(): JSX.Element {
   return (
-    <section id="ablauf" className="border-b border-border bg-muted/40">
-      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-24">
+    <section id="ablauf" className="relative overflow-hidden border-b border-border bg-muted/40">
+      <div
+        className="pointer-events-none absolute inset-0 text-border opacity-35"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)",
+          backgroundSize: "56px 56px",
+          maskImage: "radial-gradient(ellipse at center, black 40%, transparent 85%)",
+        }}
+      />
+
+      <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-24">
         <span className="text-xs font-semibold tracking-[0.2em] text-secondary uppercase">
           {HOW_IT_WORKS.eyebrow}
         </span>

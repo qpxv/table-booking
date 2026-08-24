@@ -4,16 +4,8 @@ import FeaturesTabs from "@/components/website/FeaturesTabs";
 
 export default function FeaturesSection(): JSX.Element {
   return (
-    <section id="angebot" className="relative overflow-hidden border-b border-border bg-background">
-      <div
-        className="pointer-events-none absolute inset-0 text-muted-foreground opacity-[0.04]"
-        style={{
-          backgroundImage: "radial-gradient(currentColor 1.5px, transparent 1.5px)",
-          backgroundSize: "22px 22px",
-        }}
-      />
-
-      <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-24">
+    <section id="angebot" className="border-b border-border bg-background">
+      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-24">
         <span className="text-xs font-semibold tracking-[0.2em] text-secondary uppercase">
           {FEATURES.eyebrow}
         </span>
