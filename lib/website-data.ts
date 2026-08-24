@@ -26,6 +26,8 @@ export const ABOUT = {
 export const FEATURES = {
   eyebrow: "Angebot",
   heading: "Was den Dice-Bock ausmacht",
+  description:
+    "Vier Dinge, die jeden Schlachtabend zusammenhalten – von der Terminfindung bis zur Armee im Schrank.",
   items: [
     {
       icon: "Dices",
@@ -49,7 +51,7 @@ export const FEATURES = {
       icon: "Users",
       title: "Gemeinschaft",
       description:
-        "Gäste sind willkommen, neue Mitglieder auch. Der Bock wächst am liebsten über volle Tische.",
+        "Gäste sind willkommen, neue Mitglieder auch. Der Bock wächst am liebsten über volle Tische, egal ob du seit Jahren malst oder deine erste Armee gerade erst auspackst.",
     },
   ],
 } as const;
