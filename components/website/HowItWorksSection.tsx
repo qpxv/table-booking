@@ -1,5 +1,6 @@
 import type { JSX } from "react";
 import { HOW_IT_WORKS } from "@/lib/website-data";
+import ImagePlaceholder from "@/components/website/ImagePlaceholder";
 
 export default function HowItWorksSection(): JSX.Element {
   return (
@@ -11,6 +12,8 @@ export default function HowItWorksSection(): JSX.Element {
         <h2 className="mt-3 max-w-xl text-balance font-heading text-3xl font-semibold text-foreground sm:text-4xl">
           {HOW_IT_WORKS.heading}
         </h2>
+
+        <ImagePlaceholder label="Impressionen vom Spieleabend" className="mt-10 aspect-21/9" />
 
         <ol className="mt-10 grid gap-6 sm:grid-cols-3">
           {HOW_IT_WORKS.steps.map((step) => (

@@ -13,8 +13,8 @@ export default function Home(): JSX.Element {
   return (
     <WebsiteChrome>
       <Hero />
-      <FeaturesSection />
       <AboutSection />
+      <FeaturesSection />
       <HowItWorksSection />
       <ContactSection />
     </WebsiteChrome>
