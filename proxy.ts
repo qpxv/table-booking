@@ -6,11 +6,17 @@ import { getSessionCookie, getCookieCache } from "better-auth/cookies";
 // the session cookie here: no DB access (see the Next.js auth guide). The
 // real, authoritative authorization happens in lib/permissions.ts inside
 // every Server Action.
-const PUBLIC_ROUTES = ["/login"];
+// Reachable without a session cookie at all: the landing page and the two
+// legal pages linked from its footer never require a login.
+const PUBLIC_ROUTES = new Set(["/", "/login", "/impressum", "/datenschutz"]);
+// Of those, only "/" and "/login" bounce an already-logged-in visitor
+// straight to the app — /impressum and /datenschutz stay reachable
+// regardless of auth state, same as any other legal page.
+const REDIRECT_IF_AUTHENTICATED = new Set(["/", "/login"]);
 
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
-  const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
+  const isPublicRoute = PUBLIC_ROUTES.has(pathname);
 
   const sessionCookie = getSessionCookie(request);
 
@@ -18,7 +24,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (sessionCookie && isPublicRoute) {
+  if (sessionCookie && REDIRECT_IF_AUTHENTICATED.has(pathname)) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
