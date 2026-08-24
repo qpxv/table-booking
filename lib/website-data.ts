@@ -97,9 +97,15 @@ export const CONTACT = {
 } as const;
 
 export const FOOTER = {
-  tagline: "Dice-Bock e.V. – Verein für Warhammer und Tabletop-Strategiespiele.",
+  navLabel: "Navigation",
+  legalLabel: "Rechtliches",
   legalLinks: [
     { href: "/impressum", label: "Impressum" },
     { href: "/datenschutz", label: "Datenschutz" },
+  ],
+  communityLabel: "Community",
+  communityLinks: [
+    { href: "#", label: "Discord beitreten" },
+    { href: "#", label: "WhatsApp-Gruppe" },
   ],
 } as const;
