@@ -6,7 +6,7 @@ import { HERO } from "@/lib/website-data";
 
 export default function Hero(): JSX.Element {
   return (
-    <section className="relative overflow-hidden border-b border-border bg-background">
+    <section className="relative flex min-h-[calc(100vh-4rem)] items-center overflow-hidden border-b border-border bg-background">
       <div className="pointer-events-none absolute inset-0">
         <Dice6 className="absolute top-[6%] left-[4%] size-28 rotate-[-15deg] text-muted-foreground/10 sm:size-36" />
         <Dice2 className="absolute top-[62%] left-[10%] size-24 rotate-[10deg] text-secondary/15 sm:size-32" />
@@ -15,7 +15,7 @@ export default function Hero(): JSX.Element {
         <Dice1 className="absolute top-[70%] right-[6%] size-24 rotate-[14deg] text-muted-foreground/10 sm:size-32" />
       </div>
 
-      <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 md:grid-cols-2 md:py-24">
+      <div className="relative mx-auto grid w-full max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 md:grid-cols-2 md:py-24">
         <div className="flex flex-col items-start gap-6">
           <h1 className="text-balance font-heading text-4xl leading-[1.05] font-semibold text-foreground sm:text-5xl lg:text-6xl">
             {HERO.headline}
