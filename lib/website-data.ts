@@ -59,19 +59,23 @@ export const FEATURES = {
 export const HOW_IT_WORKS = {
   eyebrow: "Ablauf",
   heading: "So wird aus Interesse ein Schlachtabend",
+  description: "Drei Schritte vom ersten Kontakt bis zur ersten Schlacht am eigenen Tisch.",
   steps: [
     {
       number: "01",
+      icon: "UserPlus",
       title: "Mitglied werden",
       description: "Kurz beim Vorstand melden – unten im Kontaktbereich oder persönlich an einem Schlachtabend.",
     },
     {
       number: "02",
+      icon: "CalendarCheck2",
       title: "Schlachtfeld reservieren",
       description: "Mit dem Vereinskonto in der App einen freien Tisch und Termin auswählen.",
     },
     {
       number: "03",
+      icon: "Swords",
       title: "Antreten",
       description: "Armee aufstellen, Terrain aufbauen und mit der Runde in die Schlacht ziehen.",
     },
