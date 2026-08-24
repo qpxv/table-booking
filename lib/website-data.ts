@@ -84,11 +84,15 @@ export const HOW_IT_WORKS = {
 
 export const CONTACT = {
   eyebrow: "Kontakt",
-  heading: "Sprecht mit dem Vorstand",
+  heading: "Bereit beizutreten?",
   description:
     "Fragen zur Mitgliedschaft, zu Schlachtfeldern oder zum nächsten Schlachtabend? Der Vorstand meldet sich zurück.",
   board: [
-    { role: "1. Vorsitz", name: "Vorstand Dice-Bock e.V.", email: "vorstand@dice-bock.de" },
+    { role: "Gründer & Vorstand", name: "Max Schwiperich", email: "vorstand@dice-bock.de" },
+  ],
+  channels: [
+    { icon: "WhatsApp", label: "WhatsApp", href: "#" },
+    { icon: "Discord", label: "Discord", href: "#" },
   ],
 } as const;
 
