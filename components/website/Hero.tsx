@@ -44,7 +44,13 @@ export default function Hero(): JSX.Element {
           </div>
         </div>
 
-        <ImagePlaceholder label="Foto folgt" className="aspect-4/3" />
+        <ImagePlaceholder
+          label="Foto folgt"
+          className="aspect-4/3"
+          src="/website-images/dice-collection.jpeg"
+          alt="Würfelsammlung des Dice-Bock e.V."
+          priority
+        />
       </div>
     </section>
   );

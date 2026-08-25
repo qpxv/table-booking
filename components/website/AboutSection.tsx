@@ -20,7 +20,12 @@ export default function AboutSection(): JSX.Element {
           </div>
         </div>
 
-        <ImagePlaceholder label="Foto folgt" className="aspect-4/3" />
+        <ImagePlaceholder
+          label="Foto folgt"
+          className="aspect-4/3"
+          src="/website-images/nature-block-table.jpeg"
+          alt="Schlachtfeld im Grünen beim Dice-Bock e.V."
+        />
       </div>
     </section>
   );

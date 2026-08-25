@@ -15,6 +15,7 @@ interface FeatureItem {
   icon: string;
   title: string;
   description: string;
+  images?: readonly { src: string; alt: string }[];
 }
 
 interface FeaturesTabsProps {
@@ -67,8 +68,18 @@ export default function FeaturesTabs({ items }: FeaturesTabsProps): JSX.Element 
           <p className="mt-2 min-h-12 text-pretty text-muted-foreground">{selected.description}</p>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <ImagePlaceholder label="Foto folgt" className="aspect-video" />
-          <ImagePlaceholder label="Foto folgt" className="aspect-video" />
+          <ImagePlaceholder
+            label="Foto folgt"
+            className="aspect-video"
+            src={selected.images?.[0]?.src}
+            alt={selected.images?.[0]?.alt}
+          />
+          <ImagePlaceholder
+            label="Foto folgt"
+            className="aspect-video"
+            src={selected.images?.[1]?.src}
+            alt={selected.images?.[1]?.alt}
+          />
         </div>
       </div>
     </div>
