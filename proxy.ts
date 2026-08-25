@@ -6,12 +6,15 @@ import { getSessionCookie, getCookieCache } from "better-auth/cookies";
 // the session cookie here: no DB access (see the Next.js auth guide). The
 // real, authoritative authorization happens in lib/permissions.ts inside
 // every Server Action.
-// Reachable without a session cookie at all: the landing page and the two
-// legal pages linked from its footer never require a login.
-const PUBLIC_ROUTES = new Set(["/", "/login", "/impressum", "/datenschutz"]);
-// Of those, only "/" and "/login" bounce an already-logged-in visitor
-// straight to the app — /impressum and /datenschutz stay reachable
-// regardless of auth state, same as any other legal page.
+// Reachable without a session cookie at all: /login itself, plus the two
+// legal pages linked from the landing page's footer. The landing page ("/")
+// is intentionally NOT public while the site is still in development — it
+// now requires a login like the rest of the app.
+const PUBLIC_ROUTES = new Set(["/login", "/impressum", "/datenschutz"]);
+// Of those, only "/login" bounces an already-logged-in visitor straight to
+// the app — /impressum and /datenschutz stay reachable regardless of auth
+// state, same as any other legal page. "/" already redirects to /login for
+// unauthenticated visitors above, so it only needs the authenticated case.
 const REDIRECT_IF_AUTHENTICATED = new Set(["/", "/login"]);
 
 export async function proxy(request: NextRequest): Promise<NextResponse> {
@@ -50,6 +53,6 @@ export const config = {
   // them. Redirecting sw.js to /login's HTML breaks service worker
   // registration outright, which is why the install icon never appeared.
   matcher: [
-    "/((?!api|_next/static|_next/image|icons|manifest\\.webmanifest|sw\\.js|workbox-.*\\.js|.*\\.(?:svg|png|ico)$).*)",
+    "/((?!api|_next/static|_next/image|icons|manifest\\.webmanifest|sw\\.js|workbox-.*\\.js|.*\\.(?:svg|png|jpe?g|webp|gif|ico)$).*)",
   ],
 };

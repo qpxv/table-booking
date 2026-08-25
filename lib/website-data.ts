@@ -9,17 +9,17 @@ export const HERO = {
   eyebrow: "Dice-Bock e.V.",
   headline: "Würfel fallen. Der Bock bleibt.",
   subheadline:
-    "Ein Verein für alle, die Warhammer und Tabletop-Strategiespiele lieben. Feste Schlachtfelder, wachsende Armeen.",
+    "Würfeln, basteln, bemalen, spielen.\n\nVon Warhammer bis Brettspielabend, mitten in Köln.",
   primaryCta: { label: "Kontakt aufnehmen", href: "#kontakt" },
   secondaryCta: { label: "Unser Angebot entdecken", href: "#angebot" },
 } as const;
 
 export const ABOUT = {
   eyebrow: "Über uns",
-  heading: "Ein Verein, kein Vereinsheim voller Regeln.",
+  heading: "Ein Verein - un mer sin eins am Tisch",
   paragraphs: [
-    "Der Dice-Bock e.V. ist aus einer festen Warhammer-Runde entstanden, die irgendwann zu groß für ein Wohnzimmer wurde. Heute treffen wir uns regelmäßig, um Armeen aufzustellen, Terrain aufzubauen und Schlachten zu schlagen – gewonnen oder verloren.",
-    "Uns eint der Spieltisch, nicht das Alter oder die Erfahrung. Neulinge lernen die Regeln direkt am Tisch, erfahrene Feldherren bringen jede Woche eine neue Taktik mit.",
+  "Der Dice-Bock e.V. entstand aus einer einfachen Idee: ein paar Leute, die einen festen Ort zum gemeinsamen Zocken schaffen wollten. Also haben wir ihn geschaffen und von da an nahm alles seinen Lauf. Heute stellen wir Armeen auf, bauen Terrain, bemalen Miniaturen und holen auch mal die Brettspiele raus.",
+"Uns eint der Spieltisch, nicht das Alter oder die Erfahrung. Neulinge lernen die Regeln direkt am Tisch, erfahrene Feldherren bringen jede Woche eine neue Taktik mit. Ob Pinsel, Bastelmesser oder Würfelbecher – bei uns findest du Platz, Zeit und Leute für dein Hobby."  
   ],
 } as const;
 
@@ -33,7 +33,11 @@ export const FEATURES = {
       icon: "Dices",
       title: "Schlachtabende",
       description:
-        "Regelmäßige Termine an festen Tischen – von Warhammer 40k bis zu anderen Tabletop-Strategiespielen.",
+        "Von Warhammer 40k bis hin zu anderen Tabletop-Strategiespielen.",
+      images: [
+        { src: "/website-images/yellow-and-red-fighting.jpeg", alt: "Gelbe und rote Armee im Gefecht" },
+        { src: "/website-images/long-table-fight.jpeg", alt: "Schlacht am langen Tisch" },
+      ],
     },
     {
       icon: "CalendarCheck2",
@@ -45,13 +49,21 @@ export const FEATURES = {
       icon: "Library",
       title: "Armeen & Terrain",
       description:
-        "Von bemalten Armeen bis zu selbstgebautem Terrain – die Sammlung wächst mit den Wünschen der Mitglieder.",
+        "Von bemalten Armeen bis zu selbstgebautem Terrain – die Sammlung wächst.",
+      images: [
+        { src: "/website-images/army-picture-left.jpeg", alt: "Bemalte Armee des Dice-Bock e.V." },
+        { src: "/website-images/3-figures-standing.jpeg", alt: "Bemalte Miniaturen des Dice-Bock e.V." },
+      ],
     },
     {
       icon: "Users",
       title: "Gemeinschaft",
       description:
-        "Gäste sind willkommen, neue Mitglieder auch. Der Bock wächst am liebsten über volle Tische, egal ob du seit Jahren malst oder deine erste Armee gerade erst auspackst.",
+        "Gäste sind willkommen, neue Mitglieder auch. Egal ob du seit Jahren malst oder deine erste Armee gerade erst auspackst.",
+      images: [
+        { src: "/website-images/all-tables-visible.jpeg", alt: "Alle Tische beim Dice-Bock e.V." },
+        { src: "/website-images/shelf-with-things.jpeg", alt: "Regal mit Vereinsmaterial des Dice-Bock e.V." },
+      ],
     },
   ],
 } as const;
@@ -172,6 +184,78 @@ export const TESTIMONIALS = {
       name: "Tobias Ehrlich",
       role: "Mitglied seit 2021",
     },
+    {
+      quote:
+        "Was mich am meisten überzeugt hat, ist die Herzlichkeit der Leute. Ich bin erst seit kurzem dabei, aber ich wurde von der ersten Minute an eingebunden, kein Ellbogen-Vibe, einfach nur Lust am gemeinsamen Hobby.",
+      name: "Laura Nowak",
+      role: "Neu dabei",
+    },
+    {
+      quote:
+        "Was den Dice-Bock für mich besonders macht, ist die Vielfalt: die einen spielen Warhammer 40k, andere Heresy, wieder andere Kill Team. Jeder findet sein System, ohne dass es eine Zwei-Klassen-Gesellschaft gibt.",
+      name: "Jan-Philipp Reuß",
+      role: "Mitglied seit 2023",
+    },
+    {
+      quote:
+        "Der Mal- und Bastelplatz ist wirklich gut ausgestattet. Ich hab vorher zuhause auf dem Küchentisch gepinselt, jetzt hab ich Licht, Platz und Leute, die einem beim Airbrush über die Schulter schauen.",
+      name: "Michael Brandt",
+      role: "Bastel- und Malfan",
+    },
+    {
+      quote:
+        "Die Vielfalt an Gelände und Plattengestaltung hat mich überrascht. Es gibt nicht nur ein Standard-Battlefield, sondern richtig viele unterschiedliche Tische, an denen ständig weitergebaut wird.",
+      name: "Verena Kuhn",
+      role: "Terrain-Team",
+    },
+    {
+      quote:
+        "Klar, Parkplätze sind rar und WLAN gibt's auch nicht, aber ehrlich, dafür bin ich da nicht. Ich will würfeln und quatschen, nicht am Handy hängen, und einen Parkplatz findet man am Ende doch immer.",
+      name: "Dennis Achterberg",
+      role: "Mitglied seit 2022",
+    },
+    {
+      quote:
+        "Ich hätte gedacht, der Raum wird bei vollem Haus eng, aber tatsächlich sind so gut wie nie alle gleichzeitig da. Bisher hatte ich immer genug Platz für Tisch, Armee und Ellenbogen-Freiheit.",
+      name: "Nora Vetter",
+      role: "Mitglied seit 2021",
+    },
+    {
+      quote:
+        "Ich bin über Kill Team eingestiegen, weil mir 40k am Anfang zu groß war. Genau diese Einstiegsmöglichkeit über die kleineren Systeme hat mir den Umstieg leicht gemacht.",
+      name: "Kevin Ostermann",
+      role: "Kill-Team-Spieler",
+    },
+    {
+      quote:
+        "Über die WhatsApp-Gruppe läuft wirklich viel, von spontanen 40k-Terminen bis zum WIP Wednesday, wo jeder zeigt, woran er gerade pinselt. Man muss nur ab und zu reinschauen, dann verpasst man nichts.",
+      name: "Christina Wallner",
+      role: "Mitglied seit 2020",
+    },
+    {
+      quote:
+        "Regeln werden hier sauber und fair ausgelegt, und wenn zwei sich mal uneinig sind, wird ruhig ein Judge dazugeholt statt zu diskutieren, bis der Abend vorbei ist. Genau die Streitkultur, die ein Verein braucht.",
+      name: "Andreas Falk",
+      role: "Judge",
+    },
+    {
+      quote:
+        "Mir war Sicherheit im Vereinsraum wichtig, bevor ich beigetreten bin, und ich wurde da offen und ehrlich informiert, nichts wurde schöngeredet. Das hat mir das Vertrauen gegeben, mich anzumelden.",
+      name: "Simone Barthel",
+      role: "Mitglied seit 2024",
+    },
+    {
+      quote:
+        "Würde ich weiterempfehlen? Auf jeden Fall. Größtes Highlight ist für mich die Atmosphäre, man merkt einfach, dass hier keiner nur seine eigene Armee im Blick hat, sondern den ganzen Verein.",
+      name: "Patrick Sommer",
+      role: "Wiedereinsteiger",
+    },
+    {
+      quote:
+        "Herzliche Leute, jede Menge unterschiedliche Systeme und ein Bastelplatz, der sich sehen lassen kann. Genau das hatte ich gesucht.",
+      name: "Isabel Krome",
+      role: "Neu dabei",
+    },
   ],
 } as const;
 
@@ -179,24 +263,60 @@ export const HOW_IT_WORKS = {
   eyebrow: "Ablauf",
   heading: "So wird aus Interesse ein Schlachtabend",
   description: "Drei Schritte vom ersten Kontakt bis zur ersten Schlacht am eigenen Tisch.",
-  steps: [
+  tabs: [
     {
-      number: "01",
-      icon: "UserPlus",
-      title: "Mitglied werden",
-      description: "Kurz beim Vorstand melden – unten im Kontaktbereich oder persönlich an einem Schlachtabend.",
+      id: "mitglied",
+      label: "Mitglied",
+      steps: [
+        {
+          number: "01",
+          icon: "UserPlus",
+          title: "Mitglied werden",
+          description: "Unten im Kontaktbereich beim Vorstand melden.",
+        },
+        {
+          number: "02",
+          icon: "CalendarCheck2",
+          title: "Schlachtfeld reservieren",
+          description: "Mit dem Vereinskonto in der App einen freien Tisch und Spielpartner finden.",
+        },
+        {
+          number: "03",
+          icon: "Swords",
+          title: "Antreten",
+          description: "Armee aufstellen, Terrain aufbauen und mit der Runde in die Schlacht ziehen.",
+        },
+      ],
     },
     {
-      number: "02",
-      icon: "CalendarCheck2",
-      title: "Schlachtfeld reservieren",
-      description: "Mit dem Vereinskonto in der App einen freien Tisch und Termin auswählen.",
-    },
-    {
-      number: "03",
-      icon: "Swords",
-      title: "Antreten",
-      description: "Armee aufstellen, Terrain aufbauen und mit der Runde in die Schlacht ziehen.",
+      id: "gast",
+      label: "Gast",
+      steps: [
+        {
+          number: "01",
+          icon: "MessageCircle",
+          title: "Kontakt aufnehmen",
+          description: "Entweder im Kontaktbereich oder bei einem Mitglied melden.",
+        },
+        {
+          number: "02",
+          icon: "CalendarClock",
+          title: "Termin vereinbaren",
+          description: "Wir stimmen gemeinsam einen freien Termin für deinen ersten Besuch ab.",
+        },
+        {
+          number: "03",
+          icon: "Eye",
+          title: "Reinschnuppern",
+          description: "Bei einem Schlachtabend vorbeikommen, mitspielen und den Verein kennenlernen.",
+          highlight: {
+            word: "mitspielen",
+            title: "Mitspielen",
+            description:
+              "Vorbeischauen und zugucken ist bei uns immer kostenlos. Beim ersten Besuch darfst du auch kostenlos mitspielen. Ab dem zweiten Mal kostet ein Spieltag 5€.",
+          },
+        },
+      ],
     },
   ],
 } as const;
