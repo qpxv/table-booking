@@ -207,11 +207,10 @@ export const CONTACT = {
   description:
     "Fragen zur Mitgliedschaft, zu Schlachtfeldern oder zum nächsten Schlachtabend? Der Vorstand meldet sich schnellstmöglich zurück.",
   board: [
-    { role: "Mitgründer & Vorstand", name: "Max Schwiperich", email: "vorstand@dice-bock.de" },
+    { role: "Mitgründer & Vorstand", name: "Tim, Max & Nik", email: "dice-bock@outlook.de" },
   ],
   channels: [
-    { icon: "WhatsApp", label: "WhatsApp", href: "#" },
-    { icon: "Discord", label: "Discord", href: "#" },
+    { icon: "Discord", label: "Discord", href: "https://discord.gg/jKApNeC7Hj" },
   ],
 } as const;
 
@@ -224,7 +223,6 @@ export const FOOTER = {
   ],
   communityLabel: "Community",
   communityLinks: [
-    { href: "#", label: "Discord beitreten" },
-    { href: "#", label: "WhatsApp-Gruppe" },
+    { href: "https://discord.gg/jKApNeC7Hj", label: "Discord beitreten" },
   ],
 } as const;
