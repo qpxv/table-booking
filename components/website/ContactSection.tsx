@@ -4,16 +4,13 @@ import { Dice1, Dice2, Dice4, Dice5, Dice6, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CONTACT } from "@/lib/website-data";
 import { cn } from "@/lib/utils";
-import WhatsAppIcon from "@/components/website/WhatsAppIcon";
 import DiscordIcon from "@/components/website/DiscordIcon";
 
 const CHANNEL_ICONS: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
-  WhatsApp: WhatsAppIcon,
   Discord: DiscordIcon,
 };
 
 const CHANNEL_HOVER_CLASSES: Record<string, string> = {
-  WhatsApp: "hover:text-[#25D366]",
   Discord: "hover:text-[#5865F2]",
 };
 
@@ -46,7 +43,12 @@ export default function ContactSection(): JSX.Element {
               variant="secondary"
               nativeButton={false}
               className="rounded-none px-6"
-              render={<Link href={`mailto:${primaryEmail}`}>E-Mail schreiben</Link>}
+              render={
+                <Link href={`mailto:${primaryEmail}`} className="inline-flex items-center gap-2">
+                  <Mail className="size-4" />
+                  E-Mail schreiben
+                </Link>
+              }
             />
 
             <div className="flex flex-col gap-4 pl-2">
@@ -77,9 +79,6 @@ export default function ContactSection(): JSX.Element {
               href={`mailto:${member.email}`}
               className="group relative flex items-center gap-4 bg-header p-6 transition-colors hover:bg-[color-mix(in_oklch,var(--header),var(--header-foreground)_8%)]"
             >
-              <span className="flex size-12 shrink-0 items-center justify-center bg-secondary text-secondary-foreground">
-                <Mail className="size-6" />
-              </span>
               <div className="flex flex-col gap-1">
                 <span className="text-xs font-semibold tracking-[0.15em] text-header-foreground/60 uppercase">
                   {member.role}

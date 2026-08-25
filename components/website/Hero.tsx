@@ -1,8 +1,9 @@
 import type { JSX } from "react";
 import Link from "next/link";
-import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6 } from "lucide-react";
+import { ArrowRight, Dice1, Dice2, Dice4, Dice5, Dice6 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HERO } from "@/lib/website-data";
+import ImagePlaceholder from "@/components/website/ImagePlaceholder";
 
 export default function Hero(): JSX.Element {
   return (
@@ -23,56 +24,28 @@ export default function Hero(): JSX.Element {
           <p className="max-w-md text-pretty text-base text-muted-foreground sm:text-lg">
             {HERO.subheadline}
           </p>
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
             <Button
               size="lg"
               variant="secondary"
               nativeButton={false}
-              className="rounded-none p-6"
+              className="rounded-none p-5"
               render={
                 <Link href={HERO.primaryCta.href}>{HERO.primaryCta.label}</Link>
               }
             />
-            <Button
-              size="lg"
-              variant="outline"
-              nativeButton={false}
-              className="rounded-none p-6"
-              render={
-                <Link href={HERO.secondaryCta.href}>
-                  {HERO.secondaryCta.label}
-                </Link>
-              }
-            />
+            <Link
+              href={HERO.secondaryCta.href}
+              className="group inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {HERO.secondaryCta.label}
+              <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-1" />
+            </Link>
           </div>
         </div>
 
-        <HeroVisual />
+        <ImagePlaceholder label="Foto folgt" className="aspect-4/3" />
       </div>
     </section>
-  );
-}
-
-// Placeholder visual until a real club photo (location or a game night in
-// progress) replaces it — kept as a self-contained decorative block so
-// swapping it for a next/image later is a one-component change.
-function HeroVisual(): JSX.Element {
-  return (
-    <div className="relative aspect-4/3 overflow-hidden border border-border bg-primary text-primary-foreground">
-      <div
-        className="absolute inset-0 opacity-[0.08]"
-        style={{
-          backgroundImage:
-            "radial-gradient(currentColor 1.5px, transparent 1.5px)",
-          backgroundSize: "22px 22px",
-        }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-br from-secondary/25 via-transparent to-transparent" />
-
-      <Dice6 className="absolute top-[12%] left-[10%] size-16 rotate-[-12deg] text-primary-foreground/90 sm:size-20" />
-      <Dice3 className="absolute top-[8%] right-[14%] size-10 rotate-[18deg] text-secondary sm:size-12" />
-      <Dice1 className="absolute bottom-[16%] left-[18%] size-12 rotate-[8deg] text-primary-foreground/70 sm:size-14" />
-      <Dice5 className="absolute right-[10%] bottom-[10%] size-20 rotate-[-6deg] text-primary-foreground sm:size-24" />
-    </div>
   );
 }

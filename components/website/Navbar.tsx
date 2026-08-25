@@ -34,7 +34,7 @@ export default function Navbar(): JSX.Element {
               key={link.href}
               variant="ghost"
               nativeButton={false}
-              className="rounded-none text-header-foreground hover:bg-header-foreground/10 hover:text-header-foreground"
+              className="rounded-none text-header-foreground hover:bg-header-foreground/50 hover:text-header-foreground"
               render={<a href={link.href}>{link.label}</a>}
             />
           ))}
@@ -67,7 +67,7 @@ export default function Navbar(): JSX.Element {
               key={link.href}
               variant="ghost"
               nativeButton={false}
-              className="mt-1 w-full justify-start rounded-none text-header-foreground hover:bg-header-foreground/10 hover:text-header-foreground"
+              className="mt-1 w-full justify-start rounded-none text-header-foreground hover:bg-header-foreground/50 hover:text-header-foreground"
               render={
                 <a href={link.href} onClick={() => setOpen(false)}>
                   {link.label}

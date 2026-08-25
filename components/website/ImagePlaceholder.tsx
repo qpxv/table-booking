@@ -1,4 +1,5 @@
 import type { JSX } from "react";
+import Image from "next/image";
 import { ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,15 @@ export default function ImagePlaceholder({ label, className }: ImagePlaceholderP
         <ImageIcon className="size-8" />
         <span className="text-xs font-medium tracking-wide">{label}</span>
       </div>
+
+      <Image
+        src="/club-logo-dark.png"
+        alt=""
+        aria-hidden="true"
+        width={444}
+        height={509}
+        className="absolute right-4 bottom-4 h-8 w-auto sm:h-10"
+      />
     </div>
   );
 }

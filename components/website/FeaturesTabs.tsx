@@ -47,8 +47,8 @@ export default function FeaturesTabs({ items }: FeaturesTabsProps): JSX.Element 
               onClick={() => setSelectedIndex(index)}
               className={
                 isSelected
-                  ? "flex flex-1 items-center gap-3 border-l-4 border-l-secondary bg-secondary/10 px-6 py-5 text-left font-medium text-foreground"
-                  : "flex flex-1 items-center gap-3 border-l-4 border-l-transparent px-6 py-5 text-left text-muted-foreground transition-colors hover:bg-muted/40"
+                  ? "flex flex-1 items-center gap-3 bg-secondary/20 px-6 py-5 text-left font-medium text-foreground"
+                  : "flex flex-1 items-center gap-3 px-6 py-5 text-left text-muted-foreground transition-colors hover:bg-muted/40"
               }
             >
               <Icon className="size-5 shrink-0" />
@@ -59,7 +59,7 @@ export default function FeaturesTabs({ items }: FeaturesTabsProps): JSX.Element 
       </div>
 
       <div key={selectedIndex} className="animate-in fade-in flex flex-col gap-6 p-8 duration-300 md:p-10">
-        <span className="flex size-12 items-center justify-center bg-primary text-primary-foreground">
+        <span className="flex size-12 items-center justify-center text-secondary">
           <SelectedIcon className="size-6" />
         </span>
         <div>

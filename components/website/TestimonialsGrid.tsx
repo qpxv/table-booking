@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, type JSX } from "react";
-import { ChevronDown, ChevronUp, Quote, User } from "lucide-react";
+import Image from "next/image";
+import { ChevronDown, ChevronUp, Quote } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TestimonialItem {
@@ -39,8 +40,15 @@ export default function TestimonialsGrid({ items }: TestimonialsGridProps): JSX.
               />
               <p className="relative text-pretty text-sm text-muted-foreground">{item.quote}</p>
               <div className="relative flex items-center gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center border border-border bg-muted/60 text-muted-foreground">
-                  <User className="size-5" />
+                <span className="flex size-8 shrink-0 items-center justify-center">
+                  <Image
+                    src="/club-logo-dark.png"
+                    alt=""
+                    aria-hidden="true"
+                    width={444}
+                    height={509}
+                    className="h-full w-auto object-contain"
+                  />
                 </span>
                 <div className="flex flex-col">
                   <span className="font-heading text-sm font-semibold text-foreground">{item.name}</span>

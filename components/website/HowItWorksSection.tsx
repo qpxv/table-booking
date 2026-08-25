@@ -13,7 +13,7 @@ export default function HowItWorksSection(): JSX.Element {
   return (
     <section id="ablauf" className="relative overflow-hidden border-b border-border bg-muted/40">
       <div
-        className="pointer-events-none absolute inset-0 text-border opacity-35"
+        className="pointer-events-none absolute inset-0 text-[color-mix(in_oklch,var(--border),var(--secondary)_30%)] opacity-35"
         style={{
           backgroundImage:
             "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)",
@@ -45,7 +45,7 @@ export default function HowItWorksSection(): JSX.Element {
                   >
                     {step.number}
                   </span>
-                  <span className="relative flex size-12 items-center justify-center bg-primary text-primary-foreground">
+                  <span className="relative flex size-12 items-center justify-center text-secondary">
                     <Icon className="size-6" />
                   </span>
                   <h3 className="relative font-heading text-lg font-semibold text-foreground">{step.title}</h3>
