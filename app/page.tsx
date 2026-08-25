@@ -7,9 +7,8 @@ import TestimonialsSection from "@/components/website/TestimonialsSection";
 import HowItWorksSection from "@/components/website/HowItWorksSection";
 import ContactSection from "@/components/website/ContactSection";
 
-// Nobody actually reaches this component right now: proxy.ts redirects "/"
-// straight to /dashboard for a logged-in visitor, and to /login for
-// everyone else, while the site is still in development.
+// Only a logged-in visitor ever reaches this component while the site is
+// still in development: proxy.ts redirects "/" to /login for everyone else.
 export default function Home(): JSX.Element {
   return (
     <WebsiteChrome>
