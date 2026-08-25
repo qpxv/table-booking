@@ -5,6 +5,15 @@ export const WEBSITE_NAV_LINKS = [
   { href: "#kontakt", label: "Kontakt" },
 ] as const;
 
+// Exact founding day isn't tracked anywhere, so this is an approximation
+// used to compute the "Tage dabei" counter in the Ablauf section.
+export const CLUB_STATS = {
+  foundedAt: "2024-01-01",
+  memberLabel: "Mitglieder",
+  daysLabel: "Tage dabei",
+  bookingLabel: "Buchungen über die App",
+} as const;
+
 export const HERO = {
   eyebrow: "Dice-Bock e.V.",
   headline: "Würfel fallen. Der Bock bleibt.",

@@ -31,6 +31,11 @@ export function getTodayBerlinRange(date: Date = new Date()): { start: Date; end
   };
 }
 
+/** Whole days elapsed since `dateString`, for simple "X Tage" style counters. */
+export function daysSince(dateString: string, now: Date = new Date()): number {
+  return Math.floor((now.getTime() - new Date(dateString).getTime()) / 86_400_000);
+}
+
 /**
  * Parses `?year=&month=` search params into a valid (year, month), falling
  * back to the current Berlin month when absent/invalid.

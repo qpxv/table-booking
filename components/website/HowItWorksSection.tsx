@@ -1,8 +1,18 @@
 import type { JSX } from "react";
-import { HOW_IT_WORKS } from "@/lib/website-data";
+import { CLUB_STATS, HOW_IT_WORKS } from "@/lib/website-data";
+import { getClubStats } from "@/lib/queries/stats";
+import { daysSince } from "@/lib/datetime";
 import HowItWorksTabs from "@/components/website/HowItWorksTabs";
 
-export default function HowItWorksSection(): JSX.Element {
+export default async function HowItWorksSection(): Promise<JSX.Element> {
+  const stats = await getClubStats();
+  const daysSinceFounded = daysSince(CLUB_STATS.foundedAt);
+  const counters = [
+    { label: CLUB_STATS.memberLabel, value: stats.memberCount },
+    { label: CLUB_STATS.daysLabel, value: daysSinceFounded },
+    { label: CLUB_STATS.bookingLabel, value: stats.bookingCount },
+  ];
+
   return (
     <section id="ablauf" className="relative overflow-hidden border-b border-border bg-muted/40">
       <div
@@ -26,7 +36,7 @@ export default function HowItWorksSection(): JSX.Element {
           {HOW_IT_WORKS.description}
         </p>
 
-        <HowItWorksTabs tabs={HOW_IT_WORKS.tabs} />
+        <HowItWorksTabs tabs={HOW_IT_WORKS.tabs} counters={counters} />
       </div>
     </section>
   );

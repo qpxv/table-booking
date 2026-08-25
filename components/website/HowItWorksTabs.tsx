@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState, type JSX } from "react";
+import { Fragment, useEffect, useRef, useState, type JSX } from "react";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import {
   ArrowRight,
@@ -14,7 +14,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import ImagePlaceholder from "@/components/website/ImagePlaceholder";
 
 const STEP_ICONS: Record<string, LucideIcon> = {
   UserPlus,
@@ -80,11 +79,76 @@ interface TabItem {
   steps: readonly StepItem[];
 }
 
-interface HowItWorksTabsProps {
-  tabs: readonly TabItem[];
+interface CounterItem {
+  label: string;
+  value: number;
 }
 
-export default function HowItWorksTabs({ tabs }: HowItWorksTabsProps): JSX.Element {
+const COUNT_UP_DURATION_MS = 1200;
+
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function StatCounter({ label, value }: CounterItem): JSX.Element {
+  const ref = useRef<HTMLDivElement>(null);
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        observer.disconnect();
+
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          setDisplay(value);
+          return;
+        }
+
+        const start = performance.now();
+        const tick = (now: number): void => {
+          const progress = Math.min((now - start) / COUNT_UP_DURATION_MS, 1);
+          setDisplay(Math.round(easeInOutCubic(progress) * value));
+          if (progress < 1) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      },
+      { threshold: 0.4 }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [value]);
+
+  return (
+    <div ref={ref} className="flex flex-col items-center gap-0.5 px-3 py-1 text-center">
+      <span className="font-heading text-2xl font-semibold text-secondary sm:text-3xl">{display}</span>
+      <span className="text-[0.65rem] font-semibold tracking-[0.15em] text-muted-foreground uppercase">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function StatsCounters({ counters }: { counters: readonly CounterItem[] }): JSX.Element {
+  return (
+    <div className="mt-6 grid grid-cols-3 divide-x divide-border border-t border-border pt-5">
+      {counters.map((counter) => (
+        <StatCounter key={counter.label} {...counter} />
+      ))}
+    </div>
+  );
+}
+
+interface HowItWorksTabsProps {
+  tabs: readonly TabItem[];
+  counters: readonly CounterItem[];
+}
+
+export default function HowItWorksTabs({ tabs, counters }: HowItWorksTabsProps): JSX.Element {
   const [selectedId, setSelectedId] = useState(tabs[0].id);
   const selected = tabs.find((tab) => tab.id === selectedId) ?? tabs[0];
 
@@ -112,8 +176,8 @@ export default function HowItWorksTabs({ tabs }: HowItWorksTabsProps): JSX.Eleme
         })}
       </div>
 
-      <div key={selected.id} className="animate-in fade-in p-6 duration-300 sm:p-8">
-        <div className="grid gap-6 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:gap-0">
+      <div className="p-6 sm:p-8">
+        <div key={selected.id} className="animate-in fade-in grid gap-6 duration-300 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:gap-0">
           {selected.steps.map((step, index) => {
             const Icon = STEP_ICONS[step.icon];
             return (
@@ -146,7 +210,7 @@ export default function HowItWorksTabs({ tabs }: HowItWorksTabsProps): JSX.Eleme
           })}
         </div>
 
-        <ImagePlaceholder label="Impressionen vom Spieleabend" className="mt-6 aspect-21/9" />
+        <StatsCounters counters={counters} />
       </div>
     </div>
   );
