@@ -7,6 +7,7 @@ function Toaster({ ...props }: ToasterProps) {
     <Sonner
       theme="system"
       className="toaster group"
+      style={{ "--border-radius": "0px" } as React.CSSProperties}
       toastOptions={{
         classNames: {
           toast:
