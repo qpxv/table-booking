@@ -7,16 +7,16 @@ import TestimonialsSection from "@/components/website/TestimonialsSection";
 import HowItWorksSection from "@/components/website/HowItWorksSection";
 import ContactSection from "@/components/website/ContactSection";
 
-// A visitor with a valid session cookie never actually reaches this
-// component: proxy.ts redirects "/" straight to /dashboard at the edge
-// before render, the same way it already does for /login.
+// Nobody actually reaches this component right now: proxy.ts redirects "/"
+// straight to /dashboard for a logged-in visitor, and to /login for
+// everyone else, while the site is still in development.
 export default function Home(): JSX.Element {
   return (
     <WebsiteChrome>
       <Hero />
-      <AboutSection />
       <FeaturesSection />
       <TestimonialsSection />
+      <AboutSection />
       <HowItWorksSection />
       <ContactSection />
     </WebsiteChrome>
