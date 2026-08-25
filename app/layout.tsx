@@ -36,6 +36,7 @@ export default function RootLayout({
     <html
       lang="de"
       className={`${workSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
         {children}
