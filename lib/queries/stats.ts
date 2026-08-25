@@ -3,6 +3,7 @@ import { unstable_rethrow } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { isHiddenAccount } from "@/lib/permissions";
 import { MESSAGES } from "@/lib/constants";
+import { BookingStatus } from "@/generated/prisma/enums";
 
 /** Aggregate club stats for the public landing page's Ablauf counters. */
 export async function getClubStats(): Promise<{
@@ -14,7 +15,7 @@ export async function getClubStats(): Promise<{
   try {
     const [members, bookingCount] = await Promise.all([
       prisma.user.findMany({ where: { banned: { not: true } }, select: { email: true } }),
-      prisma.booking.count(),
+      prisma.booking.count({ where: { status: BookingStatus.ACTIVE } }),
     ]);
 
     return {
