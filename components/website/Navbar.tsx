@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/lib/constants";
 import { WEBSITE_NAV_LINKS } from "@/lib/website-data";
 
-export default function Navbar(): JSX.Element {
+export default function Navbar({ isAuthenticated }: { isAuthenticated: boolean }): JSX.Element {
   const [open, setOpen] = useState(false);
+  const ctaHref = isAuthenticated ? ROUTES.DASHBOARD : ROUTES.LOGIN;
+  const ctaLabel = isAuthenticated ? "App öffnen" : "Anmelden";
 
   return (
     <header className="sticky top-0 z-50 border-b border-header-foreground/10 bg-header text-header-foreground">
@@ -45,7 +47,7 @@ export default function Navbar(): JSX.Element {
             variant="secondary"
             nativeButton={false}
             className="hidden rounded-none md:inline-flex"
-            render={<Link href={ROUTES.LOGIN}>Anmelden</Link>}
+            render={<Link href={ctaHref}>{ctaLabel}</Link>}
           />
 
           <button
@@ -80,8 +82,8 @@ export default function Navbar(): JSX.Element {
             nativeButton={false}
             className="mt-2 w-full rounded-none"
             render={
-              <Link href={ROUTES.LOGIN} onClick={() => setOpen(false)}>
-                Anmelden
+              <Link href={ctaHref} onClick={() => setOpen(false)}>
+                {ctaLabel}
               </Link>
             }
           />
