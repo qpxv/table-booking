@@ -2,7 +2,6 @@ import type { JSX } from "react";
 import Link from "next/link";
 import { Dices, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
-import LinkPendingSpinner from "@/components/ui/link-pending-spinner";
 import { listTablesWithUpcomingWeekCounts } from "@/lib/queries/tables";
 import { formatBerlin } from "@/lib/datetime";
 import { ROUTES } from "@/lib/constants";
@@ -30,7 +29,7 @@ export default async function TablesListPage(): Promise<JSX.Element> {
           const hasBookings = table.upcomingWeekBookingCount > 0;
           const { nextEvent } = table;
           return (
-            <Link key={table.id} href={ROUTES.tischDetail(table.id)} className="block">
+            <Link key={table.id} href={ROUTES.tischDetail(table.id)} prefetch={false} className="block">
               <Card className="ring-foreground/10 transition-all hover:shadow-md hover:ring-secondary/30">
                 <CardContent className="flex flex-col gap-4">
                   <div className="flex items-center gap-3">
@@ -38,7 +37,6 @@ export default async function TablesListPage(): Promise<JSX.Element> {
                       <Dices className="size-5" />
                     </div>
                     <CardTitle className="grow text-lg">{table.name}</CardTitle>
-                    <LinkPendingSpinner className="size-4 shrink-0 text-muted-foreground" />
                     <ChevronRight className="size-4 shrink-0 text-muted-foreground opacity-0 transition-all group-hover/card:translate-x-0.5 group-hover/card:opacity-100" />
                   </div>
 
