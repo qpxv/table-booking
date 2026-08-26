@@ -2,6 +2,7 @@ import type { JSX } from "react";
 import Link from "next/link";
 import { Dices, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import LinkPendingSpinner from "@/components/ui/link-pending-spinner";
 import { listTablesWithUpcomingWeekCounts } from "@/lib/queries/tables";
 import { formatBerlin } from "@/lib/datetime";
 import { ROUTES } from "@/lib/constants";
@@ -37,6 +38,7 @@ export default async function TablesListPage(): Promise<JSX.Element> {
                       <Dices className="size-5" />
                     </div>
                     <CardTitle className="grow text-lg">{table.name}</CardTitle>
+                    <LinkPendingSpinner className="size-4 shrink-0 text-muted-foreground" />
                     <ChevronRight className="size-4 shrink-0 text-muted-foreground opacity-0 transition-all group-hover/card:translate-x-0.5 group-hover/card:opacity-100" />
                   </div>
 

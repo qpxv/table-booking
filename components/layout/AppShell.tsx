@@ -2,6 +2,7 @@ import type { JSX } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import LinkPendingSpinner from "@/components/ui/link-pending-spinner";
 import { ROLES, ROUTES } from "@/lib/constants";
 import type { DrinkWidgetData } from "@/lib/drink-types";
 import { DrinkWidgetHeaderButton } from "@/components/drinks/DrinkWidget";
@@ -21,7 +22,12 @@ function NavButton({ href, children }: { href: string; children: React.ReactNode
       variant="ghost"
       nativeButton={false}
       className="text-header-foreground hover:bg-header-foreground/10 hover:text-header-foreground"
-      render={<Link href={href}>{children}</Link>}
+      render={
+        <Link href={href}>
+          {children}
+          <LinkPendingSpinner />
+        </Link>
+      }
     />
   );
 }

@@ -1,36 +1,29 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getCookieCache } from "better-auth/cookies";
+import { auth } from "@/lib/auth";
 import { PUBLIC_ROUTES, REDIRECT_IF_AUTHENTICATED_ROUTES, ROUTES } from "@/lib/constants";
 
-// Next.js 16: "Proxy" (formerly Middleware). Only optimistic checks against
-// the session cookie here: no DB access (see the Next.js auth guide). The
-// real, authoritative authorization happens in lib/permissions.ts inside
-// every Server Action.
+// Next.js 16: "Proxy" (formerly Middleware), running on the Node.js runtime
+// (Fluid Compute), not Edge — so a real DB-backed session check here is
+// fine. Deliberately NOT using better-auth's cookie cache (getCookieCache)
+// or session.cookieCache: a cached cookie can go stale (expire, or miss a
+// revoke) while looking identical to a real logged-out state, which bounced
+// people to /login even though their session was still valid. Checking
+// auth.api.getSession() directly is the same real-time check used
+// everywhere else in the app (lib/session.ts), so proxy and the rest of the
+// app can never disagree about whether a session is valid.
 // Reachable without a session cookie at all: /login itself, plus the two
 // legal pages linked from the landing page's footer. The landing page ("/")
 // is intentionally NOT public while the site is still in development — it
 // now requires a login like the rest of the app, but (unlike /login) it
 // stays visible to an already-logged-in visitor instead of bouncing them
 // to /dashboard, since it's still a real page people should be able to see.
-//
-// We read the signed cookie cache (getCookieCache) rather than just
-// checking whether a session cookie exists (getSessionCookie). A stale
-// cookie (expired/revoked session, deleted user) still "exists" but no
-// longer decodes to a valid cache entry. Treating mere presence as
-// "authenticated" caused an infinite redirect loop: /login would bounce to
-// /dashboard because the cookie existed, the (app) layout's checkSession()
-// would then find no real session and bounce back to /login, and the cycle
-// repeated forever until the browser gave up with a "too many redirects"
-// crash. Validating against the cache instead breaks that loop.
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
   const isPublicRoute = PUBLIC_ROUTES.has(pathname);
 
-  const cache = await getCookieCache(request, {
-    secret: process.env.BETTER_AUTH_SECRET,
-  });
-  const isAuthenticated = Boolean(cache?.user);
+  const session = await auth.api.getSession({ headers: request.headers });
+  const isAuthenticated = Boolean(session);
 
   if (!isAuthenticated && !isPublicRoute) {
     return NextResponse.redirect(new URL(ROUTES.LOGIN, request.url));
@@ -40,8 +33,8 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(new URL(ROUTES.DASHBOARD, request.url));
   }
 
-  if (isAuthenticated && pathname.startsWith("/admin")) {
-    if ((cache?.user as { role?: string }).role !== "admin") {
+  if (session && pathname.startsWith("/admin")) {
+    if ((session.user as { role?: string }).role !== "admin") {
       return NextResponse.redirect(new URL(ROUTES.DASHBOARD, request.url));
     }
   }

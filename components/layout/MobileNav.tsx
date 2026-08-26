@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { LogOut, Menu, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import LinkPendingSpinner from "@/components/ui/link-pending-spinner";
 import {
   Sidebar,
   SidebarContent,
@@ -171,7 +172,12 @@ function NavMenuButton({ link }: { link: NavLink }): JSX.Element {
     <SidebarMenuButton
       isActive={pathname === link.href}
       onClick={() => setOpenMobile(false)}
-      render={<Link href={link.href}>{link.label}</Link>}
+      render={
+        <Link href={link.href}>
+          {link.label}
+          <LinkPendingSpinner className="ml-auto" />
+        </Link>
+      }
     />
   );
 }
