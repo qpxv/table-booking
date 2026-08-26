@@ -13,6 +13,15 @@ export const auth = betterAuth({
     enabled: true,
     disableSignUp: true,
   },
+  session: {
+    // proxy.ts reads this cache to check auth state without a DB round
+    // trip. Must be explicitly enabled or getCookieCache() always returns
+    // null, which is indistinguishable from "logged out" to the proxy.
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60,
+    },
+  },
   user: {
     additionalFields: {
       memberId: {
