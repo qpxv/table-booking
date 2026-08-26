@@ -123,6 +123,7 @@ export async function createBooking(
 
     revalidatePath(`${ROUTES.TISCHE}/${tableId}`);
     revalidatePath(ROUTES.DASHBOARD);
+    revalidatePath(ROUTES.GASTHISTORIE);
 
     return { success: true, message: MESSAGES.BOOKING.CREATED };
   } catch (err) {
@@ -279,6 +280,7 @@ export async function updateBooking(
 
     revalidatePath(`${ROUTES.TISCHE}/${booking.tableId}`);
     revalidatePath(ROUTES.DASHBOARD);
+    revalidatePath(ROUTES.GASTHISTORIE);
 
     return { success: true, message: MESSAGES.BOOKING.UPDATED };
   } catch (err) {
@@ -316,6 +318,7 @@ export async function cancelBooking(id: string): Promise<ServiceResult> {
 
     revalidatePath(`${ROUTES.TISCHE}/${booking.tableId}`);
     revalidatePath(ROUTES.DASHBOARD);
+    revalidatePath(ROUTES.GASTHISTORIE);
 
     return { success: true, message: MESSAGES.BOOKING.CANCELLED };
   } catch (err) {

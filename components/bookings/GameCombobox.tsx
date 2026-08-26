@@ -43,6 +43,21 @@ export default function GameCombobox({
 
   const showSuggestions = open && suggestions.length > 0;
 
+  // Not a cmdk CommandInput, so Enter has no built-in "select the
+  // highlighted match" behavior: left alone, it falls through to the
+  // outer BookingDialog form's default submit instead. Always suppress
+  // that; if a suggestion is showing, pick the top one to mirror clicking
+  // the first CommandItem (the typed value is already live-bound via
+  // onChange, so there's nothing else to do otherwise).
+  function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>): void {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    if (showSuggestions) {
+      onChange(suggestions[0].name);
+      setOpen(false);
+    }
+  }
+
   return (
     <div ref={containerRef} className="relative">
       <Input
@@ -52,6 +67,7 @@ export default function GameCombobox({
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
+        onKeyDown={handleKeyDown}
         placeholder="Spiel"
         autoComplete="off"
       />

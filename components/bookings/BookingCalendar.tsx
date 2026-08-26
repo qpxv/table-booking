@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, type JSX } from "react";
+import { useMemo, useOptimistic, useRef, useState, type JSX } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -23,7 +23,7 @@ import type { Game } from "@/generated/prisma/client";
 import { updateBooking } from "@/service/booking-service/booking";
 import { showToast } from "@/lib/toast";
 import { DIALOG_MODE, SEARCH_PARAMS } from "@/lib/constants";
-import type { CalendarBooking, GuestSelection } from "@/lib/booking-types";
+import type { CalendarBooking, GuestSelection, OptimisticBookingAction } from "@/lib/booking-types";
 import type { MemberOption } from "@/lib/user-types";
 import BookingDialog from "./BookingDialog";
 import BookingJoinDialog from "./BookingJoinDialog";
@@ -40,6 +40,17 @@ function formatDuration(start: Date, end: Date): string {
   if (hours === 0) return `${mins} Min`;
   if (mins === 0) return `${hours} Std`;
   return `${hours} Std ${mins} Min`;
+}
+
+function applyOptimisticBookingAction(
+  state: CalendarBooking[],
+  action: OptimisticBookingAction,
+): CalendarBooking[] {
+  if (action.type === "remove") return state.filter((b) => b.id !== action.id);
+  const exists = state.some((b) => b.id === action.booking.id);
+  return exists
+    ? state.map((b) => (b.id === action.booking.id ? action.booking : b))
+    : [...state, action.booking];
 }
 
 function renderEventContent(arg: EventContentArg): JSX.Element {
@@ -86,12 +97,16 @@ export default function BookingCalendar({
   const calendarRef = useRef<FullCalendar>(null);
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [title, setTitle] = useState("");
+  const [optimisticBookings, dispatchOptimisticBooking] = useOptimistic(
+    bookings,
+    applyOptimisticBookingAction,
+  );
 
   const initialDate = searchParams.get(SEARCH_PARAMS.DATE) ?? undefined;
 
   const events: EventInput[] = useMemo(
     () =>
-      bookings.map((booking) => {
+      optimisticBookings.map((booking) => {
         const isOwn = booking.userId === currentUserId;
         const isParticipant = booking.participants.some((p) => p.userId === currentUserId);
         const attendees = [
@@ -110,7 +125,7 @@ export default function BookingCalendar({
           extendedProps: { isOwn, attendees, game: booking.game },
         };
       }),
-    [bookings, currentUserId, isAdmin],
+    [optimisticBookings, currentUserId, isAdmin],
   );
 
   const editingGuests: GuestSelection[] =
@@ -120,6 +135,11 @@ export default function BookingCalendar({
           .filter((g): g is GuestWithVisits => Boolean(g))
           .map((guest) => ({ type: "existing", guest }))
       : [];
+
+  const initialGuestPrices: Record<string, number> =
+    dialog?.mode === DIALOG_MODE.EDIT
+      ? Object.fromEntries(dialog.booking.guests.map((g) => [g.guestId, g.price]))
+      : {};
 
   const editingParticipants: MemberOption[] =
     dialog?.mode === DIALOG_MODE.EDIT
@@ -148,7 +168,7 @@ export default function BookingCalendar({
   }
 
   function handleEventClick(clickInfo: EventClickArg): void {
-    const booking = bookings.find((b) => b.id === clickInfo.event.id);
+    const booking = optimisticBookings.find((b) => b.id === clickInfo.event.id);
     if (!booking) return;
     setDialog({ mode: DIALOG_MODE.JOIN, booking });
   }
@@ -159,7 +179,7 @@ export default function BookingCalendar({
     end: Date,
     revert: () => void,
   ): Promise<void> {
-    const booking = bookings.find((b) => b.id === bookingId);
+    const booking = optimisticBookings.find((b) => b.id === bookingId);
     if (!booking) {
       revert();
       return;
@@ -269,7 +289,9 @@ export default function BookingCalendar({
           }
           initialGame={dialog.mode === DIALOG_MODE.EDIT ? (dialog.booking.game ?? "") : ""}
           initialGuests={editingGuests}
+          initialGuestPrices={initialGuestPrices}
           initialParticipants={editingParticipants}
+          dispatchOptimisticBooking={dispatchOptimisticBooking}
           knownGuests={knownGuests}
           knownGames={knownGames}
           knownMembers={knownMembers}

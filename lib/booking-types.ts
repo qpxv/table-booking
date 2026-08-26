@@ -7,9 +7,13 @@ export type CalendarBooking = {
   game: string | null;
   userId: string;
   userName: string;
-  guests: { guestId: string; name: string }[];
+  guests: { guestId: string; name: string; price: number }[];
   participants: { userId: string; name: string }[];
 };
+
+export type OptimisticBookingAction =
+  | { type: "upsert"; booking: CalendarBooking }
+  | { type: "remove"; id: string };
 
 export type GuestSelection = { type: "existing"; guest: GuestWithVisits } | { type: "new"; name: string };
 

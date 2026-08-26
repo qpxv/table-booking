@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition, type JSX } from "react";
+import { useCallback, useMemo, useState, useTransition, type JSX } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarX, Save, X } from "lucide-react";
@@ -20,11 +20,16 @@ import DateTimeField from "./DateTimeField";
 import GameCombobox from "./GameCombobox";
 import GuestMultiCombobox from "./GuestMultiCombobox";
 import MemberMultiCombobox from "./MemberMultiCombobox";
-import { isExistingGuestSelection, type GuestSelection } from "@/lib/booking-types";
+import {
+  isExistingGuestSelection,
+  type CalendarBooking,
+  type GuestSelection,
+  type OptimisticBookingAction,
+} from "@/lib/booking-types";
 import type { MemberOption } from "@/lib/user-types";
 import type { GuestWithVisits } from "@/lib/guest-types";
 import type { Game } from "@/generated/prisma/client";
-import { calculateGuestPrice } from "@/lib/pricing";
+import { calculateGuestPrice, GUEST_PRICE_FIRST_VISIT } from "@/lib/pricing";
 import {
   bookingFieldsSchema,
   type BookingFieldsInput,
@@ -45,7 +50,9 @@ export default function BookingDialog({
   initialEnd,
   initialGame,
   initialGuests,
+  initialGuestPrices,
   initialParticipants,
+  dispatchOptimisticBooking,
   knownGuests,
   knownGames,
   knownMembers,
@@ -61,7 +68,9 @@ export default function BookingDialog({
   initialEnd: string;
   initialGame?: string;
   initialGuests?: GuestSelection[];
+  initialGuestPrices?: Record<string, number>;
   initialParticipants?: MemberOption[];
+  dispatchOptimisticBooking: (action: OptimisticBookingAction) => void;
   knownGuests: GuestWithVisits[];
   knownGames: Pick<Game, "id" | "name">[];
   knownMembers: MemberOption[];
@@ -90,15 +99,53 @@ export default function BookingDialog({
     },
   });
 
-  const guestCost = useMemo(() => {
-    return selectedGuests.reduce((total, selection) => {
-      const previousVisitCount = isExistingGuestSelection(selection) ? selection.guest.visitCount : 0;
-      return total + calculateGuestPrice(previousVisitCount);
-    }, 0);
-  }, [selectedGuests]);
+  // A guest already on this booking has a real, already-frozen price
+  // (initialGuestPrices, keyed by guestId) — showing that instead of a live
+  // recompute matters once the guest's overall visit count has moved on
+  // since this booking was created/last saved (e.g. an earlier visit of
+  // theirs got cancelled). A guest not yet on this booking has no frozen
+  // price yet, so fall back to the live estimate.
+  const resolveGuestPrice = useCallback(
+    (selection: GuestSelection): number => {
+      if (!isExistingGuestSelection(selection)) return GUEST_PRICE_FIRST_VISIT;
+      const frozenPrice = initialGuestPrices?.[selection.guest.id];
+      return frozenPrice !== undefined ? frozenPrice : calculateGuestPrice(selection.guest.visitCount);
+    },
+    [initialGuestPrices],
+  );
+
+  const guestCost = useMemo(
+    () => selectedGuests.reduce((total, selection) => total + resolveGuestPrice(selection), 0),
+    [selectedGuests, resolveGuestPrice],
+  );
+
+  function buildOptimisticBooking(values: BookingFieldsInput): CalendarBooking {
+    const creatorName = knownMembers.find((m) => m.id === creatorUserId)?.name ?? "";
+    return {
+      id: bookingId ?? `optimistic-${crypto.randomUUID()}`,
+      start: values.start,
+      end: values.end,
+      game: tableAllowsMultiple ? null : values.game || null,
+      userId: creatorUserId,
+      userName: creatorName,
+      participants: [
+        { userId: creatorUserId, name: creatorName },
+        ...selectedParticipants.map((m) => ({ userId: m.id, name: m.name })),
+      ],
+      guests: selectedGuests.map((selection) => ({
+        guestId: isExistingGuestSelection(selection)
+          ? selection.guest.id
+          : `optimistic-guest-${selection.name}`,
+        name: isExistingGuestSelection(selection) ? selection.guest.name : selection.name,
+        price: resolveGuestPrice(selection),
+      })),
+    };
+  }
 
   function onSubmit(values: BookingFieldsInput): void {
     startTransition(async () => {
+      dispatchOptimisticBooking({ type: "upsert", booking: buildOptimisticBooking(values) });
+
       const guests = selectedGuests.map(
         (selection): GuestInput =>
           selection.type === "existing"
@@ -232,6 +279,7 @@ export default function BookingDialog({
           mode={CONFIRM_MODE.BOOKING}
           onConfirm={async () => {
             if (!bookingId) return { success: false, message: MESSAGES.BOOKING.NO_BOOKING_SELECTED };
+            dispatchOptimisticBooking({ type: "remove", id: bookingId });
             const result = await cancelBooking(bookingId);
             if (result.success) onClose();
             return result;

@@ -59,7 +59,11 @@ export default async function TableCalendarPage({
             game: b.game,
             userId: b.userId,
             userName: b.user.name,
-            guests: b.guests.map((g) => ({ guestId: g.guestId, name: g.guest.name })),
+            guests: b.guests.map((g) => ({
+              guestId: g.guestId,
+              name: g.guest.name,
+              price: Number(g.price),
+            })),
             participants: b.participants.map((p) => ({ userId: p.userId, name: p.user.name })),
           }))}
           knownGuests={knownGuests}
