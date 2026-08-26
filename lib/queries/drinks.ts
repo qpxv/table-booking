@@ -5,7 +5,6 @@ import { getSession } from "@/lib/session";
 import { isAdmin, isHiddenAccount } from "@/lib/permissions";
 import { MESSAGES } from "@/lib/constants";
 import { getCurrentBerlinYearMonth, getTodayBerlinRange } from "@/lib/datetime";
-import { BookingStatus } from "@/generated/prisma/enums";
 import type { DrinkReportRow, DrinkWidgetGuest } from "@/lib/drink-types";
 
 /** Own drink count for the current month, plus today's guests this member can log a drink for. */
@@ -33,7 +32,6 @@ export async function getDrinkWidgetData(): Promise<{
       where: {
         booking: {
           userId: session.user.id,
-          status: BookingStatus.ACTIVE,
           start: { gte: start, lt: end },
         },
       },

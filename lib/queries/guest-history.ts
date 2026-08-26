@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { isAdmin } from "@/lib/permissions";
 import { isValidIban } from "@/lib/iban";
-import { BookingStatus } from "@/generated/prisma/enums";
 import type { GuestHistoryRow } from "@/lib/guest-history-types";
 
 /** Admins see every member's guests; everyone else sees only guests they brought. */
@@ -21,10 +20,7 @@ export async function listGuestHistory(): Promise<{
 
     const bookingGuests = await prisma.bookingGuest.findMany({
       where: {
-        booking: {
-          status: BookingStatus.ACTIVE,
-          ...(admin ? {} : { userId: session.user.id }),
-        },
+        booking: admin ? {} : { userId: session.user.id },
       },
       include: {
         guest: { select: { name: true } },

@@ -5,9 +5,9 @@ import { unstable_rethrow } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { canEditBooking } from "@/lib/permissions";
-import { calculateGuestPrice } from "@/lib/pricing";
+import { calculateGuestPrice, GUEST_PRICE_FIRST_VISIT } from "@/lib/pricing";
 import { ROUTES, MESSAGES } from "@/lib/constants";
-import { BookingStatus } from "@/generated/prisma/enums";
+import { Prisma } from "@/generated/prisma/client";
 import {
   createBookingSchema,
   updateBookingSchema,
@@ -37,7 +37,6 @@ export async function createBooking(
     const overlap = await prisma.booking.findFirst({
       where: {
         tableId,
-        status: BookingStatus.ACTIVE,
         start: { lt: data.end },
         end: { gt: data.start },
       },
@@ -161,7 +160,6 @@ export async function updateBooking(
     const overlap = await prisma.booking.findFirst({
       where: {
         tableId: booking.tableId,
-        status: BookingStatus.ACTIVE,
         id: { not: id },
         start: { lt: data.end },
         end: { gt: data.start },
@@ -248,6 +246,15 @@ export async function updateBooking(
         const toRemove = booking.guests.filter((bg) => !keepGuestIds.has(bg.guestId));
         if (toRemove.length > 0) {
           await tx.bookingGuest.deleteMany({ where: { id: { in: toRemove.map((bg) => bg.id) } } });
+
+          // Removing a guest can leave a later booking's frozen price
+          // stale: it was priced as a "returning guest" only because this
+          // now-removed visit existed at the time. Recheck each affected
+          // guest's remaining entries.
+          const removedGuestIds = new Set(toRemove.map((bg) => bg.guestId));
+          for (const guestId of removedGuestIds) {
+            await recalculateGuestPricing(tx, guestId);
+          }
         }
       }
 
@@ -283,7 +290,7 @@ export async function updateBooking(
 
 export async function cancelBooking(id: string): Promise<ServiceResult> {
   const session = await getSession();
-  const booking = await prisma.booking.findUnique({ where: { id } });
+  const booking = await prisma.booking.findUnique({ where: { id }, include: { guests: true } });
   if (!booking) return { success: false, message: MESSAGES.BOOKING.NOT_FOUND };
 
   // Admins can cancel any booking; members only their own
@@ -293,10 +300,18 @@ export async function cancelBooking(id: string): Promise<ServiceResult> {
   }
 
   try {
-    // Soft delete via status: no hard delete, for traceability.
-    await prisma.booking.update({
-      where: { id },
-      data: { status: BookingStatus.CANCELLED },
+    await prisma.$transaction(async (tx) => {
+      // Hard delete: no history is kept for cancelled bookings. Cascades
+      // to this booking's BookingGuest/BookingParticipant rows.
+      await tx.booking.delete({ where: { id } });
+
+      // A removed guest's later booking may have been priced as
+      // "returning guest" only because this now-deleted visit existed.
+      // Recheck each affected guest's remaining entries.
+      const affectedGuestIds = new Set(booking.guests.map((bg) => bg.guestId));
+      for (const guestId of affectedGuestIds) {
+        await recalculateGuestPricing(tx, guestId);
+      }
     });
 
     revalidatePath(`${ROUTES.TISCHE}/${booking.tableId}`);
@@ -310,13 +325,42 @@ export async function cancelBooking(id: string): Promise<ServiceResult> {
   }
 }
 
+/**
+ * A guest's BookingGuest.price is frozen at creation time based on their
+ * visit count then. Deleting an earlier visit (cancel, or removing the
+ * guest from a booking) can leave a later, still-unpaid entry stale: it
+ * was priced as a "returning guest" only because the now-gone visit
+ * existed. If the guest no longer has any entry marked as their free first
+ * visit, promote their earliest remaining entry to free.
+ */
+async function recalculateGuestPricing(
+  tx: Prisma.TransactionClient,
+  guestId: string,
+): Promise<void> {
+  const hasFreeVisit = await tx.bookingGuest.findFirst({
+    where: { guestId, price: GUEST_PRICE_FIRST_VISIT },
+  });
+  if (hasFreeVisit) return;
+
+  const earliestRemaining = await tx.bookingGuest.findFirst({
+    where: { guestId },
+    orderBy: { booking: { start: "asc" } },
+  });
+  if (!earliestRemaining) return;
+
+  await tx.bookingGuest.update({
+    where: { id: earliestRemaining.id },
+    data: { price: GUEST_PRICE_FIRST_VISIT },
+  });
+}
+
 /** Join any active booking as an additional participant. */
 export async function joinBooking(bookingId: string): Promise<ServiceResult> {
   const session = await getSession();
   if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
 
   const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
-  if (!booking || booking.status !== BookingStatus.ACTIVE) {
+  if (!booking) {
     return { success: false, message: MESSAGES.BOOKING.EVENT_NOT_FOUND };
   }
 

@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { isAdmin } from "@/lib/permissions";
 import { MESSAGES } from "@/lib/constants";
-import { BookingStatus } from "@/generated/prisma/enums";
 import type { GuestWithVisits, MemberGuestSummary, GuestsByMember } from "@/lib/guest-types";
 
 // Guests are a club-wide directory, not scoped per member: in a small
@@ -60,7 +59,6 @@ export async function listGuestsGroupedByBringer(): Promise<{
     }
 
     const bookingGuests = await prisma.bookingGuest.findMany({
-      where: { booking: { status: BookingStatus.ACTIVE } },
       include: {
         guest: { include: { _count: { select: { bookings: true } } } },
         booking: { select: { userId: true } },

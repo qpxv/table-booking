@@ -59,6 +59,21 @@ export default function GuestMultiCombobox({
     onChange(value.filter((_, i) => i !== index));
   }
 
+  // The Input isn't a cmdk CommandInput, so Enter has no built-in
+  // "select the highlighted match" behavior: left alone, it falls through
+  // to the outer BookingDialog form's default submit instead. Always
+  // suppress that, and add the top-of-list match (or the typed name as a
+  // new guest) to mirror clicking the first CommandItem.
+  function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>): void {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    if (matches.length > 0) {
+      addGuest({ type: "existing", guest: matches[0] });
+    } else if (trimmedSearch !== "" && !exactMatch) {
+      addGuest({ type: "new", name: trimmedSearch });
+    }
+  }
+
   return (
     <div className="flex flex-col gap-2">
       {value.length > 0 && (
@@ -91,6 +106,7 @@ export default function GuestMultiCombobox({
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
+          onKeyDown={handleKeyDown}
           placeholder="Bekannten Gast wählen oder neuen Namen eingeben"
           autoComplete="off"
         />

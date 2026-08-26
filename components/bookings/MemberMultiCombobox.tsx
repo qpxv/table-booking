@@ -51,6 +51,17 @@ export default function MemberMultiCombobox({
     onChange(value.filter((member) => member.id !== id));
   }
 
+  // The Input isn't a cmdk CommandInput, so Enter has no built-in
+  // "select the highlighted match" behavior: left alone, it falls through
+  // to the outer BookingDialog form's default submit instead. Always
+  // suppress that, and add the top-of-list match to mirror clicking the
+  // first CommandItem.
+  function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>): void {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    if (matches.length > 0) addMember(matches[0]);
+  }
+
   return (
     <div className="flex flex-col gap-2">
       {value.length > 0 && (
@@ -80,6 +91,7 @@ export default function MemberMultiCombobox({
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
+          onKeyDown={handleKeyDown}
           placeholder="Mitglied hinzufügen"
           autoComplete="off"
         />

@@ -3,7 +3,6 @@ import { unstable_rethrow } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { endOfWeekBerlin } from "@/lib/datetime";
 import { MESSAGES } from "@/lib/constants";
-import { BookingStatus } from "@/generated/prisma/enums";
 import type { Table } from "@/generated/prisma/client";
 import type { TableWithUpcomingWeekCount } from "@/lib/table-types";
 
@@ -60,7 +59,6 @@ export async function listTablesWithUpcomingWeekCounts(): Promise<{
           select: {
             bookings: {
               where: {
-                status: BookingStatus.ACTIVE,
                 start: { gte: now, lte: weekEnd },
               },
             },
@@ -75,7 +73,6 @@ export async function listTablesWithUpcomingWeekCounts(): Promise<{
       ? await prisma.booking.findMany({
           where: {
             tableId: { in: sharedTableIds },
-            status: BookingStatus.ACTIVE,
             start: { gte: now },
           },
           orderBy: { start: "asc" },

@@ -10,7 +10,6 @@
 import { auth } from "../lib/auth";
 import { prisma } from "../lib/prisma";
 import { calculateGuestPrice } from "../lib/pricing";
-import { BookingStatus } from "../generated/prisma/enums";
 
 const FIRST_NAMES = [
   "Anna", "Tobias", "Laura", "Felix", "Julia", "Max", "Lena", "Jonas",
@@ -165,7 +164,6 @@ async function main() {
             start,
             end,
             game,
-            status: BookingStatus.ACTIVE,
           },
         });
         getRanges(table.id).push({ start, end });
