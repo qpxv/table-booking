@@ -29,7 +29,7 @@ export default async function TablesListPage(): Promise<JSX.Element> {
           const hasBookings = table.upcomingWeekBookingCount > 0;
           const { nextEvent } = table;
           return (
-            <Link key={table.id} href={ROUTES.tischDetail(table.id)} prefetch={false} className="block">
+            <Link key={table.id} href={ROUTES.tischDetail(table.id)} className="block">
               <Card className="ring-foreground/10 transition-all hover:shadow-md hover:ring-secondary/30">
                 <CardContent className="flex flex-col gap-4">
                   <div className="flex items-center gap-3">

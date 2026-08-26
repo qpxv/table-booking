@@ -3,6 +3,7 @@ import { checkSession } from "@/lib/session";
 import { ROLES } from "@/lib/constants";
 import { getDrinkWidgetData } from "@/lib/queries/drinks";
 import AppShell from "@/components/layout/AppShell";
+import RouteTransition from "@/components/layout/RouteTransition";
 
 export default async function AppLayout({
   children,
@@ -24,7 +25,7 @@ export default async function AppLayout({
       }}
       drinkWidget={{ ownCount: drinkResult.ownCount, guests: drinkResult.guests }}
     >
-      {children}
+      <RouteTransition>{children}</RouteTransition>
     </AppShell>
   );
 }

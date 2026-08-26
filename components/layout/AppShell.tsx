@@ -21,15 +21,7 @@ function NavButton({ href, children }: { href: string; children: React.ReactNode
       variant="ghost"
       nativeButton={false}
       className="text-header-foreground hover:bg-header-foreground/10 hover:text-header-foreground"
-      render={
-        // Prefetch off: these routes are dynamic (checkSession + per-page
-        // DB queries) and always in the always-visible header, so with
-        // prefetch on they'd finish loading before you ever click, and
-        // (app)/loading.tsx's spinner would never get a chance to show.
-        <Link href={href} prefetch={false}>
-          {children}
-        </Link>
-      }
+      render={<Link href={href}>{children}</Link>}
     />
   );
 }
@@ -62,7 +54,7 @@ export default function AppShell({
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="flex items-center gap-2 border-b bg-header px-4 py-3 text-header-foreground">
-        <Link href={ROUTES.DASHBOARD} className="flex min-w-0 grow items-center gap-2 truncate">
+        <Link href={ROUTES.HOME} className="flex min-w-0 grow items-center gap-2 truncate">
           <Image
             src="/club-logo-dark.png"
             alt=""

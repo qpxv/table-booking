@@ -54,7 +54,7 @@ export default function MobileNav({
       <MobileNavTrigger />
       <Sidebar side="right" collapsible="offcanvas">
         <SidebarHeader>
-          <Link href={ROUTES.DASHBOARD} className="flex items-center gap-2 px-2 py-1.5 outline-hidden">
+          <Link href={ROUTES.HOME} className="flex items-center gap-2 px-2 py-1.5 outline-hidden">
             <Image
               src="/club-logo-light.png"
               alt=""
@@ -171,7 +171,7 @@ function NavMenuButton({ link }: { link: NavLink }): JSX.Element {
     <SidebarMenuButton
       isActive={pathname === link.href}
       onClick={() => setOpenMobile(false)}
-      render={<Link href={link.href} prefetch={false}>{link.label}</Link>}
+      render={<Link href={link.href}>{link.label}</Link>}
     />
   );
 }
