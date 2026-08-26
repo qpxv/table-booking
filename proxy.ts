@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getSessionCookie, getCookieCache } from "better-auth/cookies";
+import { getCookieCache } from "better-auth/cookies";
+import { PUBLIC_ROUTES, REDIRECT_IF_AUTHENTICATED_ROUTES, ROUTES } from "@/lib/constants";
 
 // Next.js 16: "Proxy" (formerly Middleware). Only optimistic checks against
 // the session cookie here: no DB access (see the Next.js auth guide). The
@@ -12,30 +13,36 @@ import { getSessionCookie, getCookieCache } from "better-auth/cookies";
 // now requires a login like the rest of the app, but (unlike /login) it
 // stays visible to an already-logged-in visitor instead of bouncing them
 // to /dashboard, since it's still a real page people should be able to see.
-const PUBLIC_ROUTES = new Set(["/login", "/impressum", "/datenschutz"]);
-const REDIRECT_IF_AUTHENTICATED = new Set(["/login"]);
-
+//
+// We read the signed cookie cache (getCookieCache) rather than just
+// checking whether a session cookie exists (getSessionCookie). A stale
+// cookie (expired/revoked session, deleted user) still "exists" but no
+// longer decodes to a valid cache entry. Treating mere presence as
+// "authenticated" caused an infinite redirect loop: /login would bounce to
+// /dashboard because the cookie existed, the (app) layout's checkSession()
+// would then find no real session and bounce back to /login, and the cycle
+// repeated forever until the browser gave up with a "too many redirects"
+// crash. Validating against the cache instead breaks that loop.
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
   const isPublicRoute = PUBLIC_ROUTES.has(pathname);
 
-  const sessionCookie = getSessionCookie(request);
+  const cache = await getCookieCache(request, {
+    secret: process.env.BETTER_AUTH_SECRET,
+  });
+  const isAuthenticated = Boolean(cache?.user);
 
-  if (!sessionCookie && !isPublicRoute) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  if (!isAuthenticated && !isPublicRoute) {
+    return NextResponse.redirect(new URL(ROUTES.LOGIN, request.url));
   }
 
-  if (sessionCookie && REDIRECT_IF_AUTHENTICATED.has(pathname)) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+  if (isAuthenticated && REDIRECT_IF_AUTHENTICATED_ROUTES.has(pathname)) {
+    return NextResponse.redirect(new URL(ROUTES.DASHBOARD, request.url));
   }
 
-  if (pathname.startsWith("/admin")) {
-    const cache = await getCookieCache(request, {
-      secret: process.env.BETTER_AUTH_SECRET,
-    });
-
-    if (cache?.user && (cache.user as { role?: string }).role !== "admin") {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+  if (isAuthenticated && pathname.startsWith("/admin")) {
+    if ((cache?.user as { role?: string }).role !== "admin") {
+      return NextResponse.redirect(new URL(ROUTES.DASHBOARD, request.url));
     }
   }
 

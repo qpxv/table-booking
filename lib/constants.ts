@@ -7,8 +7,20 @@ export const ROUTES = {
   ADMIN_SPIELE: "/admin/spiele",
   ADMIN_USERS: "/admin/users",
   ADMIN_GETRAENKE: "/admin/getraenke",
+  IMPRESSUM: "/impressum",
+  DATENSCHUTZ: "/datenschutz",
   tischDetail: (tableId: string): string => `/tische/${tableId}`,
 } as const;
+
+// Routes proxy.ts (Next.js middleware) needs to reason about without a DB
+// lookup: which paths are reachable with no session cookie, and which
+// should bounce an already-authenticated visitor away.
+export const PUBLIC_ROUTES = new Set<string>([
+  ROUTES.LOGIN,
+  ROUTES.IMPRESSUM,
+  ROUTES.DATENSCHUTZ,
+]);
+export const REDIRECT_IF_AUTHENTICATED_ROUTES = new Set<string>([ROUTES.LOGIN]);
 
 export const ROLES = {
   ADMIN: "admin",
