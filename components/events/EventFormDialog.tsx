@@ -29,6 +29,14 @@ function defaultStart(): Date {
   return start;
 }
 
+// A day picked from the calendar comes in at midnight; default it to a
+// club-evening time the admin can then adjust.
+function startOnDate(date: Date): Date {
+  const start = new Date(date);
+  start.setHours(18, 0, 0, 0);
+  return start;
+}
+
 function plusHours(date: Date, hours: number): Date {
   const next = new Date(date);
   next.setHours(next.getHours() + hours);
@@ -37,13 +45,16 @@ function plusHours(date: Date, hours: number): Date {
 
 export default function EventFormDialog({
   event,
+  initialDate,
   onClose,
 }: {
   event: ClubEvent | null;
+  initialDate?: Date;
   onClose: () => void;
 }): JSX.Element {
   const [pending, startTransition] = useTransition();
-  const initialStart = event?.start ?? defaultStart();
+  const initialStart =
+    event?.start ?? (initialDate ? startOnDate(initialDate) : defaultStart());
   const [hasEnd, setHasEnd] = useState(!!event?.end);
 
   const form = useForm<EventFieldsInput>({

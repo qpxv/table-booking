@@ -26,15 +26,24 @@ export default function EventsView({
   const [view, setView] = useState<View>("list");
   const [formOpen, setFormOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<ClubEvent | null>(null);
+  const [createDate, setCreateDate] = useState<Date | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ClubEvent | null>(null);
 
   function openCreate(): void {
     setEditTarget(null);
+    setCreateDate(null);
+    setFormOpen(true);
+  }
+
+  function openCreateOnDate(date: Date): void {
+    setEditTarget(null);
+    setCreateDate(date);
     setFormOpen(true);
   }
 
   function openEdit(event: ClubEvent): void {
     setEditTarget(event);
+    setCreateDate(null);
     setFormOpen(true);
   }
 
@@ -60,7 +69,11 @@ export default function EventsView({
       )}
 
       {isAdmin && view === "calendar" ? (
-        <EventCalendar events={events} onSelectEvent={openEdit} />
+        <EventCalendar
+          events={events}
+          onSelectEvent={openEdit}
+          onCreateOnDate={openCreateOnDate}
+        />
       ) : (
         <EventList
           events={events}
@@ -72,7 +85,11 @@ export default function EventsView({
       )}
 
       {formOpen && (
-        <EventFormDialog event={editTarget} onClose={() => setFormOpen(false)} />
+        <EventFormDialog
+          event={editTarget}
+          initialDate={createDate ?? undefined}
+          onClose={() => setFormOpen(false)}
+        />
       )}
       {deleteTarget && (
         <ConfirmDeleteDialog

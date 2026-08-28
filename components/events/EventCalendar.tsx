@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState, type JSX } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
+import interactionPlugin, { type DateClickArg } from "@fullcalendar/interaction";
 import momentTimezonePlugin from "@fullcalendar/moment-timezone";
 import deLocale from "@fullcalendar/core/locales/de";
 import type { EventClickArg, EventInput } from "@fullcalendar/core";
@@ -10,14 +11,17 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ClubEvent } from "@/lib/event-types";
 
-// Admin-only month overview. Read-only: clicking an event opens the edit
-// dialog (the actual editing happens there, not on the grid).
+// Admin-only month overview. Editing happens in dialogs, not on the grid:
+// clicking an event opens the edit dialog; clicking an empty day cell opens
+// the create dialog pre-filled with that date (times are still set there).
 export default function EventCalendar({
   events,
   onSelectEvent,
+  onCreateOnDate,
 }: {
   events: ClubEvent[];
   onSelectEvent: (event: ClubEvent) => void;
+  onCreateOnDate: (date: Date) => void;
 }): JSX.Element {
   const calendarRef = useRef<FullCalendar>(null);
   const [title, setTitle] = useState("");
@@ -37,6 +41,12 @@ export default function EventCalendar({
   function handleEventClick(clickInfo: EventClickArg): void {
     const event = events.find((e) => e.id === clickInfo.event.id);
     if (event) onSelectEvent(event);
+  }
+
+  function handleDateClick(arg: DateClickArg): void {
+    // arg.dateStr is the plain YYYY-MM-DD of the clicked cell; parsing it as
+    // a local date keeps it aligned with how DateTimeField reads Date parts.
+    onCreateOnDate(new Date(`${arg.dateStr}T00:00:00`));
   }
 
   return (
@@ -70,7 +80,7 @@ export default function EventCalendar({
 
       <FullCalendar
         ref={calendarRef}
-        plugins={[dayGridPlugin, momentTimezonePlugin]}
+        plugins={[dayGridPlugin, interactionPlugin, momentTimezonePlugin]}
         initialView="dayGridMonth"
         timeZone="Europe/Berlin"
         locale={deLocale}
@@ -78,6 +88,7 @@ export default function EventCalendar({
         datesSet={(arg) => setTitle(arg.view.title)}
         eventTimeFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
         eventClick={handleEventClick}
+        dateClick={handleDateClick}
         events={calendarEvents}
         height="auto"
       />

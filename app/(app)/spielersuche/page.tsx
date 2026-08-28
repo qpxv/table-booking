@@ -8,8 +8,8 @@ export default function PlayerSearchPage(): JSX.Element {
       <div>
         <h1 className="text-xl font-semibold tracking-tight">Spielersuche</h1>
         <p className="text-sm text-muted-foreground">
-          Suche einen Gegner für eine Partie. Wer zusagt, bekommt automatisch einen freien Tisch
-          gebucht.
+          Suche einen Gegner für eine Partie. Wer zusagt, bekommt automatisch
+          einen freien Tisch gebucht.
         </p>
       </div>
 
