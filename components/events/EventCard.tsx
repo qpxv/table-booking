@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
-import { formatBerlin } from "@/lib/datetime";
+import { formatEventDateRange } from "@/lib/datetime";
 import { joinEvent, leaveEvent } from "@/service/event-service/event";
 import { showToast } from "@/lib/toast";
 import type { ClubEvent } from "@/lib/event-types";
@@ -38,9 +38,7 @@ export default function EventCard({
     });
   }
 
-  const timeLabel = event.end
-    ? `${formatBerlin(event.start)} – ${formatBerlin(event.end, "HH:mm")} Uhr`
-    : `${formatBerlin(event.start)} Uhr`;
+  const timeLabel = formatEventDateRange(event.start, event.end);
 
   return (
     <Card>

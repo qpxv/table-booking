@@ -3,7 +3,7 @@ import { MapPin } from "lucide-react";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { checkSession } from "@/lib/session";
 import { listUpcomingEventsForUser } from "@/lib/queries/events";
-import { formatBerlin } from "@/lib/datetime";
+import { formatEventDateRange } from "@/lib/datetime";
 
 export default async function DashboardEvents(): Promise<JSX.Element> {
   const session = await checkSession();
@@ -27,9 +27,7 @@ export default async function DashboardEvents(): Promise<JSX.Element> {
           <CardContent className="flex flex-col gap-1">
             <CardTitle>{event.title}</CardTitle>
             <p className="text-sm text-muted-foreground">
-              {event.end
-                ? `${formatBerlin(event.start)} – ${formatBerlin(event.end, "HH:mm")}`
-                : formatBerlin(event.start)}
+              {formatEventDateRange(event.start, event.end)}
             </p>
             {event.location && (
               <p className="flex items-center gap-1.5 text-sm text-muted-foreground">

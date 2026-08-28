@@ -8,6 +8,24 @@ export function formatBerlin(date: Date, pattern = "dd.MM.yyyy HH:mm"): string {
   return formatInTimeZone(date, APP_TIMEZONE, pattern);
 }
 
+/**
+ * Human-readable date/time label for a club event. When the event has an
+ * end that falls on a different Berlin calendar day than the start, both
+ * ends show their full date so a multi-day event reads correctly.
+ */
+export function formatEventDateRange(start: Date, end: Date | null): string {
+  if (!end) {
+    return `${formatBerlin(start)} Uhr`;
+  }
+
+  const sameDay =
+    formatInTimeZone(start, APP_TIMEZONE, "yyyy-MM-dd") ===
+    formatInTimeZone(end, APP_TIMEZONE, "yyyy-MM-dd");
+
+  const endLabel = sameDay ? formatBerlin(end, "HH:mm") : formatBerlin(end);
+  return `${formatBerlin(start)} – ${endLabel} Uhr`;
+}
+
 /** End of the current week (Sunday 23:59:59.999, Monday-start) in Berlin time, as a UTC Date. */
 export function endOfWeekBerlin(date: Date = new Date()): Date {
   const zoned = toZonedTime(date, APP_TIMEZONE);
