@@ -1,9 +1,13 @@
 "use client";
 
 import { useState, useTransition, type JSX } from "react";
-import { Beer, Minus, Plus } from "lucide-react";
+import { CupSoda, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { adjustDrinkCount } from "@/service/drink-service/drink";
 import { showToast } from "@/lib/toast";
@@ -50,7 +54,12 @@ function DrinkAddRow({
   return (
     <div className="flex items-center justify-between gap-2">
       <span className="truncate text-sm text-muted-foreground">{label}</span>
-      <Button variant="outline" size="icon-sm" disabled={pending} onClick={onAdd}>
+      <Button
+        variant="outline"
+        size="icon-sm"
+        disabled={pending}
+        onClick={onAdd}
+      >
         <Plus />
         <span className="sr-only">Getränk für {label} hinzufügen</span>
       </Button>
@@ -74,7 +83,9 @@ function DrinkPopoverContent({
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">Getränke diesen Monat</span>
         <div className="flex items-center gap-1.5">
-          <span className="w-5 text-center text-base font-semibold tabular-nums">{count}</span>
+          <span className="w-5 text-center text-base font-semibold tabular-nums">
+            {count}
+          </span>
           <Button
             variant="outline"
             size="icon-sm"
@@ -89,7 +100,12 @@ function DrinkPopoverContent({
       <div className="flex flex-col gap-1">
         <DrinkAddRow label="Du" onAdd={() => onAdjust(1)} pending={pending} />
         {guests.map((guest) => (
-          <DrinkAddRow key={guest.id} label={guest.name} onAdd={() => onAdjust(1)} pending={pending} />
+          <DrinkAddRow
+            key={guest.id}
+            label={guest.name}
+            onAdd={() => onAdjust(1)}
+            pending={pending}
+          />
         ))}
       </div>
     </div>
@@ -116,7 +132,7 @@ export function DrinkWidgetHeaderButton({
           />
         }
       >
-        <Beer />
+        <CupSoda />
         <span className="sr-only">Getränke</span>
         {count > 0 && (
           <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground">
@@ -125,7 +141,12 @@ export function DrinkWidgetHeaderButton({
         )}
       </PopoverTrigger>
       <PopoverContent align="end">
-        <DrinkPopoverContent count={count} guests={guests} onAdjust={adjust} pending={pending} />
+        <DrinkPopoverContent
+          count={count}
+          guests={guests}
+          onAdjust={adjust}
+          pending={pending}
+        />
       </PopoverContent>
     </Popover>
   );
@@ -144,12 +165,21 @@ export function DrinkWidgetSidebarItem({
     <SidebarMenuItem>
       <Popover>
         <PopoverTrigger render={<SidebarMenuButton />}>
-          <Beer />
+          <CupSoda />
           Getränke
-          {count > 0 && <span className="ml-auto text-xs text-muted-foreground">{count}</span>}
+          {count > 0 && (
+            <span className="ml-auto text-xs text-muted-foreground">
+              {count}
+            </span>
+          )}
         </PopoverTrigger>
         <PopoverContent side="right" align="start">
-          <DrinkPopoverContent count={count} guests={guests} onAdjust={adjust} pending={pending} />
+          <DrinkPopoverContent
+            count={count}
+            guests={guests}
+            onAdjust={adjust}
+            pending={pending}
+          />
         </PopoverContent>
       </Popover>
     </SidebarMenuItem>
