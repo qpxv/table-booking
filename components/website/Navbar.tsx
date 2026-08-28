@@ -25,7 +25,7 @@ export default function Navbar({ isAuthenticated }: { isAuthenticated: boolean }
             priority
             className="h-9 w-auto"
           />
-          <span className="hidden truncate font-heading text-lg font-semibold sm:inline">
+          <span className="truncate font-heading text-lg font-semibold">
             Dice-Bock e.V.
           </span>
         </Link>
@@ -42,11 +42,11 @@ export default function Navbar({ isAuthenticated }: { isAuthenticated: boolean }
           ))}
         </nav>
 
-        <div className="flex items-center justify-end gap-4">
+        <div className="flex items-center justify-end gap-3 md:gap-4">
           <Button
             variant="secondary"
             nativeButton={false}
-            className="hidden rounded-none md:inline-flex"
+            className="rounded-none"
             render={<Link href={ctaHref}>{ctaLabel}</Link>}
           />
 
@@ -63,7 +63,7 @@ export default function Navbar({ isAuthenticated }: { isAuthenticated: boolean }
       </div>
 
       {open && (
-        <nav className="flex flex-col gap-1 border-t border-header-foreground/10 bg-header px-4 pb-4 md:hidden">
+        <nav className="flex origin-top animate-in flex-col gap-1 border-t border-header-foreground/10 bg-header px-4 pb-1 duration-200 fade-in slide-in-from-top-2 md:hidden">
           {WEBSITE_NAV_LINKS.map((link) => (
             <Button
               key={link.href}
@@ -77,16 +77,6 @@ export default function Navbar({ isAuthenticated }: { isAuthenticated: boolean }
               }
             />
           ))}
-          <Button
-            variant="secondary"
-            nativeButton={false}
-            className="mt-2 w-full rounded-none"
-            render={
-              <Link href={ctaHref} onClick={() => setOpen(false)}>
-                {ctaLabel}
-              </Link>
-            }
-          />
         </nav>
       )}
     </header>

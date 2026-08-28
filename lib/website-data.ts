@@ -11,7 +11,7 @@ export const CLUB_STATS = {
   foundedAt: "2024-01-01",
   memberLabel: "Mitglieder",
   daysLabel: "Tage dabei",
-  bookingLabel: "Buchungen über die App",
+  bookingLabel: "Buchungen",
 } as const;
 
 export const HERO = {
@@ -336,7 +336,7 @@ export const CONTACT = {
   description:
     "Fragen zur Mitgliedschaft, zu Schlachtfeldern oder zum nächsten Schlachtabend? Der Vorstand meldet sich schnellstmöglich zurück.",
   board: [
-    { role: "Mitgründer & Vorstand", name: "Tim, Max & Nik", email: "dice-bock@outlook.de" },
+    { role: "Mitgründer & Vorstand", name: "Tim, Max & Nick", email: "dice-bock@outlook.de" },
   ],
   channels: [
     { icon: "Discord", label: "Discord", href: "https://discord.gg/jKApNeC7Hj" },

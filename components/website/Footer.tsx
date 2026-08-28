@@ -9,8 +9,8 @@ export default function Footer(): JSX.Element {
 
   return (
     <footer className="border-t border-header-foreground/15 bg-header text-header-foreground">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1.5fr_1fr_1fr_1fr] md:py-16">
-        <div className="flex items-center gap-3">
+      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-10 px-4 py-12 sm:px-6 md:grid-cols-[1.5fr_1fr_1fr_1fr] md:py-16">
+        <div className="col-span-2 flex items-center gap-3 md:col-span-1">
           <Image
             src="/club-logo-dark.png"
             alt="Dice-Bock e.V."
@@ -36,19 +36,6 @@ export default function Footer(): JSX.Element {
 
         <div className="flex flex-col gap-3">
           <span className="text-xs font-semibold tracking-[0.2em] text-header-foreground/50 uppercase">
-            {FOOTER.communityLabel}
-          </span>
-          <nav className="flex flex-col items-start gap-2 text-sm text-header-foreground/70">
-            {FOOTER.communityLinks.map((link) => (
-              <a key={link.label} href={link.href} className="hover:text-header-foreground">
-                {link.label}
-              </a>
-            ))}
-          </nav>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <span className="text-xs font-semibold tracking-[0.2em] text-header-foreground/50 uppercase">
             {FOOTER.legalLabel}
           </span>
           <nav className="flex flex-col items-start gap-2 text-sm text-header-foreground/70">
@@ -56,6 +43,19 @@ export default function Footer(): JSX.Element {
               <Link key={link.href} href={link.href} className="hover:text-header-foreground">
                 {link.label}
               </Link>
+            ))}
+          </nav>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <span className="text-xs font-semibold tracking-[0.2em] text-header-foreground/50 uppercase">
+            {FOOTER.communityLabel}
+          </span>
+          <nav className="flex flex-col items-start gap-2 text-sm text-header-foreground/70">
+            {FOOTER.communityLinks.map((link) => (
+              <a key={link.label} href={link.href} className="hover:text-header-foreground">
+                {link.label}
+              </a>
             ))}
           </nav>
         </div>
