@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { JSX } from "react";
 import { Work_Sans, Geist_Mono, Fraunces } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import ThemeProvider from "@/components/theme/ThemeProvider";
 import "./globals.css";
 
 // Pairs with the Fraunces display face used for headings: Fraunces has no
@@ -48,8 +49,10 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
-        {children}
-        <Toaster />
+        <ThemeProvider>
+          {children}
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, type JSX } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { LogOut, Menu, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +22,8 @@ import { useSignOut } from "@/hooks/use-sign-out";
 import { ROUTES } from "@/lib/constants";
 import type { DrinkWidgetData } from "@/lib/drink-types";
 import { DrinkWidgetSidebarItem } from "@/components/drinks/DrinkWidget";
+import ClubLogo from "./ClubLogo";
+import ThemeSidebarControl from "@/components/theme/ThemeSidebarControl";
 import SettingsDialog from "./SettingsDialog";
 
 type NavLink = {
@@ -55,13 +56,7 @@ export default function MobileNav({
       <Sidebar side="right" collapsible="offcanvas">
         <SidebarHeader>
           <Link href={ROUTES.HOME} className="flex items-center gap-2 px-2 py-1.5 outline-hidden">
-            <Image
-              src="/club-logo-light.png"
-              alt=""
-              width={444}
-              height={509}
-              className="h-8 w-auto shrink-0"
-            />
+            <ClubLogo className="h-8 w-auto shrink-0" />
             <span className="truncate font-heading text-lg font-semibold">Dice-Bock e.V.</span>
           </Link>
         </SidebarHeader>
@@ -194,6 +189,7 @@ function AccountFooter({
         <span className="truncate font-medium">{name}</span>
         <span className="truncate text-xs text-muted-foreground">{email}</span>
       </div>
+      <ThemeSidebarControl />
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton
