@@ -1,11 +1,7 @@
 import { z } from "zod";
 import { MESSAGES } from "@/lib/constants";
-import { MATCH_TYPE_VALUES } from "@/lib/player-search-types";
-
 const systemField = z.string().trim().min(1, MESSAGES.VALIDATION.SYSTEM_REQUIRED);
-const matchTypeField = z.enum(MATCH_TYPE_VALUES, {
-  message: MESSAGES.VALIDATION.MATCH_TYPE_REQUIRED,
-});
+const matchTypeField = z.string().trim().min(1, MESSAGES.VALIDATION.MATCH_TYPE_REQUIRED);
 
 // RHF form shape: start/end are real Dates from DateTimeField, mirroring
 // bookingFieldsSchema. Client-side validation only.

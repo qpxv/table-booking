@@ -12,18 +12,11 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import DateTimeField from "@/components/bookings/DateTimeField";
 import GameCombobox from "@/components/bookings/GameCombobox";
-import { MATCH_TYPE_OPTIONS } from "@/lib/player-search-types";
 import {
   playerSearchFieldsSchema,
   type PlayerSearchFieldsInput,
@@ -50,7 +43,7 @@ export default function PlayerSearchCreateDialog({
   const { start, end } = defaultRange();
   const form = useForm<PlayerSearchFieldsInput>({
     resolver: zodResolver(playerSearchFieldsSchema),
-    defaultValues: { start, end, system: "", matchType: "fun" },
+    defaultValues: { start, end, system: "", matchType: "" },
   });
 
   function onSubmit(values: PlayerSearchFieldsInput): void {
@@ -112,19 +105,13 @@ export default function PlayerSearchCreateDialog({
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="matchType">Spieltyp</FieldLabel>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger id="matchType">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MATCH_TYPE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FieldLabel htmlFor={field.name}>Spieltyp</FieldLabel>
+                <Input
+                  {...field}
+                  id={field.name}
+                  placeholder="z. B. 2000 Punkte, gemütlich"
+                  aria-invalid={fieldState.invalid}
+                />
                 {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               </Field>
             )}

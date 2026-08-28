@@ -1,10 +1,9 @@
 import type { JSX } from "react";
-import { Swords, Handshake, Trash2 } from "lucide-react";
+import { Swords, Handshake, Check, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatBerlin } from "@/lib/datetime";
-import { matchTypeLabel } from "@/lib/player-search-types";
 import type { OpenPlayerSearch } from "@/lib/queries/player-search";
 
 export default function PlayerSearchCard({
@@ -40,14 +39,28 @@ export default function PlayerSearchCard({
 
         <div className="flex flex-wrap items-center gap-1.5">
           <Badge variant="secondary">{search.system}</Badge>
-          <Badge variant="outline">{matchTypeLabel(search.matchType)}</Badge>
+          <Badge variant="outline">{search.matchType}</Badge>
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between gap-3">
+          {isOwn && search.interestCount > 0 ? (
+            <span className="text-sm text-muted-foreground">
+              {search.interestCount === 1
+                ? "1 Anfrage"
+                : `${search.interestCount} Anfragen`}
+            </span>
+          ) : (
+            <span />
+          )}
           {isOwn ? (
             <Button variant="outline" size="sm" onClick={onDelete}>
               <Trash2 />
               Löschen
+            </Button>
+          ) : search.respondedByMe ? (
+            <Button variant="outline" size="sm" disabled>
+              <Check />
+              Interesse gesendet
             </Button>
           ) : (
             <Button size="sm" onClick={onRespond}>

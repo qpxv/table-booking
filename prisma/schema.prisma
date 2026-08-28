@@ -38,6 +38,7 @@ model User {
   participants       BookingParticipant[]
   drinkTallies       DrinkTally[]
   playerSearches     PlayerSearch[]
+  playerSearchInterests PlayerSearchInterest[]
   createdEvents      Event[]
   eventParticipations EventParticipant[]
 
@@ -191,8 +192,9 @@ model Game {
 }
 
 // An open "Spielersuche": a member looking for an opponent for a match in a
-// given time window. When another member responds, the app auto-books the
-// first free table (Table.autoBookingPriority order) and deletes this row.
+// given time window. Other members register interest (PlayerSearchInterest);
+// when the creator accepts one, the app auto-books the first free table
+// (Table.autoBookingPriority order) and deletes this row.
 model PlayerSearch {
   id        String   @id @default(cuid())
   start     DateTime
@@ -200,7 +202,7 @@ model PlayerSearch {
   // Game system, free text from the same suggestion list as Booking.game
   // (Spielverwaltung), e.g. "40k", "30k", "Kill Team".
   system    String
-  // "fun" | "tournament" (see lib/player-search-types.ts).
+  // Free text, e.g. "2000 Pkt, gemütlich", "Turniervorbereitung".
   matchType String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -208,7 +210,27 @@ model PlayerSearch {
   creatorId String
   creator   User   @relation(fields: [creatorId], references: [id])
 
+  interests PlayerSearchInterest[]
+
   @@index([start])
+}
+
+// A member registering interest in someone else's PlayerSearch. The search
+// creator accepts one (auto-books a table, deletes the search and cascades
+// these away) or declines one (deletes just this row).
+model PlayerSearchInterest {
+  id        String   @id @default(cuid())
+  note      String?
+  createdAt DateTime @default(now())
+
+  searchId String
+  search   PlayerSearch @relation(fields: [searchId], references: [id], onDelete: Cascade)
+
+  responderId String
+  responder   User   @relation(fields: [responderId], references: [id])
+
+  @@unique([searchId, responderId])
+  @@index([searchId])
 }
 
 // A club event not tied to a physical table (e.g. "Schwimmen gehen"). Only

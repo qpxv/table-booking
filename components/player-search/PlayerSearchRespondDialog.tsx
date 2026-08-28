@@ -17,7 +17,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { formatBerlin } from "@/lib/datetime";
-import { matchTypeLabel } from "@/lib/player-search-types";
 import {
   respondPlayerSearchSchema,
   type RespondPlayerSearchInput,
@@ -52,12 +51,12 @@ export default function PlayerSearchRespondDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {search.system} {matchTypeLabel(search.matchType)} mit {search.creatorName}
+            {search.system} {search.matchType} mit {search.creatorName}
           </DialogTitle>
           <DialogDescription>
             {formatBerlin(search.start, "dd.MM.yyyy")}, {formatBerlin(search.start, "HH:mm")} –{" "}
-            {formatBerlin(search.end, "HH:mm")} Uhr. Bei Zusage wird automatisch ein freier Tisch
-            gebucht.
+            {formatBerlin(search.end, "HH:mm")} Uhr. Der Ersteller entscheidet, ob ihr spielt. Bei
+            Zusage wird automatisch ein freier Tisch gebucht.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
@@ -71,7 +70,7 @@ export default function PlayerSearchRespondDialog({
                   {...field}
                   id={field.name}
                   rows={3}
-                  placeholder="Yo lass ma 2k chillig spielen"
+                  placeholder="Optionale Nachricht an den Ersteller"
                   aria-invalid={fieldState.invalid}
                 />
                 {fieldState.invalid && <FieldError errors={[fieldState.error]} />}

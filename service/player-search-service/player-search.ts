@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { isAdmin } from "@/lib/permissions";
@@ -16,7 +17,7 @@ import {
 } from "@/lib/schemas/player-search";
 import type { ServiceResult } from "@/lib/service-types";
 
-// Thrown inside respondToPlayerSearch's transaction so it rolls back.
+// Thrown inside acceptPlayerSearchInterest's transaction so it rolls back.
 class PlayerSearchGoneError extends Error {}
 class NoTableFreeError extends Error {}
 
@@ -71,11 +72,9 @@ export async function deletePlayerSearch(id: string): Promise<ServiceResult> {
 }
 
 /**
- * Respond to an open search: auto-book the first free table in
- * Table.autoBookingPriority order for the search's time window, add both
- * members as participants, and delete the search. Booking + participants +
- * deletion all happen in one transaction; per-table advisory locks plus a
- * delete-as-claim keep two concurrent responses from double-booking.
+ * Register interest in an open search. Does not book anything: the search
+ * creator later accepts (acceptPlayerSearchInterest) or declines one of the
+ * incoming requests.
  */
 export async function respondToPlayerSearch(
   searchId: string,
@@ -93,6 +92,51 @@ export async function respondToPlayerSearch(
     return { success: false, message: MESSAGES.PLAYER_SEARCH.CANNOT_RESPOND_OWN };
   }
 
+  const note = parsed.data.note?.trim() || null;
+
+  try {
+    await prisma.playerSearchInterest.create({
+      data: { searchId, responderId: session.user.id, note },
+    });
+
+    // notification-potential: tell search.creatorId that session.user.id
+    // registered interest in their Spielersuche.
+    revalidatePath(ROUTES.SPIELERSUCHE);
+    revalidatePath(ROUTES.DASHBOARD);
+    return { success: true, message: MESSAGES.PLAYER_SEARCH.INTEREST_SENT };
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return { success: false, message: MESSAGES.PLAYER_SEARCH.ALREADY_RESPONDED };
+    }
+    unstable_rethrow(err);
+    console.error("error in respondToPlayerSearch", err);
+    return { success: false, message: MESSAGES.COMMON.GENERIC_ERROR };
+  }
+}
+
+/**
+ * The search creator accepts one interested member: auto-book the first free
+ * table in Table.autoBookingPriority order for the search's window, add both
+ * members as participants, and delete the search (cascading away every other
+ * pending interest). Booking + participants + deletion happen in one
+ * transaction; per-table advisory locks plus a delete-as-claim keep two
+ * concurrent accepts from double-booking.
+ */
+export async function acceptPlayerSearchInterest(interestId: string): Promise<ServiceResult> {
+  const session = await getSession();
+  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+
+  const interest = await prisma.playerSearchInterest.findUnique({
+    where: { id: interestId },
+    include: { search: true },
+  });
+  if (!interest) return { success: false, message: MESSAGES.PLAYER_SEARCH.INTEREST_NOT_FOUND };
+  if (interest.search.creatorId !== session.user.id) {
+    return { success: false, message: MESSAGES.COMMON.UNAUTHORIZED };
+  }
+
+  const { search } = interest;
+
   const priorityTables = await prisma.table.findMany({
     where: { active: true, allowMultipleBookings: false, autoBookingPriority: { not: null } },
     orderBy: { autoBookingPriority: "asc" },
@@ -102,12 +146,10 @@ export async function respondToPlayerSearch(
     return { success: false, message: MESSAGES.PLAYER_SEARCH.NO_PRIORITY_TABLES };
   }
 
-  const note = parsed.data.note?.trim() || null;
-
   try {
     const booked = await prisma.$transaction(async (tx) => {
-      // Claim the search: if it's already gone, someone else responded first.
-      const claim = await tx.playerSearch.deleteMany({ where: { id: searchId } });
+      // Claim the search: if it's already gone, someone else accepted first.
+      const claim = await tx.playerSearch.deleteMany({ where: { id: search.id } });
       if (claim.count === 0) throw new PlayerSearchGoneError();
 
       for (const table of priorityTables) {
@@ -122,18 +164,18 @@ export async function respondToPlayerSearch(
             start: search.start,
             end: search.end,
             game: playerSearchBookingLabel(search.system, search.matchType),
-            note,
+            note: interest.note,
           },
         });
         await tx.bookingParticipant.createMany({
           data: [
             { bookingId: booking.id, userId: search.creatorId },
-            { bookingId: booking.id, userId: session.user.id },
+            { bookingId: booking.id, userId: interest.responderId },
           ],
         });
 
         // notification-potential: tell both search.creatorId and
-        // session.user.id that the match is booked at `table.name`.
+        // interest.responderId that the match is booked at `table.name`.
         return { tableId: table.id, tableName: table.name };
       }
 
@@ -154,7 +196,35 @@ export async function respondToPlayerSearch(
       return { success: false, message: MESSAGES.PLAYER_SEARCH.NO_TABLE_FREE };
     }
     unstable_rethrow(err);
-    console.error("error in respondToPlayerSearch", err);
+    console.error("error in acceptPlayerSearchInterest", err);
+    return { success: false, message: MESSAGES.COMMON.GENERIC_ERROR };
+  }
+}
+
+/** The search creator declines one interested member. The search stays open. */
+export async function declinePlayerSearchInterest(interestId: string): Promise<ServiceResult> {
+  const session = await getSession();
+  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+
+  const interest = await prisma.playerSearchInterest.findUnique({
+    where: { id: interestId },
+    include: { search: { select: { creatorId: true } } },
+  });
+  if (!interest) return { success: false, message: MESSAGES.PLAYER_SEARCH.INTEREST_NOT_FOUND };
+  if (interest.search.creatorId !== session.user.id) {
+    return { success: false, message: MESSAGES.COMMON.UNAUTHORIZED };
+  }
+
+  try {
+    await prisma.playerSearchInterest.delete({ where: { id: interestId } });
+
+    // notification-potential: tell interest.responderId their request was declined.
+    revalidatePath(ROUTES.SPIELERSUCHE);
+    revalidatePath(ROUTES.DASHBOARD);
+    return { success: true, message: MESSAGES.PLAYER_SEARCH.INTEREST_DECLINED };
+  } catch (err) {
+    unstable_rethrow(err);
+    console.error("error in declinePlayerSearchInterest", err);
     return { success: false, message: MESSAGES.COMMON.GENERIC_ERROR };
   }
 }

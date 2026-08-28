@@ -12,6 +12,22 @@ export type OpenPlayerSearch = {
   matchType: string;
   creatorId: string;
   creatorName: string;
+  respondedByMe: boolean;
+  interestCount: number;
+};
+
+export type IncomingPlayerSearchInterest = {
+  id: string;
+  note: string | null;
+  responderName: string;
+  createdAt: Date;
+  search: {
+    id: string;
+    start: Date;
+    end: Date;
+    system: string;
+    matchType: string;
+  };
 };
 
 /** Still-open searches whose window hasn't fully passed, soonest first. */
@@ -36,7 +52,10 @@ export async function listOpenPlayerSearches(): Promise<{
       prisma.playerSearch.findMany({
         where: { end: { gte: new Date() } },
         orderBy: { start: "asc" },
-        include: { creator: { select: { name: true } } },
+        include: {
+          creator: { select: { name: true } },
+          interests: { select: { responderId: true } },
+        },
       }),
       prisma.table.count({
         where: { active: true, allowMultipleBookings: false, autoBookingPriority: { not: null } },
@@ -54,6 +73,8 @@ export async function listOpenPlayerSearches(): Promise<{
         matchType: row.matchType,
         creatorId: row.creatorId,
         creatorName: row.creator.name,
+        respondedByMe: row.interests.some((i) => i.responderId === session.user.id),
+        interestCount: row.interests.length,
       })),
     };
   } catch (err) {
@@ -65,5 +86,38 @@ export async function listOpenPlayerSearches(): Promise<{
       hasPriorityTable: false,
       message: MESSAGES.COMMON.GENERIC_ERROR,
     };
+  }
+}
+
+/** Pending interest requests on searches created by the given member. */
+export async function listIncomingPlayerSearchInterests(userId: string): Promise<{
+  success: boolean;
+  interests: IncomingPlayerSearchInterest[];
+  message?: string;
+}> {
+  try {
+    const rows = await prisma.playerSearchInterest.findMany({
+      where: { search: { creatorId: userId, end: { gte: new Date() } } },
+      orderBy: { createdAt: "asc" },
+      include: {
+        responder: { select: { name: true } },
+        search: { select: { id: true, start: true, end: true, system: true, matchType: true } },
+      },
+    });
+
+    return {
+      success: true,
+      interests: rows.map((row) => ({
+        id: row.id,
+        note: row.note,
+        responderName: row.responder.name,
+        createdAt: row.createdAt,
+        search: row.search,
+      })),
+    };
+  } catch (err) {
+    unstable_rethrow(err);
+    console.error("error in listIncomingPlayerSearchInterests", err);
+    return { success: false, interests: [], message: MESSAGES.COMMON.GENERIC_ERROR };
   }
 }
