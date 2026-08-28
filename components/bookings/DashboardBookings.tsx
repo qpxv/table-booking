@@ -1,7 +1,9 @@
 import type { JSX } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { checkSession } from "@/lib/session";
 import { listUpcomingBookingsForUser } from "@/lib/queries/bookings";
+import { ROUTES } from "@/lib/constants";
 import { formatBerlin } from "@/lib/datetime";
 
 export default async function DashboardBookings(): Promise<JSX.Element> {
@@ -26,22 +28,28 @@ export default async function DashboardBookings(): Promise<JSX.Element> {
           .filter((p) => p.userId !== session.user.id)
           .map((p) => p.user.name);
         return (
-          <Card key={booking.id}>
-            <CardContent className="flex flex-col gap-1">
-              <CardTitle>{booking.table.name}</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {formatBerlin(booking.start)} – {formatBerlin(booking.end, "HH:mm")}
-              </p>
-              {!booking.table.allowMultipleBookings && booking.game && (
-                <p className="text-sm">Spiel: {booking.game}</p>
-              )}
-              {otherParticipants.length > 0 && (
+          <Link
+            key={booking.id}
+            href={ROUTES.tischDetail(booking.table.id)}
+            className="rounded-xl outline-none transition-[box-shadow,background-color] hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Card>
+              <CardContent className="flex flex-col gap-1">
+                <CardTitle>{booking.table.name}</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Mit: {otherParticipants.join(", ")}
+                  {formatBerlin(booking.start)} – {formatBerlin(booking.end, "HH:mm")}
                 </p>
-              )}
-            </CardContent>
-          </Card>
+                {!booking.table.allowMultipleBookings && booking.game && (
+                  <p className="text-sm">Spiel: {booking.game}</p>
+                )}
+                {otherParticipants.length > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    Mit: {otherParticipants.join(", ")}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </Link>
         );
       })}
     </div>
