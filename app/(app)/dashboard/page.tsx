@@ -4,6 +4,7 @@ import DashboardBookingsSkeleton from "@/components/bookings/DashboardBookingsSk
 import DashboardEvents from "@/components/events/DashboardEvents";
 import DashboardEventsSkeleton from "@/components/events/DashboardEventsSkeleton";
 import DashboardPlayerSearchInterests from "@/components/player-search/DashboardPlayerSearchInterests";
+import EnableNotificationsNudge from "@/components/notifications/EnableNotificationsNudge";
 
 export default function DashboardPage(): JSX.Element {
   return (
@@ -25,6 +26,8 @@ export default function DashboardPage(): JSX.Element {
           <DashboardEvents />
         </Suspense>
       </section>
+
+      <EnableNotificationsNudge />
     </div>
   );
 }

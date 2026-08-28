@@ -19,6 +19,8 @@ import {
   type CreateBookingInput,
   type UpdateBookingInput,
 } from "@/lib/schemas/booking";
+import { formatEventDateRange } from "@/lib/datetime";
+import { notify } from "@/lib/push/notify";
 import type { ServiceResult } from "@/lib/service-types";
 
 export async function createBooking(
@@ -89,9 +91,6 @@ export async function createBooking(
       await tx.bookingParticipant.create({
         data: { bookingId: newBooking.id, userId: session.user.id },
       });
-      // notification-potential: every userId in this loop is a member the
-      // creator added to the booking. Each should be told "Du wurdest zu
-      // einem Termin an <Tisch> am <Datum> hinzugefügt".
       for (const userId of participantUserIds) {
         await tx.bookingParticipant.create({ data: { bookingId: newBooking.id, userId } });
       }
@@ -125,6 +124,16 @@ export async function createBooking(
       }
     });
 
+    notify(
+      [...participantUserIds],
+      MESSAGES.NOTIFICATIONS.bookingAddedParticipant(
+        session.user.name,
+        table.name,
+        formatEventDateRange(data.start, data.end),
+      ),
+      ROUTES.tischDetail(tableId),
+    );
+
     revalidatePath(`${ROUTES.TISCHE}/${tableId}`);
     revalidatePath(ROUTES.DASHBOARD);
     revalidatePath(ROUTES.GASTHISTORIE);
@@ -147,10 +156,13 @@ export async function updateBooking(
   const session = await getSession();
   const booking = await prisma.booking.findUnique({
     where: { id },
-    include: { guests: true, table: true },
+    include: { guests: true, table: true, participants: { select: { userId: true } } },
   });
   if (!booking) return { success: false, message: MESSAGES.BOOKING.NOT_FOUND };
-  if (!canEditBooking(session, booking)) return { success: false, message: MESSAGES.COMMON.UNAUTHORIZED };
+  if (!session || !canEditBooking(session, booking)) {
+    return { success: false, message: MESSAGES.COMMON.UNAUTHORIZED };
+  }
+  const editorId = session.user.id;
 
   const parsed = updateBookingSchema.safeParse(values);
   if (!parsed.success) return { success: false, message: MESSAGES.COMMON.INVALID_INPUT };
@@ -189,6 +201,13 @@ export async function updateBooking(
     }
   }
 
+  const moved =
+    booking.start.getTime() !== data.start.getTime() ||
+    booking.end.getTime() !== data.end.getTime();
+  const priorParticipantIds = booking.participants.map((participant) => participant.userId);
+  const addedParticipantIds: string[] = [];
+  const removedParticipantIds: string[] = [];
+
   try {
     await prisma.$transaction(async (tx) => {
       if (!booking.table.allowMultipleBookings) {
@@ -203,9 +222,6 @@ export async function updateBooking(
         if (overlap) throw new BookingOverlapError();
       }
 
-      // notification-potential: if data.start/data.end differ from the
-      // stored booking.start/booking.end this is a reschedule — notify every
-      // participant except the editor that the event moved.
       await tx.booking.update({
         where: { id },
         data: {
@@ -274,9 +290,9 @@ export async function updateBooking(
         // The creator always stays a participant regardless of what was submitted.
         keepUserIds.add(booking.userId);
 
-        // notification-potential: a userId in keepUserIds that wasn't already
-        // a participant was just added by the editor — notify them.
+        const prior = new Set(priorParticipantIds);
         for (const userId of keepUserIds) {
+          if (!prior.has(userId) && userId !== editorId) addedParticipantIds.push(userId);
           await tx.bookingParticipant.upsert({
             where: { bookingId_userId: { bookingId: id, userId } },
             create: { bookingId: id, userId },
@@ -284,13 +300,44 @@ export async function updateBooking(
           });
         }
 
-        // notification-potential: members dropped here were removed from an
-        // event they had joined or been added to — notify them.
+        for (const userId of priorParticipantIds) {
+          if (!keepUserIds.has(userId) && userId !== editorId) removedParticipantIds.push(userId);
+        }
         await tx.bookingParticipant.deleteMany({
           where: { bookingId: id, userId: { notIn: [...keepUserIds] } },
         });
       }
     });
+
+    const dateLabel = formatEventDateRange(data.start, data.end);
+    if (moved) {
+      notify(
+        priorParticipantIds.filter(
+          (userId) => userId !== editorId && !removedParticipantIds.includes(userId),
+        ),
+        MESSAGES.NOTIFICATIONS.bookingMoved(session.user.name, booking.table.name, dateLabel),
+        ROUTES.tischDetail(booking.tableId),
+        `booking-${id}`,
+      );
+    }
+    if (addedParticipantIds.length > 0) {
+      notify(
+        addedParticipantIds,
+        MESSAGES.NOTIFICATIONS.bookingAddedParticipant(
+          session.user.name,
+          booking.table.name,
+          dateLabel,
+        ),
+        ROUTES.tischDetail(booking.tableId),
+      );
+    }
+    if (removedParticipantIds.length > 0) {
+      notify(
+        removedParticipantIds,
+        MESSAGES.NOTIFICATIONS.bookingRemovedParticipant(booking.table.name, dateLabel),
+        ROUTES.tischDetail(booking.tableId),
+      );
+    }
 
     revalidatePath(`${ROUTES.TISCHE}/${booking.tableId}`);
     revalidatePath(ROUTES.DASHBOARD);
@@ -309,22 +356,27 @@ export async function updateBooking(
 
 export async function cancelBooking(id: string): Promise<ServiceResult> {
   const session = await getSession();
-  const booking = await prisma.booking.findUnique({ where: { id }, include: { guests: true } });
+  const booking = await prisma.booking.findUnique({
+    where: { id },
+    include: { guests: true, table: { select: { name: true } }, participants: { select: { userId: true } } },
+  });
   if (!booking) return { success: false, message: MESSAGES.BOOKING.NOT_FOUND };
 
   // Admins can cancel any booking; members only their own
   // (canEditBooking already covers "owner OR admin").
-  if (!canEditBooking(session, booking)) {
+  if (!session || !canEditBooking(session, booking)) {
     return { success: false, message: MESSAGES.COMMON.UNAUTHORIZED };
   }
+
+  // Captured before the delete cascades the participant rows away.
+  const recipientIds = booking.participants
+    .map((participant) => participant.userId)
+    .filter((userId) => userId !== session.user.id);
 
   try {
     await prisma.$transaction(async (tx) => {
       // Hard delete: no history is kept for cancelled bookings. Cascades
       // to this booking's BookingGuest/BookingParticipant rows.
-      // notification-potential: notify every participant except the canceller
-      // that the event was cancelled (capture the participant list before
-      // this delete).
       await tx.booking.delete({ where: { id } });
 
       // A removed guest's later booking may have been priced as
@@ -335,6 +387,17 @@ export async function cancelBooking(id: string): Promise<ServiceResult> {
         await recalculateGuestPricing(tx, guestId);
       }
     });
+
+    notify(
+      recipientIds,
+      MESSAGES.NOTIFICATIONS.bookingCancelled(
+        session.user.name,
+        booking.table.name,
+        formatEventDateRange(booking.start, booking.end),
+      ),
+      ROUTES.tischDetail(booking.tableId),
+      `booking-${id}`,
+    );
 
     revalidatePath(`${ROUTES.TISCHE}/${booking.tableId}`);
     revalidatePath(ROUTES.DASHBOARD);
@@ -382,20 +445,37 @@ export async function joinBooking(bookingId: string): Promise<ServiceResult> {
   const session = await getSession();
   if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
 
-  const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: { table: { select: { name: true } } },
+  });
   if (!booking) {
     return { success: false, message: MESSAGES.BOOKING.EVENT_NOT_FOUND };
   }
 
   try {
-    // notification-potential: if this upsert actually inserts a row (the
-    // member wasn't already a participant) and the joiner isn't the creator,
-    // notify booking.userId that <session.user> joined their event.
-    await prisma.bookingParticipant.upsert({
+    const existing = await prisma.bookingParticipant.findUnique({
       where: { bookingId_userId: { bookingId, userId: session.user.id } },
-      create: { bookingId, userId: session.user.id },
-      update: {},
+      select: { id: true },
     });
+    if (!existing) {
+      await prisma.bookingParticipant.create({
+        data: { bookingId, userId: session.user.id },
+      });
+
+      if (booking.userId !== session.user.id) {
+        notify(
+          [booking.userId],
+          MESSAGES.NOTIFICATIONS.bookingJoined(
+            session.user.name,
+            booking.table.name,
+            formatEventDateRange(booking.start, booking.end),
+          ),
+          ROUTES.tischDetail(booking.tableId),
+          `booking-${bookingId}`,
+        );
+      }
+    }
 
     revalidatePath(`${ROUTES.TISCHE}/${booking.tableId}`);
     revalidatePath(ROUTES.TISCHE);
@@ -414,18 +494,32 @@ export async function leaveBooking(bookingId: string): Promise<ServiceResult> {
   const session = await getSession();
   if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
 
-  const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: { table: { select: { name: true } } },
+  });
   if (!booking) return { success: false, message: MESSAGES.BOOKING.EVENT_NOT_FOUND };
   if (booking.userId === session.user.id) {
     return { success: false, message: MESSAGES.BOOKING.CREATOR_CANNOT_LEAVE };
   }
 
   try {
-    // notification-potential: notify booking.userId that <session.user> left
-    // their event.
-    await prisma.bookingParticipant.deleteMany({
+    const removed = await prisma.bookingParticipant.deleteMany({
       where: { bookingId, userId: session.user.id },
     });
+
+    if (removed.count > 0) {
+      notify(
+        [booking.userId],
+        MESSAGES.NOTIFICATIONS.bookingLeft(
+          session.user.name,
+          booking.table.name,
+          formatEventDateRange(booking.start, booking.end),
+        ),
+        ROUTES.tischDetail(booking.tableId),
+        `booking-${bookingId}`,
+      );
+    }
 
     revalidatePath(`${ROUTES.TISCHE}/${booking.tableId}`);
     revalidatePath(ROUTES.TISCHE);

@@ -29,6 +29,7 @@ import type { DrinkWidgetData } from "@/lib/drink-types";
 import { DrinkWidgetSidebarItem } from "@/components/drinks/DrinkWidget";
 import ClubLogo from "./ClubLogo";
 import ThemeSidebarControl from "@/components/theme/ThemeSidebarControl";
+import { NotificationSidebarItem } from "@/components/notifications/NotificationControls";
 import SettingsDialog from "./SettingsDialog";
 
 // Scoped locally per AppShell instance, not the app root: this is a
@@ -231,6 +232,7 @@ function AccountFooter({
       </div>
       <ThemeSidebarControl />
       <SidebarMenu>
+        <NotificationSidebarItem />
         <SidebarMenuItem>
           <SidebarMenuButton
             onClick={() => {

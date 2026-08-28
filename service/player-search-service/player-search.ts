@@ -9,6 +9,8 @@ import { isAdmin } from "@/lib/permissions";
 import { ROUTES, MESSAGES } from "@/lib/constants";
 import { findOverlappingBooking, lockTableForBooking } from "@/lib/booking-availability";
 import { playerSearchBookingLabel } from "@/lib/player-search-types";
+import { formatEventDateRange } from "@/lib/datetime";
+import { notify } from "@/lib/push/notify";
 import {
   createPlayerSearchSchema,
   respondPlayerSearchSchema,
@@ -99,8 +101,17 @@ export async function respondToPlayerSearch(
       data: { searchId, responderId: session.user.id, note },
     });
 
-    // notification-potential: tell search.creatorId that session.user.id
-    // registered interest in their Spielersuche.
+    notify(
+      [search.creatorId],
+      MESSAGES.NOTIFICATIONS.playerSearchInterest(
+        session.user.name,
+        search.system,
+        search.matchType,
+        formatEventDateRange(search.start, search.end),
+      ),
+      ROUTES.SPIELERSUCHE,
+      `search-${searchId}`,
+    );
     revalidatePath(ROUTES.SPIELERSUCHE);
     revalidatePath(ROUTES.DASHBOARD);
     return { success: true, message: MESSAGES.PLAYER_SEARCH.INTEREST_SENT };
@@ -128,7 +139,10 @@ export async function acceptPlayerSearchInterest(interestId: string): Promise<Se
 
   const interest = await prisma.playerSearchInterest.findUnique({
     where: { id: interestId },
-    include: { search: true },
+    include: {
+      search: { include: { creator: { select: { name: true } } } },
+      responder: { select: { name: true } },
+    },
   });
   if (!interest) return { success: false, message: MESSAGES.PLAYER_SEARCH.INTEREST_NOT_FOUND };
   if (interest.search.creatorId !== session.user.id) {
@@ -182,6 +196,30 @@ export async function acceptPlayerSearchInterest(interestId: string): Promise<Se
       throw new NoTableFreeError();
     });
 
+    const dateLabel = formatEventDateRange(search.start, search.end);
+    notify(
+      [search.creatorId],
+      MESSAGES.NOTIFICATIONS.playerSearchBooked(
+        interest.responder.name,
+        booked.tableName,
+        search.system,
+        dateLabel,
+      ),
+      ROUTES.tischDetail(booked.tableId),
+      `search-booked-${search.id}`,
+    );
+    notify(
+      [interest.responderId],
+      MESSAGES.NOTIFICATIONS.playerSearchBooked(
+        interest.search.creator.name,
+        booked.tableName,
+        search.system,
+        dateLabel,
+      ),
+      ROUTES.tischDetail(booked.tableId),
+      `search-booked-${search.id}`,
+    );
+
     revalidatePath(ROUTES.SPIELERSUCHE);
     revalidatePath(ROUTES.DASHBOARD);
     revalidatePath(ROUTES.TISCHE);
@@ -208,7 +246,9 @@ export async function declinePlayerSearchInterest(interestId: string): Promise<S
 
   const interest = await prisma.playerSearchInterest.findUnique({
     where: { id: interestId },
-    include: { search: { select: { creatorId: true } } },
+    include: {
+      search: { select: { creatorId: true, system: true, start: true, end: true } },
+    },
   });
   if (!interest) return { success: false, message: MESSAGES.PLAYER_SEARCH.INTEREST_NOT_FOUND };
   if (interest.search.creatorId !== session.user.id) {
@@ -218,7 +258,16 @@ export async function declinePlayerSearchInterest(interestId: string): Promise<S
   try {
     await prisma.playerSearchInterest.delete({ where: { id: interestId } });
 
-    // notification-potential: tell interest.responderId their request was declined.
+    notify(
+      [interest.responderId],
+      MESSAGES.NOTIFICATIONS.playerSearchDeclined(
+        session.user.name,
+        interest.search.system,
+        formatEventDateRange(interest.search.start, interest.search.end),
+      ),
+      ROUTES.SPIELERSUCHE,
+      `search-declined-${interestId}`,
+    );
     revalidatePath(ROUTES.SPIELERSUCHE);
     revalidatePath(ROUTES.DASHBOARD);
     return { success: true, message: MESSAGES.PLAYER_SEARCH.INTEREST_DECLINED };

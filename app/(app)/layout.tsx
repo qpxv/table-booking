@@ -5,6 +5,7 @@ import { getDrinkWidgetData } from "@/lib/queries/drinks";
 import AppShell from "@/components/layout/AppShell";
 import RouteTransition from "@/components/layout/RouteTransition";
 import ForcePasswordChange from "@/components/auth/ForcePasswordChange";
+import NotificationProvider from "@/components/notifications/NotificationProvider";
 
 export default async function AppLayout({
   children,
@@ -23,16 +24,18 @@ export default async function AppLayout({
   if (!drinkResult.success) throw new Error(drinkResult.message);
 
   return (
-    <AppShell
-      user={{
-        name: session.user.name,
-        email: session.user.email,
-        role: session.user.role ?? ROLES.USER,
-        iban: session.user.iban ?? null,
-      }}
-      drinkWidget={{ ownCount: drinkResult.ownCount, guests: drinkResult.guests }}
-    >
-      <RouteTransition>{children}</RouteTransition>
-    </AppShell>
+    <NotificationProvider>
+      <AppShell
+        user={{
+          name: session.user.name,
+          email: session.user.email,
+          role: session.user.role ?? ROLES.USER,
+          iban: session.user.iban ?? null,
+        }}
+        drinkWidget={{ ownCount: drinkResult.ownCount, guests: drinkResult.guests }}
+      >
+        <RouteTransition>{children}</RouteTransition>
+      </AppShell>
+    </NotificationProvider>
   );
 }

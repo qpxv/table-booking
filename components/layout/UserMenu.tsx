@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useSignOut } from "@/hooks/use-sign-out";
 import ThemeMenuSub from "@/components/theme/ThemeMenuSub";
+import { NotificationMenuItem } from "@/components/notifications/NotificationControls";
 import SettingsDialog from "./SettingsDialog";
 
 function getInitials(name: string): string {
@@ -75,6 +76,7 @@ export default function UserMenu({
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <ThemeMenuSub />
+            <NotificationMenuItem />
             <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
               <Settings />
               Einstellungen

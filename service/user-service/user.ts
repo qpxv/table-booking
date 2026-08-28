@@ -16,6 +16,7 @@ import {
   type UpdateUserInput,
   type ResetPasswordInput,
 } from "@/lib/schemas/user";
+import { notify } from "@/lib/push/notify";
 import type { ServiceResult } from "@/lib/service-types";
 
 /** Returns request headers if the session is an admin, otherwise a ServiceResult failure. */
@@ -48,9 +49,8 @@ export async function createUser(values: CreateUserInput): Promise<ServiceResult
     // The admin picked this password, so force the member to replace it on
     // first login. Written here rather than through `data` above because the
     // field is `input: false` in the auth config.
-    // notification-potential: welcome the new member / deliver first-login
-    // instructions (the admin-set password is currently communicated out of
-    // band).
+    // No push notification here: the member has no device subscribed yet, and
+    // the admin-set password is communicated out of band anyway.
     await prisma.user.update({
       where: { id: created.user.id },
       data: { mustChangePassword: true },
@@ -131,13 +131,17 @@ export async function resetUserPassword(
     // Same as account creation: an admin-chosen password must be replaced by
     // the member before they can use the app again. This also stops an admin
     // from setting a password and quietly using the account themselves.
-    // notification-potential: notify the member that an admin reset their
-    // password.
     await prisma.user.update({
       where: { id: userId },
       data: { mustChangePassword: true },
     });
 
+    notify(
+      [userId],
+      MESSAGES.NOTIFICATIONS.passwordReset(),
+      ROUTES.DASHBOARD,
+      `password-reset-${userId}`,
+    );
     revalidatePath(ROUTES.ADMIN_USERS);
     return { success: true, message: MESSAGES.USER.PASSWORD_RESET };
   } catch (err) {

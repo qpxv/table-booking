@@ -54,6 +54,7 @@ export const SEARCH_PARAMS = {
 
 export const MESSAGES = {
   COMMON: {
+    OK: "Erledigt.",
     GENERIC_ERROR: "Ein Fehler ist aufgetreten.",
     UNAUTHORIZED: "Nicht berechtigt.",
     NOT_AUTHENTICATED: "Nicht angemeldet.",
@@ -166,6 +167,84 @@ export const MESSAGES = {
     TITLE: "Passwort festlegen",
     DESCRIPTION:
       "Dein Konto wurde mit einem vom Admin vergebenen Passwort eingerichtet. Lege jetzt dein eigenes Passwort fest, um fortzufahren.",
+  },
+  // Push notification copy. Each builder takes already-formatted strings
+  // (names, table/event titles, a human date label from lib/datetime) and
+  // returns { title, body }. The call site adds the click-through url.
+  NOTIFICATIONS: {
+    eventCreated: (title: string, dateLabel: string, location: string | null) => ({
+      title: `Neues Event: ${title}`,
+      body: location ? `${dateLabel}, ${location}` : dateLabel,
+    }),
+    eventMoved: (title: string, dateLabel: string) => ({
+      title: `Event verschoben: ${title}`,
+      body: `Neuer Termin: ${dateLabel}`,
+    }),
+    eventCancelled: (title: string, dateLabel: string) => ({
+      title: `Event abgesagt: ${title}`,
+      body: dateLabel,
+    }),
+    eventJoined: (memberName: string, title: string) => ({
+      title: `${memberName} ist beim Event dabei`,
+      body: title,
+    }),
+
+    bookingAddedParticipant: (creatorName: string, tableName: string, dateLabel: string) => ({
+      title: `${creatorName} hat dich zu einem Termin hinzugefügt`,
+      body: `${tableName}, ${dateLabel}`,
+    }),
+    bookingRemovedParticipant: (tableName: string, dateLabel: string) => ({
+      title: "Von einem Termin entfernt",
+      body: `${tableName}, ${dateLabel}`,
+    }),
+    bookingMoved: (editorName: string, tableName: string, dateLabel: string) => ({
+      title: `${editorName} hat einen Termin verschoben`,
+      body: `${tableName}, neuer Termin: ${dateLabel}`,
+    }),
+    bookingCancelled: (cancellerName: string, tableName: string, dateLabel: string) => ({
+      title: `${cancellerName} hat einen Termin storniert`,
+      body: `${tableName}, ${dateLabel}`,
+    }),
+    bookingJoined: (memberName: string, tableName: string, dateLabel: string) => ({
+      title: `${memberName} ist deinem Termin beigetreten`,
+      body: `${tableName}, ${dateLabel}`,
+    }),
+    bookingLeft: (memberName: string, tableName: string, dateLabel: string) => ({
+      title: `${memberName} hat deinen Termin verlassen`,
+      body: `${tableName}, ${dateLabel}`,
+    }),
+
+    playerSearchInterest: (
+      memberName: string,
+      system: string,
+      matchType: string,
+      dateLabel: string,
+    ) => ({
+      title: `${memberName} hat Interesse an deiner Spielersuche`,
+      body: `${system}, ${matchType}, ${dateLabel}`,
+    }),
+    playerSearchBooked: (
+      opponentName: string,
+      tableName: string,
+      system: string,
+      dateLabel: string,
+    ) => ({
+      title: `Match gebucht: ${tableName}`,
+      body: `Gegen ${opponentName}, ${system}, ${dateLabel}`,
+    }),
+    playerSearchDeclined: (creatorName: string, system: string, dateLabel: string) => ({
+      title: `${creatorName} hat deine Anfrage abgelehnt`,
+      body: `${system}, ${dateLabel}`,
+    }),
+
+    passwordReset: () => ({
+      title: "Passwort zurückgesetzt",
+      body: "Ein Admin hat dein Passwort zurückgesetzt. Beim nächsten Login musst du ein neues vergeben.",
+    }),
+    guestPaymentToggled: (paid: boolean, guestName: string, dateLabel: string) => ({
+      title: paid ? "Gastzahlung als bezahlt markiert" : "Gastzahlung als offen markiert",
+      body: `${guestName}, ${dateLabel}`,
+    }),
   },
   CONFIRM_DELETE: {
     TABLE_TITLE: "Tisch löschen",

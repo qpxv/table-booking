@@ -50,3 +50,7 @@ next-env.d.ts
 /public/workbox-*.js
 /public/workbox-*.js.map
 /public/fallback-*.js
+
+# @ducanh2912/next-pwa custom worker output
+/public/worker-*.js
+/public/worker-*.js.map
