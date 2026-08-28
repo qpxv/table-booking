@@ -68,7 +68,16 @@ export default function PlayerSearchCreateDialog({
                 name="start"
                 control={form.control}
                 render={({ field }) => (
-                  <DateTimeField id="start" value={field.value} onChange={field.onChange} />
+                  <DateTimeField
+                    id="start"
+                    value={field.value}
+                    onChange={(next) => {
+                      field.onChange(next);
+                      const nextEnd = new Date(next);
+                      nextEnd.setHours(nextEnd.getHours() + 3);
+                      form.setValue("end", nextEnd, { shouldValidate: true });
+                    }}
+                  />
                 )}
               />
               {form.formState.errors.start && (
