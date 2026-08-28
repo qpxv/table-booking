@@ -13,6 +13,11 @@ export async function fetchBookingsForTable(tableId: string) {
   });
 }
 
+// notification-potential: a scheduled job could reuse a query like this one
+// (filtered to bookings starting in roughly one hour, across all users) to
+// send each participant a "dein Termin startet gleich" reminder. Other
+// time-based reminders could hook in here too (e.g. members with an unpaid
+// guest visit in Gasthistorie).
 export async function fetchUpcomingBookingsForUser(userId: string) {
   return prisma.booking.findMany({
     where: {

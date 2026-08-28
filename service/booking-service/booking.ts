@@ -88,6 +88,9 @@ export async function createBooking(
       await tx.bookingParticipant.create({
         data: { bookingId: newBooking.id, userId: session.user.id },
       });
+      // notification-potential: every userId in this loop is a member the
+      // creator added to the booking. Each should be told "Du wurdest zu
+      // einem Termin an <Tisch> am <Datum> hinzugefügt".
       for (const userId of participantUserIds) {
         await tx.bookingParticipant.create({ data: { bookingId: newBooking.id, userId } });
       }
@@ -196,6 +199,9 @@ export async function updateBooking(
 
   try {
     await prisma.$transaction(async (tx) => {
+      // notification-potential: if data.start/data.end differ from the
+      // stored booking.start/booking.end this is a reschedule — notify every
+      // participant except the editor that the event moved.
       await tx.booking.update({
         where: { id },
         data: {
@@ -264,6 +270,8 @@ export async function updateBooking(
         // The creator always stays a participant regardless of what was submitted.
         keepUserIds.add(booking.userId);
 
+        // notification-potential: a userId in keepUserIds that wasn't already
+        // a participant was just added by the editor — notify them.
         for (const userId of keepUserIds) {
           await tx.bookingParticipant.upsert({
             where: { bookingId_userId: { bookingId: id, userId } },
@@ -272,6 +280,8 @@ export async function updateBooking(
           });
         }
 
+        // notification-potential: members dropped here were removed from an
+        // event they had joined or been added to — notify them.
         await tx.bookingParticipant.deleteMany({
           where: { bookingId: id, userId: { notIn: [...keepUserIds] } },
         });
@@ -305,6 +315,9 @@ export async function cancelBooking(id: string): Promise<ServiceResult> {
     await prisma.$transaction(async (tx) => {
       // Hard delete: no history is kept for cancelled bookings. Cascades
       // to this booking's BookingGuest/BookingParticipant rows.
+      // notification-potential: notify every participant except the canceller
+      // that the event was cancelled (capture the participant list before
+      // this delete).
       await tx.booking.delete({ where: { id } });
 
       // A removed guest's later booking may have been priced as
@@ -368,6 +381,9 @@ export async function joinBooking(bookingId: string): Promise<ServiceResult> {
   }
 
   try {
+    // notification-potential: if this upsert actually inserts a row (the
+    // member wasn't already a participant) and the joiner isn't the creator,
+    // notify booking.userId that <session.user> joined their event.
     await prisma.bookingParticipant.upsert({
       where: { bookingId_userId: { bookingId, userId: session.user.id } },
       create: { bookingId, userId: session.user.id },
@@ -398,6 +414,8 @@ export async function leaveBooking(bookingId: string): Promise<ServiceResult> {
   }
 
   try {
+    // notification-potential: notify booking.userId that <session.user> left
+    // their event.
     await prisma.bookingParticipant.deleteMany({
       where: { bookingId, userId: session.user.id },
     });

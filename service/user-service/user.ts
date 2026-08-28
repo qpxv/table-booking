@@ -48,6 +48,9 @@ export async function createUser(values: CreateUserInput): Promise<ServiceResult
     // The admin picked this password, so force the member to replace it on
     // first login. Written here rather than through `data` above because the
     // field is `input: false` in the auth config.
+    // notification-potential: welcome the new member / deliver first-login
+    // instructions (the admin-set password is currently communicated out of
+    // band).
     await prisma.user.update({
       where: { id: created.user.id },
       data: { mustChangePassword: true },
@@ -128,6 +131,8 @@ export async function resetUserPassword(
     // Same as account creation: an admin-chosen password must be replaced by
     // the member before they can use the app again. This also stops an admin
     // from setting a password and quietly using the account themselves.
+    // notification-potential: notify the member that an admin reset their
+    // password.
     await prisma.user.update({
       where: { id: userId },
       data: { mustChangePassword: true },

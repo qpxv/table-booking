@@ -23,6 +23,9 @@ export async function setBookingGuestPaid(bookingGuestId: string, paid: boolean)
   }
 
   try {
+    // notification-potential: when an admin (not the member themselves)
+    // toggles this, notify bookingGuest.booking.userId that their guest's
+    // payment was marked paid/unpaid.
     await prisma.bookingGuest.update({ where: { id: bookingGuestId }, data: { paid } });
     revalidatePath(ROUTES.GASTHISTORIE);
     return { success: true, message: paid ? MESSAGES.PAYMENT.MARKED_PAID : MESSAGES.PAYMENT.MARKED_UNPAID };
