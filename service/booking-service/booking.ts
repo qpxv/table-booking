@@ -9,6 +9,11 @@ import { calculateGuestPrice, GUEST_PRICE_FIRST_VISIT } from "@/lib/pricing";
 import { ROUTES, MESSAGES } from "@/lib/constants";
 import { Prisma } from "@/generated/prisma/client";
 import {
+  BookingOverlapError,
+  findOverlappingBooking,
+  lockTableForBooking,
+} from "@/lib/booking-availability";
+import {
   createBookingSchema,
   updateBookingSchema,
   type CreateBookingInput,
@@ -30,21 +35,11 @@ export async function createBooking(
   if (!parsed.success) return { success: false, message: MESSAGES.COMMON.INVALID_INPUT };
   const data = parsed.data;
 
-  // Server-side overlap validation: a table must not be double-booked for
-  // the same time range, except "Mehrfachbuchung" tables, which are
-  // specifically meant to allow multiple concurrent events.
-  if (!table.allowMultipleBookings) {
-    const overlap = await prisma.booking.findFirst({
-      where: {
-        tableId,
-        start: { lt: data.end },
-        end: { gt: data.start },
-      },
-    });
-    if (overlap) {
-      return { success: false, message: MESSAGES.TABLE.OVERLAP };
-    }
-  }
+  // Overlap validation runs inside the transaction below, under a
+  // per-table advisory lock (see lib/booking-availability.ts), so the
+  // "is it free?" check and the insert can't be split by a concurrent
+  // booking. "Mehrfachbuchung" tables skip it: they're meant to allow
+  // multiple concurrent events.
 
   // Shared ("Mehrfachbuchung") tables are members-only signup: never
   // attach guests, regardless of what the client sent.
@@ -70,6 +65,12 @@ export async function createBooking(
 
   try {
     await prisma.$transaction(async (tx) => {
+      if (!table.allowMultipleBookings) {
+        await lockTableForBooking(tx, tableId);
+        const overlap = await findOverlappingBooking(tx, tableId, data.start, data.end);
+        if (overlap) throw new BookingOverlapError();
+      }
+
       const newBooking = await tx.booking.create({
         data: {
           tableId,
@@ -130,6 +131,9 @@ export async function createBooking(
 
     return { success: true, message: MESSAGES.BOOKING.CREATED };
   } catch (err) {
+    if (err instanceof BookingOverlapError) {
+      return { success: false, message: MESSAGES.TABLE.OVERLAP };
+    }
     unstable_rethrow(err);
     console.error("error in createBooking", err);
     return { success: false, message: MESSAGES.COMMON.GENERIC_ERROR };
@@ -158,21 +162,9 @@ export async function updateBooking(
   const guestsInput = booking.table.allowMultipleBookings ? undefined : data.guests;
   const participantsInput = data.participantUserIds;
 
-  // Overlap check is skipped for "Mehrfachbuchung" tables: they're
-  // specifically meant to allow multiple concurrent events.
-  if (!booking.table.allowMultipleBookings) {
-    const overlap = await prisma.booking.findFirst({
-      where: {
-        tableId: booking.tableId,
-        id: { not: id },
-        start: { lt: data.end },
-        end: { gt: data.start },
-      },
-    });
-    if (overlap) {
-      return { success: false, message: MESSAGES.TABLE.OVERLAP };
-    }
-  }
+  // Overlap validation runs inside the transaction, under the per-table
+  // advisory lock. Skipped for "Mehrfachbuchung" tables (concurrent events
+  // are allowed there).
 
   // Guests/participants are only reconciled when the caller actually
   // submitted a list (the edit dialog does; drag/resize reschedules omit
@@ -199,6 +191,18 @@ export async function updateBooking(
 
   try {
     await prisma.$transaction(async (tx) => {
+      if (!booking.table.allowMultipleBookings) {
+        await lockTableForBooking(tx, booking.tableId);
+        const overlap = await findOverlappingBooking(
+          tx,
+          booking.tableId,
+          data.start,
+          data.end,
+          id,
+        );
+        if (overlap) throw new BookingOverlapError();
+      }
+
       // notification-potential: if data.start/data.end differ from the
       // stored booking.start/booking.end this is a reschedule — notify every
       // participant except the editor that the event moved.
@@ -294,6 +298,9 @@ export async function updateBooking(
 
     return { success: true, message: MESSAGES.BOOKING.UPDATED };
   } catch (err) {
+    if (err instanceof BookingOverlapError) {
+      return { success: false, message: MESSAGES.TABLE.OVERLAP };
+    }
     unstable_rethrow(err);
     console.error("error in updateBooking", err);
     return { success: false, message: MESSAGES.COMMON.GENERIC_ERROR };

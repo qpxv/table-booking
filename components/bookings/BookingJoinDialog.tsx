@@ -53,6 +53,9 @@ export default function BookingJoinDialog({
           <p className="text-sm text-muted-foreground">
             {formatBerlin(booking.start)} – {formatBerlin(booking.end, "HH:mm")}
           </p>
+          {booking.note && (
+            <p className="rounded-lg bg-muted px-3 py-2 text-sm">{booking.note}</p>
+          )}
           <div>
             <p className="mb-1.5 text-sm font-medium">
               {booking.participants.length === 1

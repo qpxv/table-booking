@@ -5,10 +5,10 @@ import { unstable_rethrow } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/permissions";
 import { ROUTES, MESSAGES } from "@/lib/constants";
-import { tableSchema, type TableInput } from "@/lib/schemas/table";
+import { tableSchema, type TableFormInput } from "@/lib/schemas/table";
 import type { ServiceResult } from "@/lib/service-types";
 
-export async function createTable(values: TableInput): Promise<ServiceResult> {
+export async function createTable(values: TableFormInput): Promise<ServiceResult> {
   const authError = await requireAdmin();
   if (authError) return authError;
 
@@ -27,7 +27,7 @@ export async function createTable(values: TableInput): Promise<ServiceResult> {
   }
 }
 
-export async function updateTable(id: string, values: TableInput): Promise<ServiceResult> {
+export async function updateTable(id: string, values: TableFormInput): Promise<ServiceResult> {
   const authError = await requireAdmin();
   if (authError) return authError;
 

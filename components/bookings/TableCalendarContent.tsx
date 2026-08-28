@@ -55,6 +55,7 @@ export default async function TableCalendarContent({
           start: b.start,
           end: b.end,
           game: b.game,
+          note: b.note,
           userId: b.userId,
           userName: b.user.name,
           guests: b.guests.map((g) => ({

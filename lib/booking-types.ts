@@ -5,6 +5,7 @@ export type CalendarBooking = {
   start: Date;
   end: Date;
   game: string | null;
+  note: string | null;
   userId: string;
   userName: string;
   guests: { guestId: string; name: string; price: number }[];

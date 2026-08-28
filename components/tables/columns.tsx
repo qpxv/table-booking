@@ -66,6 +66,15 @@ export function createTableColumns({
       ),
     },
     {
+      accessorKey: "autoBookingPriority",
+      header: () => <div className="text-right">Spielersuche</div>,
+      cell: ({ row }) => (
+        <div className="text-right tabular-nums text-muted-foreground">
+          {row.original.autoBookingPriority ?? "–"}
+        </div>
+      ),
+    },
+    {
       id: "actions",
       header: () => <div className="text-right">Aktionen</div>,
       cell: ({ row }) => (

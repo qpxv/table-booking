@@ -40,6 +40,7 @@ export default function AppShell({
   const links = [
     { href: ROUTES.DASHBOARD, label: "Dashboard" },
     { href: ROUTES.TISCHE, label: "Reservieren" },
+    { href: ROUTES.SPIELERSUCHE, label: "Spielersuche" },
     { href: ROUTES.GASTHISTORIE, label: "Gasthistorie" },
     ...(isAdmin
       ? [

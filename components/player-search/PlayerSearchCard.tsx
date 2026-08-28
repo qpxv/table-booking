@@ -1,0 +1,62 @@
+import type { JSX } from "react";
+import { Swords, Handshake, Trash2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { formatBerlin } from "@/lib/datetime";
+import { matchTypeLabel } from "@/lib/player-search-types";
+import type { OpenPlayerSearch } from "@/lib/queries/player-search";
+
+export default function PlayerSearchCard({
+  search,
+  isOwn,
+  onRespond,
+  onDelete,
+}: {
+  search: OpenPlayerSearch;
+  isOwn: boolean;
+  onRespond: () => void;
+  onDelete: () => void;
+}): JSX.Element {
+  return (
+    <Card>
+      <CardContent className="flex flex-col gap-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              <Swords className="size-5" />
+            </div>
+            <div>
+              <p className="font-heading text-base font-medium leading-snug">
+                {formatBerlin(search.start, "dd.MM.yyyy")}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {formatBerlin(search.start, "HH:mm")} – {formatBerlin(search.end, "HH:mm")} Uhr
+              </p>
+            </div>
+          </div>
+          <span className="shrink-0 text-sm text-muted-foreground">von {search.creatorName}</span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge variant="secondary">{search.system}</Badge>
+          <Badge variant="outline">{matchTypeLabel(search.matchType)}</Badge>
+        </div>
+
+        <div className="flex justify-end">
+          {isOwn ? (
+            <Button variant="outline" size="sm" onClick={onDelete}>
+              <Trash2 />
+              Löschen
+            </Button>
+          ) : (
+            <Button size="sm" onClick={onRespond}>
+              <Handshake />
+              Interesse
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

@@ -4,6 +4,7 @@ export const ROUTES = {
   DASHBOARD: "/dashboard",
   TISCHE: "/tische",
   GASTHISTORIE: "/gasthistorie",
+  SPIELERSUCHE: "/spielersuche",
   ADMIN_TISCHE: "/admin/tische",
   ADMIN_SPIELE: "/admin/spiele",
   ADMIN_USERS: "/admin/users",
@@ -40,6 +41,7 @@ export const CONFIRM_MODE = {
   BOOKING: "booking",
   GUEST: "guest",
   GAME: "game",
+  PLAYER_SEARCH: "player_search",
 } as const;
 
 export const SEARCH_PARAMS = {
@@ -66,6 +68,10 @@ export const MESSAGES = {
     MEMBER_ID_REQUIRED: "Mitgliedsnummer ist erforderlich",
     IBAN_INVALID: "Ungültige IBAN.",
     START_BEFORE_END: "Start muss vor dem Ende liegen.",
+    START_IN_FUTURE: "Der Zeitraum muss in der Zukunft liegen.",
+    SYSTEM_REQUIRED: "Bitte ein System angeben.",
+    MATCH_TYPE_REQUIRED: "Bitte einen Spieltyp wählen.",
+    PRIORITY_INVALID: "Bitte eine positive Zahl oder leer lassen.",
   },
   AUTH: {
     SIGN_IN_FAILED: "Anmeldung fehlgeschlagen.",
@@ -116,6 +122,16 @@ export const MESSAGES = {
     CREATOR_CANNOT_LEAVE: "Der Ersteller kann den Termin nicht verlassen.",
     NO_BOOKING_SELECTED: "Keine Buchung ausgewählt.",
   },
+  PLAYER_SEARCH: {
+    CREATED: "Spielersuche erstellt.",
+    DELETED: "Spielersuche gelöscht.",
+    NOT_FOUND: "Spielersuche nicht gefunden.",
+    NOT_AVAILABLE: "Diese Spielersuche ist nicht mehr verfügbar.",
+    CANNOT_RESPOND_OWN: "Du kannst nicht auf deine eigene Suche antworten.",
+    NO_PRIORITY_TABLES: "Es ist kein Tisch für die automatische Buchung freigegeben.",
+    NO_TABLE_FREE: "Im gewünschten Zeitraum ist kein Tisch frei. Bitte andere Uhrzeit wählen.",
+    booked: (tableName: string): string => `Gebucht: ${tableName}.`,
+  },
   PAYMENT: {
     MARKED_PAID: "Als bezahlt markiert.",
     MARKED_UNPAID: "Als offen markiert.",
@@ -142,10 +158,12 @@ export const MESSAGES = {
     BOOKING_TITLE: "Buchung stornieren",
     GUEST_TITLE: "Gast entfernen",
     GAME_TITLE: "Spiel löschen",
+    PLAYER_SEARCH_TITLE: "Spielersuche löschen",
     CONFIRM_LABEL_DELETE: "Löschen",
     CONFIRM_LABEL_CANCEL_BOOKING: "Stornieren",
     CONFIRM_LABEL_REMOVE: "Entfernen",
     BOOKING_DESCRIPTION: "Diese Buchung wirklich stornieren?",
+    PLAYER_SEARCH_DESCRIPTION: "Diese Spielersuche wirklich löschen?",
     genericDeleteDescription: (name?: string): string =>
       `„${name}" wirklich löschen? Dies kann nicht rückgängig gemacht werden.`,
     guestRemoveDescription: (name?: string): string =>

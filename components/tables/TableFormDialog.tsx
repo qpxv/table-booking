@@ -5,13 +5,13 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Field, FieldLabel, FieldError, FieldGroup } from "@/components/ui/field";
+import { Field, FieldLabel, FieldError, FieldDescription, FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import type { Table } from "@/generated/prisma/client";
 import { createTable, updateTable } from "@/service/table-service/table";
-import { tableSchema, type TableInput } from "@/lib/schemas/table";
+import { tableFormSchema, type TableFormInput } from "@/lib/schemas/table";
 import { showToast } from "@/lib/toast";
 
 // Only rendered by the parent while the dialog should be open. The initial
@@ -24,12 +24,15 @@ export default function TableFormDialog({
   onClose: () => void;
 }): JSX.Element {
   const [pending, startTransition] = useTransition();
-  const form = useForm<TableInput>({
-    resolver: zodResolver(tableSchema),
-    defaultValues: { name: table?.name ?? "" },
+  const form = useForm<TableFormInput>({
+    resolver: zodResolver(tableFormSchema),
+    defaultValues: {
+      name: table?.name ?? "",
+      autoBookingPriority: table?.autoBookingPriority?.toString() ?? "",
+    },
   });
 
-  function onSubmit(values: TableInput): void {
+  function onSubmit(values: TableFormInput): void {
     startTransition(async () => {
       const result = table ? await updateTable(table.id, values) : await createTable(values);
       showToast(result);
@@ -53,6 +56,32 @@ export default function TableFormDialog({
                   <FieldLabel htmlFor={field.name}>Name</FieldLabel>
                   <Input {...field} id={field.name} autoFocus aria-invalid={fieldState.invalid} />
                   {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
+            />
+            <Controller
+              name="autoBookingPriority"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor={field.name}>Spielersuche-Priorität</FieldLabel>
+                  <Input
+                    {...field}
+                    id={field.name}
+                    type="number"
+                    min={1}
+                    inputMode="numeric"
+                    placeholder="z.B. 1"
+                    aria-invalid={fieldState.invalid}
+                  />
+                  {fieldState.invalid ? (
+                    <FieldError errors={[fieldState.error]} />
+                  ) : (
+                    <FieldDescription>
+                      Reihenfolge für die automatische Buchung (niedriger zuerst). Leer = wird nicht
+                      automatisch gebucht.
+                    </FieldDescription>
+                  )}
                 </Field>
               )}
             />

@@ -33,10 +33,11 @@ model User {
   sessions Session[]
   accounts Account[]
 
-  bookings     Booking[]
-  guests       Guest[]
-  participants BookingParticipant[]
-  drinkTallies DrinkTally[]
+  bookings      Booking[]
+  guests        Guest[]
+  participants  BookingParticipant[]
+  drinkTallies  DrinkTally[]
+  playerSearches PlayerSearch[]
 
   @@map("user")
 }
@@ -96,6 +97,9 @@ model Table {
   // "Mehrfachbuchung": a shared/community event slot multiple members can
   // join, instead of one member owning the slot exclusively.
   allowMultipleBookings Boolean  @default(false)
+  // Rank in the Spielersuche auto-booking order (lower = tried first). null
+  // means the table is never auto-booked. Admin-managed in Tischverwaltung.
+  autoBookingPriority   Int?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
@@ -107,6 +111,9 @@ model Booking {
   start     DateTime
   end       DateTime
   game      String?
+  // Free-text note. Currently only set by Spielersuche auto-booking, where
+  // it carries the responding member's message ("yo lass ma 2k chillig").
+  note      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -179,6 +186,27 @@ model Game {
   name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// An open "Spielersuche": a member looking for an opponent for a match in a
+// given time window. When another member responds, the app auto-books the
+// first free table (Table.autoBookingPriority order) and deletes this row.
+model PlayerSearch {
+  id        String   @id @default(cuid())
+  start     DateTime
+  end       DateTime
+  // Game system, free text from the same suggestion list as Booking.game
+  // (Spielverwaltung), e.g. "40k", "30k", "Kill Team".
+  system    String
+  // "fun" | "tournament" (see lib/player-search-types.ts).
+  matchType String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creatorId String
+  creator   User   @relation(fields: [creatorId], references: [id])
+
+  @@index([start])
 }
 
 // Admin-set drink stock for a given calendar month (Getränke-Tracking).

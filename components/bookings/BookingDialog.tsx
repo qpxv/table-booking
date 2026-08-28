@@ -126,6 +126,7 @@ export default function BookingDialog({
       start: values.start,
       end: values.end,
       game: tableAllowsMultiple ? null : values.game || null,
+      note: null,
       userId: creatorUserId,
       userName: creatorName,
       participants: [
