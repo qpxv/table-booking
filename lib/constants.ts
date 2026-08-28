@@ -131,6 +131,11 @@ export const MESSAGES = {
     CREDENTIAL_ACCOUNT_NOT_FOUND: "Für dieses Konto ist kein Passwort hinterlegt.",
     CHANGE_EMAIL_DISABLED: "E-Mail-Änderung ist deaktiviert.",
   },
+  FORCE_PASSWORD_CHANGE: {
+    TITLE: "Passwort festlegen",
+    DESCRIPTION:
+      "Dein Konto wurde mit einem vom Admin vergebenen Passwort eingerichtet. Lege jetzt dein eigenes Passwort fest, um fortzufahren.",
+  },
   CONFIRM_DELETE: {
     TABLE_TITLE: "Tisch löschen",
     USER_TITLE: "Benutzer löschen",

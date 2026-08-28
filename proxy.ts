@@ -33,6 +33,18 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(new URL(ROUTES.DASHBOARD, request.url));
   }
 
+  // The landing page renders its own chrome outside app/(app), so it would
+  // slip past the forced password change shown by (app)/layout.tsx. Bounce a
+  // member still on an admin-provisioned password to /dashboard, where the
+  // gate is.
+  if (
+    session &&
+    pathname === ROUTES.HOME &&
+    (session.user as { mustChangePassword?: boolean }).mustChangePassword
+  ) {
+    return NextResponse.redirect(new URL(ROUTES.DASHBOARD, request.url));
+  }
+
   if (session && pathname.startsWith("/admin")) {
     if ((session.user as { role?: string }).role !== "admin") {
       return NextResponse.redirect(new URL(ROUTES.DASHBOARD, request.url));

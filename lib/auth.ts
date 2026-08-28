@@ -25,6 +25,15 @@ export const auth = betterAuth({
         required: false,
         input: true,
       },
+      // Server-managed only (input: false): admins can't set it through the
+      // client and members can't clear it by editing their profile. It's
+      // written directly via Prisma when an account is provisioned or its
+      // password reset, and cleared by the forced-change server action.
+      mustChangePassword: {
+        type: "boolean",
+        required: false,
+        input: false,
+      },
     },
     changeEmail: {
       enabled: true,

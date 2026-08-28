@@ -35,7 +35,7 @@ export async function createUser(values: CreateUserInput): Promise<ServiceResult
   if (!parsed.success) return { success: false, message: MESSAGES.COMMON.INVALID_INPUT };
 
   try {
-    await auth.api.createUser({
+    const created = await auth.api.createUser({
       body: {
         name: parsed.data.name,
         email: parsed.data.email,
@@ -43,6 +43,14 @@ export async function createUser(values: CreateUserInput): Promise<ServiceResult
         data: { memberId: parsed.data.memberId },
       },
       headers: admin.headers,
+    });
+
+    // The admin picked this password, so force the member to replace it on
+    // first login. Written here rather than through `data` above because the
+    // field is `input: false` in the auth config.
+    await prisma.user.update({
+      where: { id: created.user.id },
+      data: { mustChangePassword: true },
     });
 
     revalidatePath(ROUTES.ADMIN_USERS);
@@ -117,6 +125,15 @@ export async function resetUserPassword(
       headers: admin.headers,
     });
 
+    // Same as account creation: an admin-chosen password must be replaced by
+    // the member before they can use the app again. This also stops an admin
+    // from setting a password and quietly using the account themselves.
+    await prisma.user.update({
+      where: { id: userId },
+      data: { mustChangePassword: true },
+    });
+
+    revalidatePath(ROUTES.ADMIN_USERS);
     return { success: true, message: MESSAGES.USER.PASSWORD_RESET };
   } catch (err) {
     unstable_rethrow(err);

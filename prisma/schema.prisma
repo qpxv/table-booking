@@ -20,6 +20,10 @@ model User {
   emailVerified Boolean   @default(false)
   image         String?
   role          String    @default("user")
+  // Set when an admin provisions the account or resets its password; the
+  // app is gated behind a forced password change until the member clears
+  // it themselves on first login.
+  mustChangePassword Boolean @default(false)
   banned        Boolean?
   banReason     String?
   banExpires    DateTime?

@@ -4,6 +4,7 @@ import { ROLES } from "@/lib/constants";
 import { getDrinkWidgetData } from "@/lib/queries/drinks";
 import AppShell from "@/components/layout/AppShell";
 import RouteTransition from "@/components/layout/RouteTransition";
+import ForcePasswordChange from "@/components/auth/ForcePasswordChange";
 
 export default async function AppLayout({
   children,
@@ -11,6 +12,12 @@ export default async function AppLayout({
   children: React.ReactNode;
 }): Promise<JSX.Element> {
   const session = await checkSession();
+
+  // Gate the entire authenticated app behind the forced password change so a
+  // member using an admin-provisioned password can't reach anything else.
+  if ((session.user as { mustChangePassword?: boolean }).mustChangePassword) {
+    return <ForcePasswordChange userName={session.user.name} />;
+  }
 
   const drinkResult = await getDrinkWidgetData();
   if (!drinkResult.success) throw new Error(drinkResult.message);
