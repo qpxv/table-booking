@@ -25,11 +25,15 @@ export default function EventCard({
   onDelete: (event: ClubEvent) => void;
 }): JSX.Element {
   const [pending, startTransition] = useTransition();
-  const isParticipant = event.participants.some((p) => p.userId === currentUserId);
+  const isParticipant = event.participants.some(
+    (p) => p.userId === currentUserId,
+  );
 
   function toggleAttendance(): void {
     startTransition(async () => {
-      const result = isParticipant ? await leaveEvent(event.id) : await joinEvent(event.id);
+      const result = isParticipant
+        ? await leaveEvent(event.id)
+        : await joinEvent(event.id);
       showToast(result);
     });
   }
@@ -43,7 +47,9 @@ export default function EventCard({
       <CardContent className="flex flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="font-heading text-base font-medium leading-snug">{event.title}</p>
+            <p className="font-heading text-base font-medium leading-snug">
+              {event.title}
+            </p>
             <p className="text-sm text-muted-foreground">{timeLabel}</p>
           </div>
           {isAdmin && (
@@ -114,7 +120,7 @@ export default function EventCard({
             disabled={pending}
           >
             {pending ? <Spinner /> : isParticipant ? <LogOut /> : <LogIn />}
-            {isParticipant ? "Doch nicht" : "Ich bin dabei"}
+            {isParticipant ? "Abmelden" : "Anmelden"}
           </Button>
         </div>
       </CardContent>
