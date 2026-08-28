@@ -5,10 +5,10 @@ export const WEBSITE_NAV_LINKS = [
   { href: "#kontakt", label: "Kontakt" },
 ] as const;
 
-// Exact founding day isn't tracked anywhere, so this is an approximation
-// used to compute the "Tage dabei" counter in the Ablauf section.
+// Club founding day, used to compute the "Tage dabei" counter in the Ablauf
+// section.
 export const CLUB_STATS = {
-  foundedAt: "2024-01-01",
+  foundedAt: "2024-07-19",
   memberLabel: "Mitglieder",
   daysLabel: "Tage dabei",
   bookingLabel: "Buchungen",
