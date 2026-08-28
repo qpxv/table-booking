@@ -1,7 +1,7 @@
-import type { JSX } from "react";
-import { getDrinkReport } from "@/lib/queries/drinks";
+import { Suspense, type JSX } from "react";
 import { parseYearMonthSearchParams } from "@/lib/datetime";
-import DrinkReportView from "@/components/drinks/DrinkReportView";
+import DrinkReportContent from "@/components/drinks/DrinkReportContent";
+import DrinkReportSkeleton from "@/components/drinks/DrinkReportSkeleton";
 
 export default async function AdminDrinksPage({
   searchParams,
@@ -9,9 +9,6 @@ export default async function AdminDrinksPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }): Promise<JSX.Element> {
   const { year, month } = parseYearMonthSearchParams(await searchParams);
-
-  const result = await getDrinkReport(year, month);
-  if (!result.success) throw new Error(result.message);
 
   return (
     <div className="flex flex-col gap-4">
@@ -21,13 +18,9 @@ export default async function AdminDrinksPage({
           Getränkebestand und Entnahmen pro Mitglied, nach Monat.
         </p>
       </div>
-      <DrinkReportView
-        year={year}
-        month={month}
-        initialCount={result.initialCount}
-        totalTaken={result.totalTaken}
-        rows={result.rows}
-      />
+      <Suspense key={`${year}-${month}`} fallback={<DrinkReportSkeleton />}>
+        <DrinkReportContent year={year} month={month} />
+      </Suspense>
     </div>
   );
 }

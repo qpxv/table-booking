@@ -1,28 +1,14 @@
-import type { JSX } from "react";
-import { checkSession } from "@/lib/session";
-import { isAdmin } from "@/lib/permissions";
-import { listGuestHistory } from "@/lib/queries/guest-history";
-import GuestHistoryTable from "@/components/guest-history/GuestHistoryTable";
+import { Suspense, type JSX } from "react";
+import GuestHistoryContent from "@/components/guest-history/GuestHistoryContent";
+import GuestHistorySkeleton from "@/components/guest-history/GuestHistorySkeleton";
 
-export default async function GuestHistoryPage(): Promise<JSX.Element> {
-  const session = await checkSession();
-
-  const result = await listGuestHistory();
-  if (!result.success) throw new Error(result.message);
-  const rows = result.rows;
-  const admin = isAdmin(session);
-
+export default function GuestHistoryPage(): JSX.Element {
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">Gasthistorie</h1>
-        <p className="text-sm text-muted-foreground">
-          {admin
-            ? "Alle Gastbesuche und offenen Zahlungen."
-            : "Deine mitgebrachten Gäste und offenen Zahlungen."}
-        </p>
-      </div>
-      <GuestHistoryTable rows={rows} isAdmin={admin} currentUserId={session.user.id} />
+      <h1 className="text-xl font-semibold tracking-tight">Gasthistorie</h1>
+      <Suspense fallback={<GuestHistorySkeleton />}>
+        <GuestHistoryContent />
+      </Suspense>
     </div>
   );
 }

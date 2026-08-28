@@ -1,12 +1,8 @@
-import type { JSX } from "react";
-import { listTables } from "@/lib/queries/tables";
-import TableManager from "@/components/tables/TableManager";
+import { Suspense, type JSX } from "react";
+import TableManagerContent from "@/components/tables/TableManagerContent";
+import ManagerTableSkeleton from "@/components/shared/ManagerTableSkeleton";
 
-export default async function AdminTablesPage(): Promise<JSX.Element> {
-  const result = await listTables();
-  if (!result.success) throw new Error(result.message);
-  const tables = result.tables;
-
+export default function AdminTablesPage(): JSX.Element {
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -15,7 +11,9 @@ export default async function AdminTablesPage(): Promise<JSX.Element> {
           Tische anlegen, bearbeiten und aktivieren.
         </p>
       </div>
-      <TableManager tables={tables} />
+      <Suspense fallback={<ManagerTableSkeleton columns={5} />}>
+        <TableManagerContent />
+      </Suspense>
     </div>
   );
 }

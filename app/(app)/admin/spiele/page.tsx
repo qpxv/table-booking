@@ -1,12 +1,8 @@
-import type { JSX } from "react";
-import { listGames } from "@/lib/queries/games";
-import GamesManager from "@/components/games/GamesManager";
+import { Suspense, type JSX } from "react";
+import GamesContent from "@/components/games/GamesContent";
+import ManagerTableSkeleton from "@/components/shared/ManagerTableSkeleton";
 
-export default async function AdminGamesPage(): Promise<JSX.Element> {
-  const result = await listGames();
-  if (!result.success) throw new Error(result.message);
-  const games = result.games;
-
+export default function AdminGamesPage(): JSX.Element {
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -15,7 +11,9 @@ export default async function AdminGamesPage(): Promise<JSX.Element> {
           Spiele anlegen, bearbeiten und löschen.
         </p>
       </div>
-      <GamesManager games={games} />
+      <Suspense fallback={<ManagerTableSkeleton columns={3} />}>
+        <GamesContent />
+      </Suspense>
     </div>
   );
 }

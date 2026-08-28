@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { JSX } from "react";
 import { Work_Sans, Geist_Mono, Fraunces } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
@@ -25,6 +25,15 @@ const fraunces = Fraunces({
 export const metadata: Metadata = {
   title: "Dice-Bock e.V.",
   description: "Tischbuchungsapp für den Dice-Bock e.V.",
+};
+
+// Disable pinch/auto zoom app-wide so iOS Safari doesn't zoom in when a
+// form input is focused.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({

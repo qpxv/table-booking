@@ -1,20 +1,8 @@
-import type { JSX } from "react";
-import { listUsers } from "@/lib/queries/users";
-import { listGuestsGroupedByBringer } from "@/lib/queries/guests";
-import UserManager from "@/components/users/UserManager";
+import { Suspense, type JSX } from "react";
+import UserManagerContent from "@/components/users/UserManagerContent";
+import ManagerTableSkeleton from "@/components/shared/ManagerTableSkeleton";
 
-export default async function AdminUsersPage(): Promise<JSX.Element> {
-  const usersResult = await listUsers();
-  if (!usersResult.success) throw new Error(usersResult.message);
-
-  const guestsByMemberResult = await listGuestsGroupedByBringer();
-  if (!guestsByMemberResult.success) throw new Error(guestsByMemberResult.message);
-
-  const usersWithGuests = usersResult.users.map((user) => ({
-    ...user,
-    guests: guestsByMemberResult.guestsByMember[user.id] ?? [],
-  }));
-
+export default function AdminUsersPage(): JSX.Element {
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -23,7 +11,9 @@ export default async function AdminUsersPage(): Promise<JSX.Element> {
           Mitglieder verwalten, Rollen und Zugangsdaten anpassen.
         </p>
       </div>
-      <UserManager users={usersWithGuests} />
+      <Suspense fallback={<ManagerTableSkeleton columns={5} />}>
+        <UserManagerContent />
+      </Suspense>
     </div>
   );
 }

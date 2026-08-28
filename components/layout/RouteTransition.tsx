@@ -2,7 +2,7 @@
 
 import { Suspense, type JSX, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // React never re-shows a Suspense boundary's fallback for a later
 // transition once it has already revealed real content once -- that's how
@@ -23,8 +23,10 @@ export default function RouteTransition({ children }: { children: ReactNode }): 
     <Suspense
       key={pathname}
       fallback={
-        <div className="flex flex-1 items-center justify-center py-24">
-          <Spinner className="size-8 text-muted-foreground" />
+        <div className="flex flex-1 flex-col gap-4">
+          <Skeleton className="h-7 w-48" />
+          <Skeleton className="h-4 w-64" />
+          <Skeleton className="h-64 w-full" />
         </div>
       }
     >
