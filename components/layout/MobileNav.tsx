@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type JSX } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { LogOut, Menu, Settings } from "lucide-react";
+import { ChevronDown, LogOut, Menu, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -15,21 +15,21 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarProvider,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useSignOut } from "@/hooks/use-sign-out";
+import { cn } from "@/lib/utils";
 import { ROUTES } from "@/lib/constants";
+import { isNavGroup, type NavEntry, type NavGroup, type NavLeaf } from "./nav-types";
 import type { DrinkWidgetData } from "@/lib/drink-types";
 import { DrinkWidgetSidebarItem } from "@/components/drinks/DrinkWidget";
 import ClubLogo from "./ClubLogo";
 import ThemeSidebarControl from "@/components/theme/ThemeSidebarControl";
 import SettingsDialog from "./SettingsDialog";
-
-type NavLink = {
-  href: string;
-  label: string;
-};
 
 // Scoped locally per AppShell instance, not the app root: this is a
 // purely ephemeral mobile overlay, there's no persistent desktop sidebar
@@ -41,7 +41,7 @@ export default function MobileNav({
   iban,
   drinkWidget,
 }: {
-  links: NavLink[];
+  links: NavEntry[];
   name: string;
   email: string;
   iban: string | null;
@@ -64,11 +64,15 @@ export default function MobileNav({
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                {links.map((link) => (
-                  <SidebarMenuItem key={link.href}>
-                    <NavMenuButton link={link} />
-                  </SidebarMenuItem>
-                ))}
+                {links.map((link) =>
+                  isNavGroup(link) ? (
+                    <NavGroupSection key={link.label} group={link} />
+                  ) : (
+                    <SidebarMenuItem key={link.href}>
+                      <NavMenuButton link={link} />
+                    </SidebarMenuItem>
+                  ),
+                )}
                 <DrinkWidgetSidebarItem ownCount={drinkWidget.ownCount} guests={drinkWidget.guests} />
               </SidebarMenu>
             </SidebarGroupContent>
@@ -159,7 +163,7 @@ function MobileNavTrigger(): JSX.Element {
   );
 }
 
-function NavMenuButton({ link }: { link: NavLink }): JSX.Element {
+function NavMenuButton({ link }: { link: NavLeaf }): JSX.Element {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
   return (
@@ -168,6 +172,42 @@ function NavMenuButton({ link }: { link: NavLink }): JSX.Element {
       onClick={() => setOpenMobile(false)}
       render={<Link href={link.href}>{link.label}</Link>}
     />
+  );
+}
+
+function NavGroupSection({ group }: { group: NavGroup }): JSX.Element {
+  const pathname = usePathname();
+  const { setOpenMobile } = useSidebar();
+  const containsActive = group.items.some((item) => item.href === pathname);
+  const [open, setOpen] = useState(containsActive);
+
+  return (
+    <>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          onClick={() => setOpen((value) => !value)}
+          aria-expanded={open}
+        >
+          {group.label}
+          <ChevronDown
+            className={cn("ml-auto transition-transform", open && "rotate-180")}
+          />
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+      {open && (
+        <SidebarMenuSub>
+          {group.items.map((item) => (
+            <SidebarMenuSubItem key={item.href}>
+              <SidebarMenuSubButton
+                isActive={pathname === item.href}
+                onClick={() => setOpenMobile(false)}
+                render={<Link href={item.href}>{item.label}</Link>}
+              />
+            </SidebarMenuSubItem>
+          ))}
+        </SidebarMenuSub>
+      )}
+    </>
   );
 }
 

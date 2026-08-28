@@ -6,7 +6,9 @@ import { ROLES, ROUTES } from "@/lib/constants";
 import type { DrinkWidgetData } from "@/lib/drink-types";
 import { DrinkWidgetHeaderButton } from "@/components/drinks/DrinkWidget";
 import MobileNav from "./MobileNav";
+import NavGroupMenu from "./NavGroupMenu";
 import UserMenu from "./UserMenu";
+import { isNavGroup, type NavEntry } from "./nav-types";
 
 type AppShellUser = {
   name: string;
@@ -37,7 +39,7 @@ export default function AppShell({
 }): JSX.Element {
   const isAdmin = user.role === ROLES.ADMIN;
 
-  const links = [
+  const links: NavEntry[] = [
     { href: ROUTES.DASHBOARD, label: "Dashboard" },
     { href: ROUTES.TISCHE, label: "Reservieren" },
     { href: ROUTES.SPIELERSUCHE, label: "Spielersuche" },
@@ -45,10 +47,15 @@ export default function AppShell({
     { href: ROUTES.GASTHISTORIE, label: "Gasthistorie" },
     ...(isAdmin
       ? [
-          { href: ROUTES.ADMIN_TISCHE, label: "Tischverwaltung" },
-          { href: ROUTES.ADMIN_SPIELE, label: "Spielverwaltung" },
-          { href: ROUTES.ADMIN_USERS, label: "Benutzerverwaltung" },
-          { href: ROUTES.ADMIN_GETRAENKE, label: "Getränke" },
+          {
+            label: "Admin-Bereich",
+            items: [
+              { href: ROUTES.ADMIN_TISCHE, label: "Tischverwaltung" },
+              { href: ROUTES.ADMIN_SPIELE, label: "Spielverwaltung" },
+              { href: ROUTES.ADMIN_USERS, label: "Benutzerverwaltung" },
+              { href: ROUTES.ADMIN_GETRAENKE, label: "Getränke" },
+            ],
+          },
         ]
       : []),
   ];
@@ -69,11 +76,15 @@ export default function AppShell({
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
-          {links.map((link) => (
-            <NavButton key={link.href} href={link.href}>
-              {link.label}
-            </NavButton>
-          ))}
+          {links.map((link) =>
+            isNavGroup(link) ? (
+              <NavGroupMenu key={link.label} group={link} />
+            ) : (
+              <NavButton key={link.href} href={link.href}>
+                {link.label}
+              </NavButton>
+            ),
+          )}
         </nav>
 
         <MobileNav
