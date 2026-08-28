@@ -33,11 +33,13 @@ model User {
   sessions Session[]
   accounts Account[]
 
-  bookings      Booking[]
-  guests        Guest[]
-  participants  BookingParticipant[]
-  drinkTallies  DrinkTally[]
-  playerSearches PlayerSearch[]
+  bookings           Booking[]
+  guests             Guest[]
+  participants       BookingParticipant[]
+  drinkTallies       DrinkTally[]
+  playerSearches     PlayerSearch[]
+  createdEvents      Event[]
+  eventParticipations EventParticipant[]
 
   @@map("user")
 }
@@ -207,6 +209,42 @@ model PlayerSearch {
   creator   User   @relation(fields: [creatorId], references: [id])
 
   @@index([start])
+}
+
+// A club event not tied to a physical table (e.g. "Schwimmen gehen"). Only
+// admins create/edit/delete them; any member signs themselves up. The
+// creator is NOT auto-added as a participant (unlike Booking).
+model Event {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  location    String?
+  start       DateTime
+  // Optional: some events have no fixed end time.
+  end         DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  participants EventParticipant[]
+
+  @@index([start])
+}
+
+model EventParticipant {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([eventId, userId])
+  @@index([eventId])
 }
 
 // Admin-set drink stock for a given calendar month (Getränke-Tracking).

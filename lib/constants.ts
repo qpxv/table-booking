@@ -5,6 +5,7 @@ export const ROUTES = {
   TISCHE: "/tische",
   GASTHISTORIE: "/gasthistorie",
   SPIELERSUCHE: "/spielersuche",
+  EVENTS: "/events",
   ADMIN_TISCHE: "/admin/tische",
   ADMIN_SPIELE: "/admin/spiele",
   ADMIN_USERS: "/admin/users",
@@ -42,6 +43,7 @@ export const CONFIRM_MODE = {
   GUEST: "guest",
   GAME: "game",
   PLAYER_SEARCH: "player_search",
+  EVENT: "event",
 } as const;
 
 export const SEARCH_PARAMS = {
@@ -72,6 +74,7 @@ export const MESSAGES = {
     SYSTEM_REQUIRED: "Bitte ein System angeben.",
     MATCH_TYPE_REQUIRED: "Bitte einen Spieltyp wählen.",
     PRIORITY_INVALID: "Bitte eine positive Zahl oder leer lassen.",
+    TITLE_REQUIRED: "Titel ist erforderlich",
   },
   AUTH: {
     SIGN_IN_FAILED: "Anmeldung fehlgeschlagen.",
@@ -122,6 +125,14 @@ export const MESSAGES = {
     CREATOR_CANNOT_LEAVE: "Der Ersteller kann den Termin nicht verlassen.",
     NO_BOOKING_SELECTED: "Keine Buchung ausgewählt.",
   },
+  EVENT: {
+    CREATED: "Event erstellt.",
+    UPDATED: "Event aktualisiert.",
+    DELETED: "Event gelöscht.",
+    NOT_FOUND: "Event nicht gefunden.",
+    JOINED: "Du bist jetzt angemeldet.",
+    LEFT: "Du bist abgemeldet.",
+  },
   PLAYER_SEARCH: {
     CREATED: "Spielersuche erstellt.",
     DELETED: "Spielersuche gelöscht.",
@@ -159,11 +170,13 @@ export const MESSAGES = {
     GUEST_TITLE: "Gast entfernen",
     GAME_TITLE: "Spiel löschen",
     PLAYER_SEARCH_TITLE: "Spielersuche löschen",
+    EVENT_TITLE: "Event löschen",
     CONFIRM_LABEL_DELETE: "Löschen",
     CONFIRM_LABEL_CANCEL_BOOKING: "Stornieren",
     CONFIRM_LABEL_REMOVE: "Entfernen",
     BOOKING_DESCRIPTION: "Diese Buchung wirklich stornieren?",
     PLAYER_SEARCH_DESCRIPTION: "Diese Spielersuche wirklich löschen?",
+    EVENT_DESCRIPTION: "Dieses Event wirklich löschen? Alle Anmeldungen gehen verloren.",
     genericDeleteDescription: (name?: string): string =>
       `„${name}" wirklich löschen? Dies kann nicht rückgängig gemacht werden.`,
     guestRemoveDescription: (name?: string): string =>

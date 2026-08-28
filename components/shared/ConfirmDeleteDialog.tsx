@@ -55,6 +55,11 @@ const COPY = {
     confirmLabel: MESSAGES.CONFIRM_DELETE.CONFIRM_LABEL_DELETE,
     description: () => MESSAGES.CONFIRM_DELETE.PLAYER_SEARCH_DESCRIPTION,
   },
+  [CONFIRM_MODE.EVENT]: {
+    title: MESSAGES.CONFIRM_DELETE.EVENT_TITLE,
+    confirmLabel: MESSAGES.CONFIRM_DELETE.CONFIRM_LABEL_DELETE,
+    description: () => MESSAGES.CONFIRM_DELETE.EVENT_DESCRIPTION,
+  },
 } satisfies { [K in Mode]: Copy };
 
 // Only rendered by the parent while it should be open, same convention as

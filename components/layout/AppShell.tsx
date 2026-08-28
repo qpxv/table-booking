@@ -41,6 +41,7 @@ export default function AppShell({
     { href: ROUTES.DASHBOARD, label: "Dashboard" },
     { href: ROUTES.TISCHE, label: "Reservieren" },
     { href: ROUTES.SPIELERSUCHE, label: "Spielersuche" },
+    { href: ROUTES.EVENTS, label: "Events" },
     { href: ROUTES.GASTHISTORIE, label: "Gasthistorie" },
     ...(isAdmin
       ? [
