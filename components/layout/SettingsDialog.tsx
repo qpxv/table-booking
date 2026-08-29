@@ -10,6 +10,7 @@ import { UserCircle, KeyRound, Landmark } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, FieldLabel, FieldError, FieldDescription, FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import PasswordField from "@/components/shared/PasswordInput";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
@@ -238,7 +239,12 @@ function PasswordForm(): JSX.Element {
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor={field.name}>Aktuelles Passwort</FieldLabel>
-              <Input {...field} id={field.name} type="password" aria-invalid={fieldState.invalid} />
+              <PasswordField
+                {...field}
+                id={field.name}
+                autoComplete="current-password"
+                aria-invalid={fieldState.invalid}
+              />
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
@@ -249,7 +255,12 @@ function PasswordForm(): JSX.Element {
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor={field.name}>Neues Passwort</FieldLabel>
-              <Input {...field} id={field.name} type="password" aria-invalid={fieldState.invalid} />
+              <PasswordField
+                {...field}
+                id={field.name}
+                autoComplete="new-password"
+                aria-invalid={fieldState.invalid}
+              />
               {fieldState.invalid ? (
                 <FieldError errors={[fieldState.error]} />
               ) : (
@@ -264,7 +275,12 @@ function PasswordForm(): JSX.Element {
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor={field.name}>Neues Passwort bestätigen</FieldLabel>
-              <Input {...field} id={field.name} type="password" aria-invalid={fieldState.invalid} />
+              <PasswordField
+                {...field}
+                id={field.name}
+                autoComplete="new-password"
+                aria-invalid={fieldState.invalid}
+              />
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
