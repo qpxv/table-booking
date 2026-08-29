@@ -12,12 +12,11 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }): Promise<JSX.Element> {
-  // Both run in parallel: the drink widget query derives its own session and
-  // doesn't depend on the layout's session check.
-  const sessionPromise = checkSession();
+  // Kicked off before the session check so the two run in parallel: the drink
+  // widget query derives its own session and doesn't depend on this one.
   const drinkPromise = getDrinkWidgetData();
 
-  const session = await sessionPromise;
+  const session = await checkSession();
 
   // Gate the entire authenticated app behind the forced password change so a
   // member using an admin-provisioned password can't reach anything else.
