@@ -54,7 +54,10 @@ export async function listOpenPlayerSearches(): Promise<{
         orderBy: { start: "asc" },
         include: {
           creator: { select: { name: true } },
-          interests: { select: { responderId: true } },
+          _count: { select: { interests: true } },
+          // Only this member's own interest row, to derive `respondedByMe`
+          // without pulling every responder's row for every open search.
+          interests: { where: { responderId: session.user.id }, select: { id: true } },
         },
       }),
       prisma.table.count({
@@ -73,8 +76,8 @@ export async function listOpenPlayerSearches(): Promise<{
         matchType: row.matchType,
         creatorId: row.creatorId,
         creatorName: row.creator.name,
-        respondedByMe: row.interests.some((i) => i.responderId === session.user.id),
-        interestCount: row.interests.length,
+        respondedByMe: row.interests.length > 0,
+        interestCount: row._count.interests,
       })),
     };
   } catch (err) {

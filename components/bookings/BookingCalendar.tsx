@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import momentTimezonePlugin from "@fullcalendar/moment-timezone";
+import luxonPlugin from "@fullcalendar/luxon3";
 import deLocale from "@fullcalendar/core/locales/de";
 import type {
   DateSelectArg,
@@ -240,7 +240,7 @@ export default function BookingCalendar({
 
       <FullCalendar
         ref={calendarRef}
-        plugins={[timeGridPlugin, interactionPlugin, momentTimezonePlugin]}
+        plugins={[timeGridPlugin, interactionPlugin, luxonPlugin]}
         initialDate={initialDate}
         initialView="timeGridWeek"
         timeZone="Europe/Berlin"

@@ -7,7 +7,7 @@ import { listBookingsForTable } from "@/lib/queries/bookings";
 import { listGuests } from "@/lib/queries/guests";
 import { listGames } from "@/lib/queries/games";
 import { listMembers } from "@/lib/queries/users";
-import BookingCalendar from "@/components/bookings/BookingCalendar";
+import BookingCalendar from "@/components/bookings/BookingCalendarLazy";
 
 export default async function TableCalendarContent({
   tischId,

@@ -1,10 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/permissions";
-import { ROUTES, MESSAGES } from "@/lib/constants";
+import { CACHE_TAGS, ROUTES, MESSAGES } from "@/lib/constants";
 import { tableSchema, type TableFormInput } from "@/lib/schemas/table";
 import type { ServiceResult } from "@/lib/service-types";
 
@@ -19,6 +19,7 @@ export async function createTable(values: TableFormInput): Promise<ServiceResult
     await prisma.table.create({ data: parsed.data });
     revalidatePath(ROUTES.ADMIN_TISCHE);
     revalidatePath(ROUTES.TISCHE);
+    updateTag(CACHE_TAGS.TABLES);
     return { success: true, message: MESSAGES.TABLE.CREATED };
   } catch (err) {
     unstable_rethrow(err);
@@ -38,6 +39,7 @@ export async function updateTable(id: string, values: TableFormInput): Promise<S
     await prisma.table.update({ where: { id }, data: parsed.data });
     revalidatePath(ROUTES.ADMIN_TISCHE);
     revalidatePath(ROUTES.TISCHE);
+    updateTag(CACHE_TAGS.TABLES);
     return { success: true, message: MESSAGES.TABLE.UPDATED };
   } catch (err) {
     unstable_rethrow(err);
@@ -54,6 +56,7 @@ export async function setTableActive(id: string, active: boolean): Promise<Servi
     await prisma.table.update({ where: { id }, data: { active } });
     revalidatePath(ROUTES.ADMIN_TISCHE);
     revalidatePath(ROUTES.TISCHE);
+    updateTag(CACHE_TAGS.TABLES);
     return { success: true, message: active ? MESSAGES.TABLE.ACTIVATED : MESSAGES.TABLE.DEACTIVATED };
   } catch (err) {
     unstable_rethrow(err);
@@ -73,6 +76,7 @@ export async function setTableAllowMultipleBookings(
     await prisma.table.update({ where: { id }, data: { allowMultipleBookings } });
     revalidatePath(ROUTES.ADMIN_TISCHE);
     revalidatePath(ROUTES.TISCHE);
+    updateTag(CACHE_TAGS.TABLES);
     return {
       success: true,
       message: allowMultipleBookings ? MESSAGES.TABLE.MULTIPLE_ENABLED : MESSAGES.TABLE.MULTIPLE_DISABLED,
@@ -92,6 +96,7 @@ export async function deleteTable(id: string): Promise<ServiceResult> {
     await prisma.table.delete({ where: { id } });
     revalidatePath(ROUTES.ADMIN_TISCHE);
     revalidatePath(ROUTES.TISCHE);
+    updateTag(CACHE_TAGS.TABLES);
     return { success: true, message: MESSAGES.TABLE.DELETED };
   } catch (err) {
     unstable_rethrow(err);

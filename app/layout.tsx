@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { JSX } from "react";
-import { Work_Sans, Geist_Mono, Fraunces } from "next/font/google";
+import { Work_Sans, Fraunces } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import ThemeProvider from "@/components/theme/ThemeProvider";
 import "./globals.css";
@@ -9,11 +9,6 @@ import "./globals.css";
 // sans-serif sibling, so this is a separate but complementary body/UI face.
 const workSans = Work_Sans({
   variable: "--font-work-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
@@ -45,7 +40,7 @@ export default function RootLayout({
   return (
     <html
       lang="de"
-      className={`${workSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
+      className={`${workSans.variable} ${fraunces.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
