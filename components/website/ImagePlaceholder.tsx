@@ -9,6 +9,7 @@ interface ImagePlaceholderProps {
   src?: string;
   alt?: string;
   priority?: boolean;
+  imageClassName?: string;
 }
 
 export default function ImagePlaceholder({
@@ -17,6 +18,7 @@ export default function ImagePlaceholder({
   src,
   alt,
   priority,
+  imageClassName,
 }: ImagePlaceholderProps): JSX.Element {
   return (
     <div
@@ -27,7 +29,13 @@ export default function ImagePlaceholder({
     >
       {src ? (
         <>
-          <Image src={src} alt={alt ?? ""} fill priority={priority} className="object-cover" />
+          <Image
+            src={src}
+            alt={alt ?? ""}
+            fill
+            priority={priority}
+            className={cn("object-cover", imageClassName)}
+          />
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0"

@@ -15,7 +15,7 @@ interface FeatureItem {
   icon: string;
   title: string;
   description: string;
-  images?: readonly { src: string; alt: string }[];
+  images?: readonly { src: string; alt: string; imageClassName?: string }[];
 }
 
 interface FeaturesTabsProps {
@@ -67,18 +67,20 @@ export default function FeaturesTabs({ items }: FeaturesTabsProps): JSX.Element 
           <h3 className="font-heading text-2xl font-semibold text-foreground">{selected.title}</h3>
           <p className="mt-2 min-h-12 text-pretty text-muted-foreground">{selected.description}</p>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <ImagePlaceholder
             label="Foto folgt"
             className="aspect-video"
             src={selected.images?.[0]?.src}
             alt={selected.images?.[0]?.alt}
+            imageClassName={selected.images?.[0]?.imageClassName}
           />
           <ImagePlaceholder
             label="Foto folgt"
             className="aspect-video"
             src={selected.images?.[1]?.src}
             alt={selected.images?.[1]?.alt}
+            imageClassName={selected.images?.[1]?.imageClassName}
           />
         </div>
       </div>

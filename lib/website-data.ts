@@ -53,6 +53,18 @@ export const FEATURES = {
       title: "Schlachtfeld per App reservieren",
       description:
         "Tische werden über unsere eigene App gebucht – jedes Mitglied sieht in Sekunden, wo noch ein Schlachtfeld frei ist.",
+      images: [
+        {
+          src: "/website-images/table-reservation-app-screenshot.jpeg",
+          alt: "Tischreservierung in der App des Dice-Bock e.V.",
+          imageClassName: "object-top-left",
+        },
+        {
+          src: "/website-images/calendar-booking-view.jpeg",
+          alt: "Kalenderansicht eines Tisches in der App des Dice-Bock e.V.",
+          imageClassName: "object-top-left",
+        },
+      ],
     },
     {
       icon: "Library",
