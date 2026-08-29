@@ -42,9 +42,11 @@ export default function DashboardPlayerSearchInterestCard({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Badge variant="secondary">{search.system}</Badge>
-          <Badge variant="outline">{search.matchType}</Badge>
+        <div className="flex flex-col gap-1.5">
+          <div>
+            <Badge variant="secondary">{search.system}</Badge>
+          </div>
+          <p className="text-sm text-muted-foreground break-words">{search.matchType}</p>
         </div>
 
         {interest.note && <p className="text-sm whitespace-pre-line">{interest.note}</p>}

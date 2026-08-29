@@ -37,9 +37,11 @@ export default function PlayerSearchCard({
           <span className="shrink-0 text-sm text-muted-foreground">von {search.creatorName}</span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Badge variant="secondary">{search.system}</Badge>
-          <Badge variant="outline">{search.matchType}</Badge>
+        <div className="flex flex-col gap-1.5">
+          <div>
+            <Badge variant="secondary">{search.system}</Badge>
+          </div>
+          <p className="text-sm text-muted-foreground break-words">{search.matchType}</p>
         </div>
 
         <div className="flex items-center justify-between gap-3">
