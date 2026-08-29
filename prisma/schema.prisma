@@ -205,6 +205,12 @@ model PlayerSearch {
   system    String
   // Free text, e.g. "2000 Pkt, gemütlich", "Turniervorbereitung".
   matchType String
+  // Whether an auto-bookable table (Table.autoBookingPriority) is currently
+  // free for this whole window. Kept in sync by booking mutations (see
+  // lib/queries/player-search-availability.ts); when it flips to false the
+  // creator is pushed to pick another time. Only a hint for the UI warning:
+  // acceptPlayerSearchInterest still re-checks under the advisory lock.
+  tableAvailable Boolean @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

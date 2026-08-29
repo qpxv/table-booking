@@ -14,6 +14,7 @@ export type OpenPlayerSearch = {
   creatorName: string;
   respondedByMe: boolean;
   interestCount: number;
+  tableAvailable: boolean;
 };
 
 export type IncomingPlayerSearchInterest = {
@@ -27,6 +28,7 @@ export type IncomingPlayerSearchInterest = {
     end: Date;
     system: string;
     matchType: string;
+    tableAvailable: boolean;
   };
 };
 
@@ -78,6 +80,7 @@ export async function listOpenPlayerSearches(): Promise<{
         creatorName: row.creator.name,
         respondedByMe: row.interests.length > 0,
         interestCount: row._count.interests,
+        tableAvailable: row.tableAvailable,
       })),
     };
   } catch (err) {
@@ -104,7 +107,16 @@ export async function listIncomingPlayerSearchInterests(userId: string): Promise
       orderBy: { createdAt: "asc" },
       include: {
         responder: { select: { name: true } },
-        search: { select: { id: true, start: true, end: true, system: true, matchType: true } },
+        search: {
+          select: {
+            id: true,
+            start: true,
+            end: true,
+            system: true,
+            matchType: true,
+            tableAvailable: true,
+          },
+        },
       },
     });
 

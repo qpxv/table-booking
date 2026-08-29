@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath, updateTag } from "next/cache";
+import { after } from "next/server";
 import { unstable_rethrow } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/permissions";
+import { syncAllOpenPlayerSearchAvailability } from "@/lib/queries/player-search-availability";
 import { CACHE_TAGS, ROUTES, MESSAGES } from "@/lib/constants";
 import { tableSchema, type TableFormInput } from "@/lib/schemas/table";
 import type { ServiceResult } from "@/lib/service-types";
@@ -40,6 +42,9 @@ export async function updateTable(id: string, values: TableFormInput): Promise<S
     revalidatePath(ROUTES.ADMIN_TISCHE);
     revalidatePath(ROUTES.TISCHE);
     updateTag(CACHE_TAGS.TABLES);
+    // active / autoBookingPriority may have changed, shifting which windows
+    // are auto-bookable for open Spielersuchen.
+    after(syncAllOpenPlayerSearchAvailability);
     return { success: true, message: MESSAGES.TABLE.UPDATED };
   } catch (err) {
     unstable_rethrow(err);
@@ -57,6 +62,7 @@ export async function setTableActive(id: string, active: boolean): Promise<Servi
     revalidatePath(ROUTES.ADMIN_TISCHE);
     revalidatePath(ROUTES.TISCHE);
     updateTag(CACHE_TAGS.TABLES);
+    after(syncAllOpenPlayerSearchAvailability);
     return { success: true, message: active ? MESSAGES.TABLE.ACTIVATED : MESSAGES.TABLE.DEACTIVATED };
   } catch (err) {
     unstable_rethrow(err);
@@ -97,6 +103,7 @@ export async function deleteTable(id: string): Promise<ServiceResult> {
     revalidatePath(ROUTES.ADMIN_TISCHE);
     revalidatePath(ROUTES.TISCHE);
     updateTag(CACHE_TAGS.TABLES);
+    after(syncAllOpenPlayerSearchAvailability);
     return { success: true, message: MESSAGES.TABLE.DELETED };
   } catch (err) {
     unstable_rethrow(err);

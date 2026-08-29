@@ -1,8 +1,9 @@
 import type { JSX } from "react";
-import { Swords, Handshake, Check, Trash2 } from "lucide-react";
+import { Swords, Handshake, Check, Trash2, TriangleAlert } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { MESSAGES } from "@/lib/constants";
 import { formatBerlin } from "@/lib/datetime";
 import type { OpenPlayerSearch } from "@/lib/queries/player-search";
 
@@ -43,6 +44,13 @@ export default function PlayerSearchCard({
           </div>
           <p className="text-sm text-muted-foreground break-words">{search.matchType}</p>
         </div>
+
+        {!search.tableAvailable && (
+          <p className="flex items-center gap-1.5 text-sm text-destructive">
+            <TriangleAlert className="size-4 shrink-0" />
+            {MESSAGES.PLAYER_SEARCH.TABLE_UNAVAILABLE}
+          </p>
+        )}
 
         <div className="flex items-center justify-between gap-3">
           {isOwn && search.interestCount > 0 ? (

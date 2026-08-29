@@ -149,6 +149,7 @@ export const MESSAGES = {
     CANNOT_RESPOND_OWN: "Du kannst nicht auf deine eigene Suche antworten.",
     NO_PRIORITY_TABLES: "Es ist kein Tisch für die automatische Buchung freigegeben.",
     NO_TABLE_FREE: "Im gewünschten Zeitraum ist kein Tisch frei. Bitte andere Uhrzeit wählen.",
+    TABLE_UNAVAILABLE: "Aktuell ist zu dieser Zeit kein Tisch frei.",
     INTEREST_SENT: "Interesse gesendet.",
     ALREADY_RESPONDED: "Du hast bereits Interesse gezeigt.",
     INTEREST_NOT_FOUND: "Diese Anfrage ist nicht mehr verfügbar.",
@@ -242,6 +243,10 @@ export const MESSAGES = {
     playerSearchDeclined: (creatorName: string, system: string, dateLabel: string) => ({
       title: `${creatorName} hat deine Anfrage abgelehnt`,
       body: `${system}, ${dateLabel}`,
+    }),
+    playerSearchTableLost: (system: string, dateLabel: string) => ({
+      title: "Kein Tisch mehr frei für deine Spielersuche",
+      body: `${system}, ${dateLabel}. Bitte eine andere Uhrzeit wählen.`,
     }),
 
     passwordReset: () => ({

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { unstable_rethrow } from "next/navigation";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -11,6 +12,10 @@ import { findOverlappingBooking, lockTableForBooking } from "@/lib/booking-avail
 import { playerSearchBookingLabel } from "@/lib/player-search-types";
 import { formatEventDateRange } from "@/lib/datetime";
 import { notify } from "@/lib/push/notify";
+import {
+  isWindowAutoBookable,
+  syncPlayerSearchAvailability,
+} from "@/lib/queries/player-search-availability";
 import {
   createPlayerSearchSchema,
   respondPlayerSearchSchema,
@@ -33,6 +38,10 @@ export async function createPlayerSearch(
   if (!parsed.success) return { success: false, message: MESSAGES.COMMON.INVALID_INPUT };
 
   try {
+    // Stamp availability now so the "kein Tisch frei" warning shows straight
+    // away if the slot is already full; booking mutations keep it current.
+    const tableAvailable = await isWindowAutoBookable(parsed.data.start, parsed.data.end);
+
     await prisma.playerSearch.create({
       data: {
         creatorId: session.user.id,
@@ -40,6 +49,7 @@ export async function createPlayerSearch(
         end: parsed.data.end,
         system: parsed.data.system,
         matchType: parsed.data.matchType,
+        tableAvailable,
       },
     });
 
@@ -220,6 +230,10 @@ export async function acceptPlayerSearchInterest(interestId: string): Promise<Se
       `search-booked-${search.id}`,
     );
 
+    // The auto-booking just consumed a table: other open Spielersuchen
+    // overlapping this window may no longer be bookable.
+    after(() => syncPlayerSearchAvailability([{ start: search.start, end: search.end }]));
+
     revalidatePath(ROUTES.SPIELERSUCHE);
     revalidatePath(ROUTES.DASHBOARD);
     revalidatePath(ROUTES.TISCHE);
@@ -231,6 +245,9 @@ export async function acceptPlayerSearchInterest(interestId: string): Promise<Se
       return { success: false, message: MESSAGES.PLAYER_SEARCH.NOT_AVAILABLE };
     }
     if (err instanceof NoTableFreeError) {
+      // The search survived the rollback but its window is full: refresh the
+      // flag so the warning shows without waiting for the next booking event.
+      after(() => syncPlayerSearchAvailability([{ start: search.start, end: search.end }]));
       return { success: false, message: MESSAGES.PLAYER_SEARCH.NO_TABLE_FREE };
     }
     unstable_rethrow(err);

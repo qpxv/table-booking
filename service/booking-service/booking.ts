@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { unstable_rethrow } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
@@ -21,6 +22,7 @@ import {
 } from "@/lib/schemas/booking";
 import { formatEventDateRange } from "@/lib/datetime";
 import { notify } from "@/lib/push/notify";
+import { syncPlayerSearchAvailability } from "@/lib/queries/player-search-availability";
 import type { ServiceResult } from "@/lib/service-types";
 
 export async function createBooking(
@@ -133,6 +135,10 @@ export async function createBooking(
       ),
       ROUTES.tischDetail(tableId),
     );
+
+    // A new booking can consume the last auto-bookable table for an open
+    // Spielersuche overlapping this window.
+    after(() => syncPlayerSearchAvailability([{ start: data.start, end: data.end }]));
 
     revalidatePath(`${ROUTES.TISCHE}/${tableId}`);
     revalidatePath(ROUTES.DASHBOARD);
@@ -339,6 +345,17 @@ export async function updateBooking(
       );
     }
 
+    if (moved) {
+      // Moving a booking frees its old window and consumes the new one, so
+      // recheck open Spielersuchen overlapping either.
+      after(() =>
+        syncPlayerSearchAvailability([
+          { start: booking.start, end: booking.end },
+          { start: data.start, end: data.end },
+        ]),
+      );
+    }
+
     revalidatePath(`${ROUTES.TISCHE}/${booking.tableId}`);
     revalidatePath(ROUTES.DASHBOARD);
     revalidatePath(ROUTES.GASTHISTORIE);
@@ -398,6 +415,10 @@ export async function cancelBooking(id: string): Promise<ServiceResult> {
       ROUTES.tischDetail(booking.tableId),
       `booking-${id}`,
     );
+
+    // Cancelling frees the table for its window: an open Spielersuche that
+    // was blocked there may be bookable again.
+    after(() => syncPlayerSearchAvailability([{ start: booking.start, end: booking.end }]));
 
     revalidatePath(`${ROUTES.TISCHE}/${booking.tableId}`);
     revalidatePath(ROUTES.DASHBOARD);

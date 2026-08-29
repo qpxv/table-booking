@@ -1,11 +1,12 @@
 "use client";
 
 import { useTransition, type JSX } from "react";
-import { Check, X } from "lucide-react";
+import { Check, TriangleAlert, X } from "lucide-react";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { MESSAGES } from "@/lib/constants";
 import { formatBerlin } from "@/lib/datetime";
 import {
   acceptPlayerSearchInterest,
@@ -48,6 +49,13 @@ export default function DashboardPlayerSearchInterestCard({
           </div>
           <p className="text-sm text-muted-foreground break-words">{search.matchType}</p>
         </div>
+
+        {!search.tableAvailable && (
+          <p className="flex items-center gap-1.5 text-sm text-destructive">
+            <TriangleAlert className="size-4 shrink-0" />
+            {MESSAGES.PLAYER_SEARCH.TABLE_UNAVAILABLE}
+          </p>
+        )}
 
         {interest.note && <p className="text-sm whitespace-pre-line">{interest.note}</p>}
 
