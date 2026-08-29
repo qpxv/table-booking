@@ -5,20 +5,21 @@ import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { listTablesWithUpcomingWeekCounts } from "@/lib/queries/tables";
 import { formatBerlin } from "@/lib/datetime";
 import { ROUTES } from "@/lib/constants";
+import AttendanceTableCard from "@/components/attendance/AttendanceTableCard";
 
 export default async function TablesGrid(): Promise<JSX.Element> {
   const result = await listTablesWithUpcomingWeekCounts();
   if (!result.success) throw new Error(result.message);
   const activeTables = result.tables;
 
-  if (activeTables.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">Aktuell sind keine Tische verfügbar.</p>
-    );
-  }
-
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+      <AttendanceTableCard />
+      {activeTables.length === 0 && (
+        <p className="text-sm text-muted-foreground sm:col-span-2 md:col-span-2">
+          Aktuell sind keine Tische verfügbar.
+        </p>
+      )}
       {activeTables.map((table) => {
         const hasBookings = table.upcomingWeekBookingCount > 0;
         const { nextEvent } = table;

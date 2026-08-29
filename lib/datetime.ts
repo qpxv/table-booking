@@ -1,4 +1,4 @@
-import { addDays, endOfWeek, startOfDay } from "date-fns";
+import { addDays, endOfWeek, startOfDay, startOfMonth } from "date-fns";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
 import { SEARCH_PARAMS } from "@/lib/constants";
 
@@ -47,6 +47,32 @@ export function getTodayBerlinRange(date: Date = new Date()): { start: Date; end
     start: fromZonedTime(zonedStart, APP_TIMEZONE),
     end: fromZonedTime(addDays(zonedStart, 1), APP_TIMEZONE),
   };
+}
+
+/** The Berlin calendar day of `date` as a plain `yyyy-MM-dd` string. */
+export function berlinDayString(date: Date): string {
+  return formatInTimeZone(date, APP_TIMEZONE, "yyyy-MM-dd");
+}
+
+/**
+ * A `yyyy-MM-dd` Berlin day as the UTC-midnight `Date` used for `@db.Date`
+ * columns (see the Attendance model). Berlin is always UTC+1/+2, so this
+ * value formats back to the same day in `berlinDayString`.
+ */
+export function attendanceDayToDate(dayString: string): Date {
+  return new Date(`${dayString}T00:00:00.000Z`);
+}
+
+/** UTC [start, end) bounds of a `yyyy-MM-dd` Berlin calendar day. */
+export function berlinDayRange(dayString: string): { start: Date; end: Date } {
+  const start = fromZonedTime(`${dayString}T00:00:00`, APP_TIMEZONE);
+  return { start, end: addDays(start, 1) };
+}
+
+/** Start of the current Berlin month (00:00 on the 1st) as a UTC Date. */
+export function startOfMonthBerlin(date: Date = new Date()): Date {
+  const zoned = toZonedTime(date, APP_TIMEZONE);
+  return fromZonedTime(startOfMonth(zoned), APP_TIMEZONE);
 }
 
 /** Whole days elapsed since `dateString`, for simple "X Tage" style counters. */
