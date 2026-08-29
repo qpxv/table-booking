@@ -16,11 +16,13 @@ export default function PlayerSearchList({
   searches,
   hasPriorityTable,
   currentUserId,
+  isAdmin,
   games,
 }: {
   searches: OpenPlayerSearch[];
   hasPriorityTable: boolean;
   currentUserId: string;
+  isAdmin: boolean;
   games: { id: string; name: string }[];
 }): JSX.Element {
   const [createOpen, setCreateOpen] = useState(false);
@@ -55,6 +57,7 @@ export default function PlayerSearchList({
               key={search.id}
               search={search}
               isOwn={search.creatorId === currentUserId}
+              canDelete={search.creatorId === currentUserId || isAdmin}
               onRespond={() => setRespondTarget(search)}
               onDelete={() => setDeleteTarget(search)}
             />

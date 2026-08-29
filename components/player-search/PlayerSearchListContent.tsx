@@ -1,5 +1,6 @@
 import type { JSX } from "react";
 import { checkSession } from "@/lib/session";
+import { isAdmin } from "@/lib/permissions";
 import { listOpenPlayerSearches } from "@/lib/queries/player-search";
 import { listGames } from "@/lib/queries/games";
 import PlayerSearchList from "./PlayerSearchList";
@@ -19,6 +20,7 @@ export default async function PlayerSearchListContent(): Promise<JSX.Element> {
       searches={searchesResult.searches}
       hasPriorityTable={searchesResult.hasPriorityTable}
       currentUserId={session.user.id}
+      isAdmin={isAdmin(session)}
       games={gamesResult.games.map((game) => ({ id: game.id, name: game.name }))}
     />
   );

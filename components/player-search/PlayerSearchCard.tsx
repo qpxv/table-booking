@@ -10,11 +10,13 @@ import type { OpenPlayerSearch } from "@/lib/queries/player-search";
 export default function PlayerSearchCard({
   search,
   isOwn,
+  canDelete,
   onRespond,
   onDelete,
 }: {
   search: OpenPlayerSearch;
   isOwn: boolean;
+  canDelete: boolean;
   onRespond: () => void;
   onDelete: () => void;
 }): JSX.Element {
@@ -62,22 +64,26 @@ export default function PlayerSearchCard({
           ) : (
             <span />
           )}
-          {isOwn ? (
-            <Button variant="outline" size="sm" onClick={onDelete}>
-              <Trash2 />
-              Löschen
-            </Button>
-          ) : search.respondedByMe ? (
-            <Button variant="outline" size="sm" disabled>
-              <Check />
-              Interesse gesendet
-            </Button>
-          ) : (
-            <Button size="sm" onClick={onRespond}>
-              <Handshake />
-              Interesse
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {!isOwn &&
+              (search.respondedByMe ? (
+                <Button variant="outline" size="sm" disabled>
+                  <Check />
+                  Interesse gesendet
+                </Button>
+              ) : (
+                <Button size="sm" onClick={onRespond}>
+                  <Handshake />
+                  Interesse
+                </Button>
+              ))}
+            {canDelete && (
+              <Button variant="outline" size="sm" onClick={onDelete}>
+                <Trash2 />
+                Löschen
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
