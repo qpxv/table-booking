@@ -1,10 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/permissions";
-import { ROUTES, MESSAGES } from "@/lib/constants";
+import { CACHE_TAGS, ROUTES, MESSAGES } from "@/lib/constants";
 import { gameSchema, type GameInput } from "@/lib/schemas/game";
 import type { ServiceResult } from "@/lib/service-types";
 
@@ -18,6 +18,7 @@ export async function createGame(values: GameInput): Promise<ServiceResult> {
   try {
     await prisma.game.create({ data: parsed.data });
     revalidatePath(ROUTES.ADMIN_SPIELE);
+    updateTag(CACHE_TAGS.GAMES);
     return { success: true, message: MESSAGES.GAME.CREATED };
   } catch (err) {
     unstable_rethrow(err);
@@ -36,6 +37,7 @@ export async function updateGame(id: string, values: GameInput): Promise<Service
   try {
     await prisma.game.update({ where: { id }, data: parsed.data });
     revalidatePath(ROUTES.ADMIN_SPIELE);
+    updateTag(CACHE_TAGS.GAMES);
     return { success: true, message: MESSAGES.GAME.UPDATED };
   } catch (err) {
     unstable_rethrow(err);
@@ -51,6 +53,7 @@ export async function deleteGame(id: string): Promise<ServiceResult> {
   try {
     await prisma.game.delete({ where: { id } });
     revalidatePath(ROUTES.ADMIN_SPIELE);
+    updateTag(CACHE_TAGS.GAMES);
     return { success: true, message: MESSAGES.GAME.DELETED };
   } catch (err) {
     unstable_rethrow(err);

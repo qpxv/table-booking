@@ -52,6 +52,13 @@ export const SEARCH_PARAMS = {
   MONTH: "month",
 } as const;
 
+// Tags for `unstable_cache` entries that back rarely-changing admin-managed
+// lists. The owning service busts its tag on every mutation.
+export const CACHE_TAGS = {
+  GAMES: "games",
+  TABLES: "tables",
+} as const;
+
 export const MESSAGES = {
   COMMON: {
     OK: "Erledigt.",

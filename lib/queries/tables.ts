@@ -1,10 +1,26 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { endOfWeekBerlin } from "@/lib/datetime";
-import { MESSAGES } from "@/lib/constants";
+import { CACHE_TAGS, MESSAGES } from "@/lib/constants";
 import type { Table } from "@/generated/prisma/client";
 import type { TableWithUpcomingWeekCount } from "@/lib/table-types";
+
+// The plain table records only change through the admin Tischverwaltung
+// actions, which bust CACHE_TAGS.TABLES. Booking-count queries below are
+// deliberately NOT cached: they depend on bookings, which change constantly.
+const getCachedTables = unstable_cache(
+  async (): Promise<Table[]> => prisma.table.findMany({ orderBy: { name: "asc" } }),
+  ["tables-list"],
+  { tags: [CACHE_TAGS.TABLES] },
+);
+
+const getCachedTableById = unstable_cache(
+  async (id: string): Promise<Table | null> => prisma.table.findUnique({ where: { id } }),
+  ["table-by-id"],
+  { tags: [CACHE_TAGS.TABLES] },
+);
 
 export async function listTables(): Promise<{
   success: boolean;
@@ -12,7 +28,7 @@ export async function listTables(): Promise<{
   message?: string;
 }> {
   try {
-    const tables = await prisma.table.findMany({ orderBy: { name: "asc" } });
+    const tables = await getCachedTables();
     return { success: true, tables };
   } catch (err) {
     unstable_rethrow(err);
@@ -27,7 +43,7 @@ export async function getTableById(id: string): Promise<{
   message?: string;
 }> {
   try {
-    const table = await prisma.table.findUnique({ where: { id } });
+    const table = await getCachedTableById(id);
     return { success: true, table };
   } catch (err) {
     unstable_rethrow(err);

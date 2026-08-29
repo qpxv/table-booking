@@ -9,7 +9,7 @@ import { CONFIRM_MODE } from "@/lib/constants";
 import { deleteEvent } from "@/service/event-service/event";
 import type { ClubEvent } from "@/lib/event-types";
 import EventList from "./EventList";
-import EventCalendar from "./EventCalendar";
+import EventCalendar from "./EventCalendarLazy";
 import EventFormDialog from "./EventFormDialog";
 
 type View = "list" | "calendar";

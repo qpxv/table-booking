@@ -4,7 +4,7 @@ import { useMemo, useRef, useState, type JSX } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin, { type DateClickArg } from "@fullcalendar/interaction";
-import momentTimezonePlugin from "@fullcalendar/moment-timezone";
+import luxonPlugin from "@fullcalendar/luxon3";
 import deLocale from "@fullcalendar/core/locales/de";
 import type { EventClickArg, EventInput } from "@fullcalendar/core";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -80,7 +80,7 @@ export default function EventCalendar({
 
       <FullCalendar
         ref={calendarRef}
-        plugins={[dayGridPlugin, interactionPlugin, momentTimezonePlugin]}
+        plugins={[dayGridPlugin, interactionPlugin, luxonPlugin]}
         initialView="dayGridMonth"
         timeZone="Europe/Berlin"
         locale={deLocale}
