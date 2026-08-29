@@ -29,9 +29,9 @@ export default function TestimonialsGrid({ items }: TestimonialsGridProps): JSX.
         style={isCollapsed ? { maskImage: "linear-gradient(to bottom, black 75%, transparent 100%)" } : undefined}
       >
         <div className="columns-1 gap-6 sm:columns-2 lg:columns-3">
-          {items.map((item) => (
+          {items.map((item, index) => (
             <div
-              key={item.name}
+              key={index}
               className="relative mb-6 flex flex-col gap-6 overflow-hidden border border-border bg-background p-8 break-inside-avoid"
             >
               <Quote
