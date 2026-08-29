@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import PasswordInput from "@/components/shared/PasswordInput";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useSignOut } from "@/hooks/use-sign-out";
@@ -59,10 +59,10 @@ export default function ForcePasswordChange({ userName }: { userName: string }):
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={field.name}>Neues Passwort</FieldLabel>
-                  <Input
+                  <PasswordInput
                     {...field}
                     id={field.name}
-                    type="password"
+                    autoComplete="new-password"
                     autoFocus
                     aria-invalid={fieldState.invalid}
                   />
@@ -80,10 +80,10 @@ export default function ForcePasswordChange({ userName }: { userName: string }):
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor={field.name}>Neues Passwort bestätigen</FieldLabel>
-                  <Input
+                  <PasswordInput
                     {...field}
                     id={field.name}
-                    type="password"
+                    autoComplete="new-password"
                     aria-invalid={fieldState.invalid}
                   />
                   {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
