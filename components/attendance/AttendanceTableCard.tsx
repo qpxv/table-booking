@@ -14,8 +14,8 @@ export default async function AttendanceTableCard(): Promise<JSX.Element> {
   const next = result.success ? result.next : null;
 
   return (
-    <Link href={ROUTES.ANWESENHEIT} className="block">
-      <Card className="ring-foreground/10 transition-all hover:shadow-md hover:ring-secondary/30">
+    <Link href={ROUTES.ANWESENHEIT} className="block h-full">
+      <Card className="h-full ring-foreground/10 transition-all hover:shadow-md hover:ring-secondary/30">
         <CardContent className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
             <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
