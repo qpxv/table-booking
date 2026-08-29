@@ -10,6 +10,7 @@ export const ROUTES = {
   ADMIN_SPIELE: "/admin/spiele",
   ADMIN_USERS: "/admin/users",
   ADMIN_GETRAENKE: "/admin/getraenke",
+  ANWESENHEIT: "/anwesenheit",
   IMPRESSUM: "/impressum",
   DATENSCHUTZ: "/datenschutz",
   tischDetail: (tableId: string): string => `/tische/${tableId}`,
@@ -140,6 +141,12 @@ export const MESSAGES = {
     NOT_FOUND: "Event nicht gefunden.",
     JOINED: "Du bist jetzt angemeldet.",
     LEFT: "Du bist abgemeldet.",
+  },
+  ATTENDANCE: {
+    MARKED: "Als anwesend markiert.",
+    UNMARKED: "Anwesenheit entfernt.",
+    PAST_DAY: "Vergangene Tage können nicht geändert werden.",
+    BOOKED: "Du bist an diesem Tag bereits über eine Buchung angemeldet.",
   },
   PLAYER_SEARCH: {
     CREATED: "Spielersuche erstellt.",

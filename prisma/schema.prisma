@@ -42,6 +42,7 @@ model User {
   createdEvents      Event[]
   eventParticipations EventParticipant[]
   pushSubscriptions  PushSubscription[]
+  attendances        Attendance[]
 
   @@map("user")
 }
@@ -291,6 +292,27 @@ model PushSubscription {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+// A member marking themselves present at the club on a given calendar day
+// ("Anwesenheit"). Day-granular, one row per member per day, toggled from
+// the Anwesenheit month calendar. Members with a Booking that day are
+// counted as present without a row here, so a row is never created while a
+// booking already covers that member/day.
+//
+// `date` is the Berlin calendar day stored as UTC-midnight (Berlin is always
+// UTC+1/+2, so formatting a UTC-midnight value in Europe/Berlin yields the
+// same day back). Construct with `attendanceDayToDate` from lib/datetime.
+model Attendance {
+  id        String   @id @default(cuid())
+  date      DateTime @db.Date
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([date])
 }
 
 // Admin-set drink stock for a given calendar month (Getränke-Tracking).

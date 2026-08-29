@@ -5,26 +5,27 @@ import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { listTablesWithUpcomingWeekCounts } from "@/lib/queries/tables";
 import { formatBerlin } from "@/lib/datetime";
 import { ROUTES } from "@/lib/constants";
+import AttendanceTableCard from "@/components/attendance/AttendanceTableCard";
 
 export default async function TablesGrid(): Promise<JSX.Element> {
   const result = await listTablesWithUpcomingWeekCounts();
   if (!result.success) throw new Error(result.message);
   const activeTables = result.tables;
 
-  if (activeTables.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">Aktuell sind keine Tische verfügbar.</p>
-    );
-  }
-
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+      <AttendanceTableCard />
+      {activeTables.length === 0 && (
+        <p className="text-sm text-muted-foreground sm:col-span-2 md:col-span-2">
+          Aktuell sind keine Tische verfügbar.
+        </p>
+      )}
       {activeTables.map((table) => {
         const hasBookings = table.upcomingWeekBookingCount > 0;
         const { nextEvent } = table;
         return (
-          <Link key={table.id} href={ROUTES.tischDetail(table.id)} className="block">
-            <Card className="ring-foreground/10 transition-all hover:shadow-md hover:ring-secondary/30">
+          <Link key={table.id} href={ROUTES.tischDetail(table.id)} className="block h-full">
+            <Card className="h-full ring-foreground/10 transition-all hover:shadow-md hover:ring-secondary/30">
               <CardContent className="flex flex-col gap-4">
                 <div className="flex items-center gap-3">
                   <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
