@@ -71,13 +71,45 @@ export function CalendarWeekGridSkeleton(): JSX.Element {
   );
 }
 
+// The mobile counterpart: the "Neue Buchung" button, a day heading, then a
+// short stack of card-shaped placeholders matching BookingUpcomingList.
+export function CalendarUpcomingListSkeleton(): JSX.Element {
+  return (
+    <div className="flex flex-col gap-4">
+      <Skeleton className="h-9 w-full" />
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-4 w-32" />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-24 w-full rounded-xl" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// The viewport decides between the week grid (desktop) and the upcoming list
+// (mobile) only after mount, so the fallback shows both behind a CSS toggle
+// to avoid a layout shift into either final view.
+export function CalendarResponsiveSkeleton(): JSX.Element {
+  return (
+    <>
+      <div className="hidden md:block">
+        <CalendarWeekGridSkeleton />
+      </div>
+      <div className="md:hidden">
+        <CalendarUpcomingListSkeleton />
+      </div>
+    </>
+  );
+}
+
 // Mirrors TableCalendarContent: the data-dependent table-name heading, then
-// the toolbar + week grid.
+// the toolbar + calendar (week grid on desktop, upcoming list on mobile).
 export default function TableCalendarSkeleton(): JSX.Element {
   return (
     <div className="flex flex-col gap-4">
       <Skeleton className="h-7 w-48" />
-      <CalendarWeekGridSkeleton />
+      <CalendarResponsiveSkeleton />
     </div>
   );
 }

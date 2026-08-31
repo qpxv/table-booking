@@ -1,46 +1,33 @@
 "use client";
 
-import { useMemo, useOptimistic, useRef, useState, type JSX } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import FullCalendar from "@fullcalendar/react";
-import timeGridPlugin from "@fullcalendar/timegrid";
-import interactionPlugin from "@fullcalendar/interaction";
-import luxonPlugin from "@fullcalendar/luxon3";
-import deLocale from "@fullcalendar/core/locales/de";
-import type {
-  DateSelectArg,
-  DatesSetArg,
-  EventClickArg,
-  EventContentArg,
-  EventDropArg,
-  EventInput,
-} from "@fullcalendar/core";
-import type { EventResizeDoneArg } from "@fullcalendar/interaction";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import dynamic from "next/dynamic";
+import { useOptimistic, useState, type JSX } from "react";
+import { useSearchParams } from "next/navigation";
 import type { GuestWithVisits } from "@/lib/guest-types";
 import type { Game } from "@/generated/prisma/client";
 import { updateBooking } from "@/service/booking-service/booking";
 import { showToast } from "@/lib/toast";
 import { DIALOG_MODE, SEARCH_PARAMS } from "@/lib/constants";
+import { useIsMobileResolved } from "@/hooks/use-mobile";
 import type { CalendarBooking, GuestSelection, OptimisticBookingAction } from "@/lib/booking-types";
 import type { MemberOption } from "@/lib/user-types";
 import BookingDialog from "./BookingDialog";
 import BookingJoinDialog from "./BookingJoinDialog";
+import BookingUpcomingList from "./BookingUpcomingList";
+import { CalendarResponsiveSkeleton, CalendarWeekGridSkeleton } from "./TableCalendarSkeleton";
+
+// FullCalendar + its plugins are ~200 KB of JS that only the desktop week
+// grid needs. Loading it here (not in the parent) keeps it out of the bundle
+// on phones, which render the lightweight list instead.
+const BookingWeekGrid = dynamic(() => import("./BookingWeekGrid"), {
+  ssr: false,
+  loading: () => <CalendarWeekGridSkeleton />,
+});
 
 type DialogState =
   | { mode: typeof DIALOG_MODE.CREATE; start: string; end: string }
   | { mode: typeof DIALOG_MODE.EDIT; booking: CalendarBooking }
   | { mode: typeof DIALOG_MODE.JOIN; booking: CalendarBooking };
-
-function formatDuration(start: Date, end: Date): string {
-  const minutes = Math.round((end.getTime() - start.getTime()) / 60000);
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  if (hours === 0) return `${mins} Min`;
-  if (mins === 0) return `${hours} Std`;
-  return `${hours} Std ${mins} Min`;
-}
 
 function applyOptimisticBookingAction(
   state: CalendarBooking[],
@@ -51,23 +38,6 @@ function applyOptimisticBookingAction(
   return exists
     ? state.map((b) => (b.id === action.booking.id ? action.booking : b))
     : [...state, action.booking];
-}
-
-function renderEventContent(arg: EventContentArg): JSX.Element {
-  const { attendees, game } = arg.event.extendedProps as { attendees: string; game: string | null };
-  const duration =
-    arg.event.start && arg.event.end ? formatDuration(arg.event.start, arg.event.end) : "";
-
-  return (
-    <div className="flex flex-col gap-0.5 overflow-hidden px-1 py-0.5 leading-tight">
-      <div className="truncate font-semibold">{attendees}</div>
-      <div className="truncate text-[0.7rem] opacity-90">
-        {arg.timeText}
-        {duration && ` (${duration})`}
-      </div>
-      {game && <div className="truncate text-[0.7rem] italic opacity-90">{game}</div>}
-    </div>
-  );
 }
 
 export default function BookingCalendar({
@@ -91,42 +61,15 @@ export default function BookingCalendar({
   knownGames: Pick<Game, "id" | "name">[];
   knownMembers: MemberOption[];
 }): JSX.Element {
-  const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const calendarRef = useRef<FullCalendar>(null);
+  const isMobile = useIsMobileResolved();
   const [dialog, setDialog] = useState<DialogState | null>(null);
-  const [title, setTitle] = useState("");
   const [optimisticBookings, dispatchOptimisticBooking] = useOptimistic(
     bookings,
     applyOptimisticBookingAction,
   );
 
   const initialDate = searchParams.get(SEARCH_PARAMS.DATE) ?? undefined;
-
-  const events: EventInput[] = useMemo(
-    () =>
-      optimisticBookings.map((booking) => {
-        const isOwn = booking.userId === currentUserId;
-        const isParticipant = booking.participants.some((p) => p.userId === currentUserId);
-        const attendees = [
-          ...booking.participants.map((p) => p.name),
-          ...booking.guests.map((g) => g.name),
-        ].join(", ");
-        return {
-          id: booking.id,
-          start: booking.start,
-          end: booking.end,
-          title: booking.game ? `${attendees} (${booking.game})` : attendees,
-          backgroundColor: isParticipant ? "var(--secondary)" : "#57534e",
-          borderColor: isParticipant ? "var(--secondary)" : "#57534e",
-          textColor: isParticipant ? "var(--secondary-foreground)" : "#ffffff",
-          editable: isOwn || isAdmin,
-          extendedProps: { isOwn, attendees, game: booking.game },
-        };
-      }),
-    [optimisticBookings, currentUserId, isAdmin],
-  );
 
   const editingGuests: GuestSelection[] =
     dialog?.mode === DIALOG_MODE.EDIT
@@ -150,25 +93,12 @@ export default function BookingCalendar({
 
   const creatorUserId = dialog?.mode === DIALOG_MODE.EDIT ? dialog.booking.userId : currentUserId;
 
-  function handleDatesSet(arg: DatesSetArg): void {
-    setTitle(arg.view.title);
-
-    const params = new URLSearchParams(searchParams.toString());
-    params.set(SEARCH_PARAMS.DATE, arg.startStr.slice(0, 10));
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  function openCreate(start: string, end: string): void {
+    setDialog({ mode: DIALOG_MODE.CREATE, start, end });
   }
 
-  function handleSelect(selectInfo: DateSelectArg): void {
-    selectInfo.view.calendar.unselect();
-    setDialog({
-      mode: DIALOG_MODE.CREATE,
-      start: selectInfo.startStr,
-      end: selectInfo.endStr,
-    });
-  }
-
-  function handleEventClick(clickInfo: EventClickArg): void {
-    const booking = optimisticBookings.find((b) => b.id === clickInfo.event.id);
+  function openBooking(bookingId: string): void {
+    const booking = optimisticBookings.find((b) => b.id === bookingId);
     if (!booking) return;
     setDialog({ mode: DIALOG_MODE.JOIN, booking });
   }
@@ -195,76 +125,39 @@ export default function BookingCalendar({
     if (!result.success) revert();
   }
 
-  function handleEventDrop(dropInfo: EventDropArg): void {
-    const { event } = dropInfo;
-    if (!event.start || !event.end) {
-      dropInfo.revert();
-      return;
-    }
-    void persistReschedule(event.id, event.start, event.end, dropInfo.revert);
-  }
-
-  function handleEventResize(resizeInfo: EventResizeDoneArg): void {
-    const { event } = resizeInfo;
-    if (!event.start || !event.end) {
-      resizeInfo.revert();
-      return;
-    }
-    void persistReschedule(event.id, event.start, event.end, resizeInfo.revert);
+  function handleReschedule(
+    bookingId: string,
+    start: Date,
+    end: Date,
+    revert: () => void,
+  ): void {
+    void persistReschedule(bookingId, start, end, revert);
   }
 
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-center gap-1">
-        <Button
-          variant="outline"
-          size="icon-sm"
-          aria-label="Zurück"
-          onClick={() => calendarRef.current?.getApi().prev()}
-        >
-          <ChevronLeft />
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => calendarRef.current?.getApi().today()}>
-          Heute
-        </Button>
-        <Button
-          variant="outline"
-          size="icon-sm"
-          aria-label="Weiter"
-          onClick={() => calendarRef.current?.getApi().next()}
-        >
-          <ChevronRight />
-        </Button>
-        <span className="ml-2 text-sm font-medium capitalize">{title}</span>
-      </div>
+      {isMobile === undefined ? (
+        <CalendarResponsiveSkeleton />
+      ) : isMobile ? (
+        <BookingUpcomingList
+          bookings={optimisticBookings}
+          currentUserId={currentUserId}
+          onOpenBooking={openBooking}
+          onCreate={openCreate}
+        />
+      ) : (
+        <BookingWeekGrid
+          bookings={optimisticBookings}
+          currentUserId={currentUserId}
+          isAdmin={isAdmin}
+          tableAllowsMultiple={tableAllowsMultiple}
+          initialDate={initialDate}
+          onSelect={openCreate}
+          onEventClick={openBooking}
+          onReschedule={handleReschedule}
+        />
+      )}
 
-      <FullCalendar
-        ref={calendarRef}
-        plugins={[timeGridPlugin, interactionPlugin, luxonPlugin]}
-        initialDate={initialDate}
-        initialView="timeGridWeek"
-        timeZone="Europe/Berlin"
-        locale={deLocale}
-        headerToolbar={false}
-        datesSet={handleDatesSet}
-        slotMinTime="08:00:00"
-        slotMaxTime="24:00:00"
-        slotLabelFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
-        eventTimeFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
-        allDaySlot={false}
-        selectable
-        selectOverlap={tableAllowsMultiple}
-        selectMirror
-        selectLongPressDelay={300}
-        eventStartEditable
-        select={handleSelect}
-        eventClick={handleEventClick}
-        eventDrop={handleEventDrop}
-        eventResize={handleEventResize}
-        eventContent={renderEventContent}
-        events={events}
-        height="auto"
-      />
       {dialog && dialog.mode === DIALOG_MODE.JOIN && (
         <BookingJoinDialog
           tableName={tableName}

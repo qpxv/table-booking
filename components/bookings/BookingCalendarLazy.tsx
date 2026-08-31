@@ -1,15 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { CalendarWeekGridSkeleton } from "./TableCalendarSkeleton";
+import { CalendarResponsiveSkeleton } from "./TableCalendarSkeleton";
 
-// FullCalendar + its plugins are ~200 KB of JS that only this route needs and
-// that never render on the server anyway. Loading it lazily lets the page
-// shell and the table-name heading paint immediately, with the week-grid
+// The booking calendar never renders on the server. Loading it lazily lets
+// the page shell and the table-name heading paint immediately, with a
 // skeleton standing in until the chunk arrives.
 const BookingCalendarLazy = dynamic(() => import("./BookingCalendar"), {
   ssr: false,
-  loading: () => <CalendarWeekGridSkeleton />,
+  loading: () => <CalendarResponsiveSkeleton />,
 });
 
 export default BookingCalendarLazy;
