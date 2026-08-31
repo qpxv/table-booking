@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition, type JSX } from "react";
+import { useState, useTransition, type JSX } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Save, X } from "lucide-react";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldLabel, FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import DateTimeField from "@/components/bookings/DateTimeField";
@@ -40,6 +41,7 @@ export default function PlayerSearchCreateDialog({
   onClose: () => void;
 }): JSX.Element {
   const [pending, startTransition] = useTransition();
+  const [fixedTime, setFixedTime] = useState(true);
   const { start, end } = defaultRange();
   const form = useForm<PlayerSearchFieldsInput>({
     resolver: zodResolver(playerSearchFieldsSchema),
@@ -48,7 +50,11 @@ export default function PlayerSearchCreateDialog({
 
   function onSubmit(values: PlayerSearchFieldsInput): void {
     startTransition(async () => {
-      const result = await createPlayerSearch(values);
+      const result = await createPlayerSearch(
+        fixedTime
+          ? { fixedTime: true, start: values.start, end: values.end, system: values.system, matchType: values.matchType }
+          : { fixedTime: false, system: values.system, matchType: values.matchType },
+      );
       showToast(result);
       if (result.success) onClose();
     });
@@ -61,41 +67,61 @@ export default function PlayerSearchCreateDialog({
           <DialogTitle>Neue Spielersuche</DialogTitle>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Field data-invalid={!!form.formState.errors.start}>
-              <FieldLabel htmlFor="start">Von</FieldLabel>
-              <Controller
-                name="start"
-                control={form.control}
-                render={({ field }) => (
-                  <DateTimeField
-                    id="start"
-                    value={field.value}
-                    onChange={(next) => {
-                      field.onChange(next);
-                      const nextEnd = new Date(next);
-                      nextEnd.setHours(nextEnd.getHours() + 3);
-                      form.setValue("end", nextEnd, { shouldValidate: true });
-                    }}
-                  />
-                )}
-              />
-              {form.formState.errors.start && (
-                <FieldError errors={[form.formState.errors.start]} />
-              )}
-            </Field>
-            <Field data-invalid={!!form.formState.errors.end}>
-              <FieldLabel htmlFor="end">Bis</FieldLabel>
-              <Controller
-                name="end"
-                control={form.control}
-                render={({ field }) => (
-                  <DateTimeField id="end" value={field.value} onChange={field.onChange} />
-                )}
-              />
-              {form.formState.errors.end && <FieldError errors={[form.formState.errors.end]} />}
-            </Field>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="fixedTime"
+              checked={fixedTime}
+              onCheckedChange={(next) => {
+                setFixedTime(next);
+                if (!next) form.clearErrors(["start", "end"]);
+              }}
+            />
+            <label htmlFor="fixedTime" className="text-sm">
+              Feste Uhrzeit
+            </label>
           </div>
+
+          {fixedTime ? (
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Field data-invalid={!!form.formState.errors.start}>
+                <FieldLabel htmlFor="start">Von</FieldLabel>
+                <Controller
+                  name="start"
+                  control={form.control}
+                  render={({ field }) => (
+                    <DateTimeField
+                      id="start"
+                      value={field.value}
+                      onChange={(next) => {
+                        field.onChange(next);
+                        const nextEnd = new Date(next);
+                        nextEnd.setHours(nextEnd.getHours() + 3);
+                        form.setValue("end", nextEnd, { shouldValidate: true });
+                      }}
+                    />
+                  )}
+                />
+                {form.formState.errors.start && (
+                  <FieldError errors={[form.formState.errors.start]} />
+                )}
+              </Field>
+              <Field data-invalid={!!form.formState.errors.end}>
+                <FieldLabel htmlFor="end">Bis</FieldLabel>
+                <Controller
+                  name="end"
+                  control={form.control}
+                  render={({ field }) => (
+                    <DateTimeField id="end" value={field.value} onChange={field.onChange} />
+                  )}
+                />
+                {form.formState.errors.end && <FieldError errors={[form.formState.errors.end]} />}
+              </Field>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Ohne feste Uhrzeit: Interessenten schlagen einen Termin vor, den ihr dann abstimmt.
+            </p>
+          )}
 
           <Controller
             name="system"

@@ -161,6 +161,10 @@ export const MESSAGES = {
     ALREADY_RESPONDED: "Du hast bereits Interesse gezeigt.",
     INTEREST_NOT_FOUND: "Diese Anfrage ist nicht mehr verfügbar.",
     INTEREST_DECLINED: "Anfrage abgelehnt.",
+    TIME_REQUIRED: "Bitte eine Uhrzeit vorschlagen.",
+    COUNTER_SENT: "Gegenvorschlag gesendet.",
+    NOT_YOUR_TURN: "Du bist gerade nicht am Zug.",
+    CONFIRMED_ACTIVE: "Spielersuche als weiterhin aktiv bestätigt.",
     booked: (tableName: string): string => `Gebucht: ${tableName}.`,
   },
   PAYMENT: {
@@ -250,6 +254,18 @@ export const MESSAGES = {
     playerSearchDeclined: (creatorName: string, system: string, dateLabel: string) => ({
       title: `${creatorName} hat deine Anfrage abgelehnt`,
       body: `${system}, ${dateLabel}`,
+    }),
+    playerSearchCounter: (fromName: string, dateLabel: string) => ({
+      title: `${fromName} hat eine andere Uhrzeit vorgeschlagen`,
+      body: `${dateLabel}. Du kannst annehmen, ablehnen oder erneut vorschlagen.`,
+    }),
+    playerSearchRejected: (responderName: string, system: string, dateLabel: string) => ({
+      title: `${responderName} hat deinen Gegenvorschlag abgelehnt`,
+      body: `${system}, ${dateLabel}`,
+    }),
+    playerSearchStale: (system: string) => ({
+      title: "Ist deine Spielersuche noch aktuell?",
+      body: `${system}: seit 14 Tagen offen. Bitte bestätigen oder löschen.`,
     }),
     playerSearchTableLost: (system: string, dateLabel: string) => ({
       title: "Kein Tisch mehr frei für deine Spielersuche",

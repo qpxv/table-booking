@@ -38,7 +38,8 @@ model User {
   participants       BookingParticipant[]
   drinkTallies       DrinkTally[]
   playerSearches     PlayerSearch[]
-  playerSearchInterests PlayerSearchInterest[]
+  playerSearchInterests PlayerSearchInterest[] @relation("InterestResponder")
+  playerSearchProposals PlayerSearchInterest[] @relation("InterestProposedBy")
   createdEvents      Event[]
   eventParticipations EventParticipant[]
   pushSubscriptions  PushSubscription[]
@@ -199,8 +200,10 @@ model Game {
 // (Table.autoBookingPriority order) and deletes this row.
 model PlayerSearch {
   id        String   @id @default(cuid())
-  start     DateTime
-  end       DateTime
+  // Null when the creator left the time open ("flexibel"): the interested
+  // member must then propose a concrete time on their PlayerSearchInterest.
+  start     DateTime?
+  end       DateTime?
   // Game system, free text from the same suggestion list as Booking.game
   // (Spielverwaltung), e.g. "40k", "30k", "Kill Team".
   system    String
@@ -211,7 +214,15 @@ model PlayerSearch {
   // lib/queries/player-search-availability.ts); when it flips to false the
   // creator is pushed to pick another time. Only a hint for the UI warning:
   // acceptPlayerSearchInterest still re-checks under the advisory lock.
+  // Always true (and never synced) for flexible searches: there is no window
+  // to check until a concrete time lands on an interest.
   tableAvailable Boolean @default(true)
+  // Bumped to now() whenever the creator confirms the search is still current
+  // (initially = createdAt). The stale-check cron nags the creator once
+  // `confirmedActiveAt` is older than 14 days; `staleNotifiedAt` de-dupes that
+  // push and is cleared on the next confirmation.
+  confirmedActiveAt DateTime @default(now())
+  staleNotifiedAt   DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -223,19 +234,28 @@ model PlayerSearch {
   @@index([start])
 }
 
-// A member registering interest in someone else's PlayerSearch. The search
-// creator accepts one (auto-books a table, deletes the search and cascades
-// these away) or declines one (deletes just this row).
+// A member registering interest in someone else's PlayerSearch, plus the
+// running time negotiation for that pairing. `proposedStart`/`proposedEnd` is
+// the currently-agreed-or-proposed window; `proposedById` is whoever set it
+// last, so the *other* party is the one on the clock (accept / counter). The
+// search creator accepts one (auto-books a table for `proposedStart/End`,
+// deletes the search and cascades the rest away) or declines one.
 model PlayerSearchInterest {
   id        String   @id @default(cuid())
   note      String?
+  proposedStart DateTime
+  proposedEnd   DateTime
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   searchId String
   search   PlayerSearch @relation(fields: [searchId], references: [id], onDelete: Cascade)
 
   responderId String
-  responder   User   @relation(fields: [responderId], references: [id])
+  responder   User   @relation("InterestResponder", fields: [responderId], references: [id])
+
+  proposedById String
+  proposedBy   User   @relation("InterestProposedBy", fields: [proposedById], references: [id])
 
   @@unique([searchId, responderId])
   @@index([searchId])

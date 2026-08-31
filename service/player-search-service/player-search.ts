@@ -19,8 +19,10 @@ import {
 import {
   createPlayerSearchSchema,
   respondPlayerSearchSchema,
+  counterPlayerSearchSchema,
   type CreatePlayerSearchInput,
   type RespondPlayerSearchInput,
+  type CounterPlayerSearchInput,
 } from "@/lib/schemas/player-search";
 import type { ServiceResult } from "@/lib/service-types";
 
@@ -37,20 +39,18 @@ export async function createPlayerSearch(
   const parsed = createPlayerSearchSchema.safeParse(values);
   if (!parsed.success) return { success: false, message: MESSAGES.COMMON.INVALID_INPUT };
 
+  const { fixedTime, system, matchType } = parsed.data;
+  const start = fixedTime ? (parsed.data.start ?? null) : null;
+  const end = fixedTime ? (parsed.data.end ?? null) : null;
+
   try {
     // Stamp availability now so the "kein Tisch frei" warning shows straight
-    // away if the slot is already full; booking mutations keep it current.
-    const tableAvailable = await isWindowAutoBookable(parsed.data.start, parsed.data.end);
+    // away if a fixed slot is already full; flexible searches have no window
+    // to check and stay `true`.
+    const tableAvailable = start && end ? await isWindowAutoBookable(start, end) : true;
 
     await prisma.playerSearch.create({
-      data: {
-        creatorId: session.user.id,
-        start: parsed.data.start,
-        end: parsed.data.end,
-        system: parsed.data.system,
-        matchType: parsed.data.matchType,
-        tableAvailable,
-      },
+      data: { creatorId: session.user.id, start, end, system, matchType, tableAvailable },
     });
 
     revalidatePath(ROUTES.SPIELERSUCHE);
@@ -75,6 +75,7 @@ export async function deletePlayerSearch(id: string): Promise<ServiceResult> {
   try {
     await prisma.playerSearch.delete({ where: { id } });
     revalidatePath(ROUTES.SPIELERSUCHE);
+    revalidatePath(ROUTES.DASHBOARD);
     return { success: true, message: MESSAGES.PLAYER_SEARCH.DELETED };
   } catch (err) {
     unstable_rethrow(err);
@@ -83,10 +84,40 @@ export async function deletePlayerSearch(id: string): Promise<ServiceResult> {
   }
 }
 
+/** The creator confirms an open search is still current, resetting the 14-day clock. */
+export async function confirmPlayerSearchActive(searchId: string): Promise<ServiceResult> {
+  const session = await getSession();
+  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+
+  const search = await prisma.playerSearch.findUnique({
+    where: { id: searchId },
+    select: { creatorId: true },
+  });
+  if (!search) return { success: false, message: MESSAGES.PLAYER_SEARCH.NOT_FOUND };
+  if (search.creatorId !== session.user.id) {
+    return { success: false, message: MESSAGES.COMMON.UNAUTHORIZED };
+  }
+
+  try {
+    await prisma.playerSearch.update({
+      where: { id: searchId },
+      data: { confirmedActiveAt: new Date(), staleNotifiedAt: null },
+    });
+    revalidatePath(ROUTES.SPIELERSUCHE);
+    revalidatePath(ROUTES.DASHBOARD);
+    return { success: true, message: MESSAGES.PLAYER_SEARCH.CONFIRMED_ACTIVE };
+  } catch (err) {
+    unstable_rethrow(err);
+    console.error("error in confirmPlayerSearchActive", err);
+    return { success: false, message: MESSAGES.COMMON.GENERIC_ERROR };
+  }
+}
+
 /**
- * Register interest in an open search. Does not book anything: the search
- * creator later accepts (acceptPlayerSearchInterest) or declines one of the
- * incoming requests.
+ * Register interest in an open search. Does not book anything. A flexible
+ * search requires the responder to propose a time; for a fixed-time search a
+ * proposed time is an optional counter-offer, otherwise the creator's window
+ * stands and it is the creator's move.
  */
 export async function respondToPlayerSearch(
   searchId: string,
@@ -104,11 +135,30 @@ export async function respondToPlayerSearch(
     return { success: false, message: MESSAGES.PLAYER_SEARCH.CANNOT_RESPOND_OWN };
   }
 
+  // The window the responder is putting on the table: their own suggestion,
+  // or (for a fixed-time search) the creator's window unchanged. Either way
+  // the responder made the move, so the creator is now on the clock.
+  const proposed =
+    parsed.data.proposedStart && parsed.data.proposedEnd
+      ? { start: parsed.data.proposedStart, end: parsed.data.proposedEnd }
+      : search.start && search.end
+        ? { start: search.start, end: search.end }
+        : null;
+
+  if (!proposed) return { success: false, message: MESSAGES.PLAYER_SEARCH.TIME_REQUIRED };
+
   const note = parsed.data.note?.trim() || null;
 
   try {
     await prisma.playerSearchInterest.create({
-      data: { searchId, responderId: session.user.id, note },
+      data: {
+        searchId,
+        responderId: session.user.id,
+        note,
+        proposedStart: proposed.start,
+        proposedEnd: proposed.end,
+        proposedById: session.user.id,
+      },
     });
 
     notify(
@@ -117,9 +167,9 @@ export async function respondToPlayerSearch(
         session.user.name,
         search.system,
         search.matchType,
-        formatEventDateRange(search.start, search.end),
+        formatEventDateRange(proposed.start, proposed.end),
       ),
-      ROUTES.SPIELERSUCHE,
+      ROUTES.DASHBOARD,
       `search-${searchId}`,
     );
     revalidatePath(ROUTES.SPIELERSUCHE);
@@ -136,12 +186,74 @@ export async function respondToPlayerSearch(
 }
 
 /**
- * The search creator accepts one interested member: auto-book the first free
- * table in Table.autoBookingPriority order for the search's window, add both
- * members as participants, and delete the search (cascading away every other
- * pending interest). Booking + participants + deletion happen in one
- * transaction; per-table advisory locks plus a delete-as-claim keep two
- * concurrent accepts from double-booking.
+ * The party on the clock proposes a different time. Sets the new window and
+ * hands the move to the other party. Either side can do this repeatedly until
+ * someone accepts or declines.
+ */
+export async function counterPlayerSearchInterest(
+  interestId: string,
+  values: CounterPlayerSearchInput,
+): Promise<ServiceResult> {
+  const session = await getSession();
+  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+
+  const parsed = counterPlayerSearchSchema.safeParse(values);
+  if (!parsed.success) return { success: false, message: MESSAGES.COMMON.INVALID_INPUT };
+
+  const interest = await prisma.playerSearchInterest.findUnique({
+    where: { id: interestId },
+    include: { search: { select: { creatorId: true } } },
+  });
+  if (!interest) return { success: false, message: MESSAGES.PLAYER_SEARCH.INTEREST_NOT_FOUND };
+
+  const { creatorId } = interest.search;
+  const isParty = session.user.id === creatorId || session.user.id === interest.responderId;
+  if (!isParty) return { success: false, message: MESSAGES.COMMON.UNAUTHORIZED };
+  if (session.user.id === interest.proposedById) {
+    return { success: false, message: MESSAGES.PLAYER_SEARCH.NOT_YOUR_TURN };
+  }
+
+  const note = parsed.data.note?.trim();
+  const otherPartyId = session.user.id === creatorId ? interest.responderId : creatorId;
+
+  try {
+    await prisma.playerSearchInterest.update({
+      where: { id: interestId },
+      data: {
+        proposedStart: parsed.data.start,
+        proposedEnd: parsed.data.end,
+        proposedById: session.user.id,
+        ...(note ? { note } : {}),
+      },
+    });
+
+    notify(
+      [otherPartyId],
+      MESSAGES.NOTIFICATIONS.playerSearchCounter(
+        session.user.name,
+        formatEventDateRange(parsed.data.start, parsed.data.end),
+      ),
+      ROUTES.DASHBOARD,
+      `search-counter-${interestId}`,
+    );
+    revalidatePath(ROUTES.DASHBOARD);
+    return { success: true, message: MESSAGES.PLAYER_SEARCH.COUNTER_SENT };
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
+      return { success: false, message: MESSAGES.PLAYER_SEARCH.NOT_AVAILABLE };
+    }
+    unstable_rethrow(err);
+    console.error("error in counterPlayerSearchInterest", err);
+    return { success: false, message: MESSAGES.COMMON.GENERIC_ERROR };
+  }
+}
+
+/**
+ * Accept the standing proposal on an interest: auto-book the first free table
+ * in Table.autoBookingPriority order for `interest.proposedStart/End`, add
+ * both members as participants, and delete the search (cascading away every
+ * other pending interest). Callable by whichever party is on the clock (i.e.
+ * did not make the last proposal).
  */
 export async function acceptPlayerSearchInterest(interestId: string): Promise<ServiceResult> {
   const session = await getSession();
@@ -155,11 +267,16 @@ export async function acceptPlayerSearchInterest(interestId: string): Promise<Se
     },
   });
   if (!interest) return { success: false, message: MESSAGES.PLAYER_SEARCH.INTEREST_NOT_FOUND };
-  if (interest.search.creatorId !== session.user.id) {
-    return { success: false, message: MESSAGES.COMMON.UNAUTHORIZED };
-  }
 
   const { search } = interest;
+  const isParty = session.user.id === search.creatorId || session.user.id === interest.responderId;
+  if (!isParty) return { success: false, message: MESSAGES.COMMON.UNAUTHORIZED };
+  if (session.user.id === interest.proposedById) {
+    return { success: false, message: MESSAGES.PLAYER_SEARCH.NOT_YOUR_TURN };
+  }
+
+  const start = interest.proposedStart;
+  const end = interest.proposedEnd;
 
   const priorityTables = await prisma.table.findMany({
     where: { active: true, allowMultipleBookings: false, autoBookingPriority: { not: null } },
@@ -178,15 +295,15 @@ export async function acceptPlayerSearchInterest(interestId: string): Promise<Se
 
       for (const table of priorityTables) {
         await lockTableForBooking(tx, table.id);
-        const overlap = await findOverlappingBooking(tx, table.id, search.start, search.end);
+        const overlap = await findOverlappingBooking(tx, table.id, start, end);
         if (overlap) continue;
 
         const booking = await tx.booking.create({
           data: {
             tableId: table.id,
             userId: search.creatorId,
-            start: search.start,
-            end: search.end,
+            start,
+            end,
             game: playerSearchBookingLabel(search.system, search.matchType),
             note: interest.note,
           },
@@ -198,15 +315,13 @@ export async function acceptPlayerSearchInterest(interestId: string): Promise<Se
           ],
         });
 
-        // notification-potential: tell both search.creatorId and
-        // interest.responderId that the match is booked at `table.name`.
         return { tableId: table.id, tableName: table.name };
       }
 
       throw new NoTableFreeError();
     });
 
-    const dateLabel = formatEventDateRange(search.start, search.end);
+    const dateLabel = formatEventDateRange(start, end);
     notify(
       [search.creatorId],
       MESSAGES.NOTIFICATIONS.playerSearchBooked(
@@ -221,7 +336,7 @@ export async function acceptPlayerSearchInterest(interestId: string): Promise<Se
     notify(
       [interest.responderId],
       MESSAGES.NOTIFICATIONS.playerSearchBooked(
-        interest.search.creator.name,
+        search.creator.name,
         booked.tableName,
         search.system,
         dateLabel,
@@ -232,7 +347,7 @@ export async function acceptPlayerSearchInterest(interestId: string): Promise<Se
 
     // The auto-booking just consumed a table: other open Spielersuchen
     // overlapping this window may no longer be bookable.
-    after(() => syncPlayerSearchAvailability([{ start: search.start, end: search.end }]));
+    after(() => syncPlayerSearchAvailability([{ start, end }]));
 
     revalidatePath(ROUTES.SPIELERSUCHE);
     revalidatePath(ROUTES.DASHBOARD);
@@ -245,9 +360,9 @@ export async function acceptPlayerSearchInterest(interestId: string): Promise<Se
       return { success: false, message: MESSAGES.PLAYER_SEARCH.NOT_AVAILABLE };
     }
     if (err instanceof NoTableFreeError) {
-      // The search survived the rollback but its window is full: refresh the
+      // The search survived the rollback but this window is full: refresh the
       // flag so the warning shows without waiting for the next booking event.
-      after(() => syncPlayerSearchAvailability([{ start: search.start, end: search.end }]));
+      after(() => syncPlayerSearchAvailability([{ start, end }]));
       return { success: false, message: MESSAGES.PLAYER_SEARCH.NO_TABLE_FREE };
     }
     unstable_rethrow(err);
@@ -256,7 +371,11 @@ export async function acceptPlayerSearchInterest(interestId: string): Promise<Se
   }
 }
 
-/** The search creator declines one interested member. The search stays open. */
+/**
+ * Decline / remove an interest. The search creator may do this to any interest
+ * on their search; the responder may do it only when it is their move (i.e.
+ * rejecting the creator's counter-proposal). The search stays open.
+ */
 export async function declinePlayerSearchInterest(interestId: string): Promise<ServiceResult> {
   const session = await getSession();
   if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
@@ -264,27 +383,47 @@ export async function declinePlayerSearchInterest(interestId: string): Promise<S
   const interest = await prisma.playerSearchInterest.findUnique({
     where: { id: interestId },
     include: {
-      search: { select: { creatorId: true, system: true, start: true, end: true } },
+      search: { select: { creatorId: true, system: true } },
+      responder: { select: { name: true } },
     },
   });
   if (!interest) return { success: false, message: MESSAGES.PLAYER_SEARCH.INTEREST_NOT_FOUND };
-  if (interest.search.creatorId !== session.user.id) {
+
+  const isCreator = interest.search.creatorId === session.user.id;
+  const isResponderTurn =
+    interest.responderId === session.user.id && session.user.id !== interest.proposedById;
+  if (!isCreator && !isResponderTurn) {
     return { success: false, message: MESSAGES.COMMON.UNAUTHORIZED };
   }
+
+  const dateLabel = formatEventDateRange(interest.proposedStart, interest.proposedEnd);
 
   try {
     await prisma.playerSearchInterest.delete({ where: { id: interestId } });
 
-    notify(
-      [interest.responderId],
-      MESSAGES.NOTIFICATIONS.playerSearchDeclined(
-        session.user.name,
-        interest.search.system,
-        formatEventDateRange(interest.search.start, interest.search.end),
-      ),
-      ROUTES.SPIELERSUCHE,
-      `search-declined-${interestId}`,
-    );
+    if (isCreator) {
+      notify(
+        [interest.responderId],
+        MESSAGES.NOTIFICATIONS.playerSearchDeclined(
+          session.user.name,
+          interest.search.system,
+          dateLabel,
+        ),
+        ROUTES.SPIELERSUCHE,
+        `search-declined-${interestId}`,
+      );
+    } else {
+      notify(
+        [interest.search.creatorId],
+        MESSAGES.NOTIFICATIONS.playerSearchRejected(
+          interest.responder.name,
+          interest.search.system,
+          dateLabel,
+        ),
+        ROUTES.DASHBOARD,
+        `search-rejected-${interestId}`,
+      );
+    }
     revalidatePath(ROUTES.SPIELERSUCHE);
     revalidatePath(ROUTES.DASHBOARD);
     return { success: true, message: MESSAGES.PLAYER_SEARCH.INTEREST_DECLINED };

@@ -3,14 +3,19 @@ import DashboardBookings from "@/components/bookings/DashboardBookings";
 import DashboardBookingsSkeleton from "@/components/bookings/DashboardBookingsSkeleton";
 import DashboardEvents from "@/components/events/DashboardEvents";
 import DashboardEventsSkeleton from "@/components/events/DashboardEventsSkeleton";
-import DashboardPlayerSearchInterests from "@/components/player-search/DashboardPlayerSearchInterests";
+import DashboardPlayerSearchNegotiations from "@/components/player-search/DashboardPlayerSearchNegotiations";
+import DashboardStalePlayerSearches from "@/components/player-search/DashboardStalePlayerSearches";
 import EnableNotificationsNudge from "@/components/notifications/EnableNotificationsNudge";
 
 export default function DashboardPage(): JSX.Element {
   return (
     <div className="flex flex-col gap-8">
       <Suspense fallback={null}>
-        <DashboardPlayerSearchInterests />
+        <DashboardStalePlayerSearches />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <DashboardPlayerSearchNegotiations />
       </Suspense>
 
       <section className="flex flex-col gap-4">

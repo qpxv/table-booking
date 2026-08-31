@@ -30,6 +30,7 @@ async function main(): Promise<void> {
 
   let updated = 0;
   for (const search of searches) {
+    if (search.start === null || search.end === null) continue; // flexible: no window
     const tableAvailable = await isWindowAutoBookable(search.start, search.end);
     if (tableAvailable === search.tableAvailable) continue;
     await prisma.playerSearch.update({

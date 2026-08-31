@@ -4,10 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/session";
 import { MESSAGES } from "@/lib/constants";
 
+// The creator is nagged to confirm a search is still current once it has been
+// open (unconfirmed) this long. Mirrored by the stale-check cron.
+export const PLAYER_SEARCH_STALE_AFTER_DAYS = 14;
+
 export type OpenPlayerSearch = {
   id: string;
-  start: Date;
-  end: Date;
+  start: Date | null;
+  end: Date | null;
   system: string;
   matchType: string;
   creatorId: string;
@@ -15,22 +19,37 @@ export type OpenPlayerSearch = {
   respondedByMe: boolean;
   interestCount: number;
   tableAvailable: boolean;
+  needsActiveConfirmation: boolean;
 };
 
-export type IncomingPlayerSearchInterest = {
+export type StalePlayerSearch = {
   id: string;
-  note: string | null;
-  responderName: string;
+  system: string;
+  matchType: string;
+  start: Date | null;
+  end: Date | null;
   createdAt: Date;
-  search: {
-    id: string;
-    start: Date;
-    end: Date;
-    system: string;
-    matchType: string;
-    tableAvailable: boolean;
-  };
 };
+
+export type PlayerSearchNegotiation = {
+  id: string;
+  role: "creator" | "responder";
+  counterpartName: string;
+  proposerName: string;
+  proposedStart: Date;
+  proposedEnd: Date;
+  proposedByMe: boolean;
+  awaitingMe: boolean;
+  note: string | null;
+  system: string;
+  matchType: string;
+  // null when the underlying search has a flexible time (no window to check).
+  tableAvailable: boolean | null;
+};
+
+function staleCutoff(now: Date): Date {
+  return new Date(now.getTime() - PLAYER_SEARCH_STALE_AFTER_DAYS * 24 * 60 * 60 * 1000);
+}
 
 /** Still-open searches whose window hasn't fully passed, soonest first. */
 export async function listOpenPlayerSearches(): Promise<{
@@ -50,15 +69,18 @@ export async function listOpenPlayerSearches(): Promise<{
       };
     }
 
+    const now = new Date();
+    const cutoff = staleCutoff(now);
+
     const [rows, priorityTableCount] = await Promise.all([
       prisma.playerSearch.findMany({
-        where: { end: { gte: new Date() } },
+        // Fixed-time searches drop off once their window has passed; flexible
+        // ones (no end) stay until accepted or deleted.
+        where: { OR: [{ end: { gte: now } }, { end: null }] },
         orderBy: { start: "asc" },
         include: {
           creator: { select: { name: true } },
           _count: { select: { interests: true } },
-          // Only this member's own interest row, to derive `respondedByMe`
-          // without pulling every responder's row for every open search.
           interests: { where: { responderId: session.user.id }, select: { id: true } },
         },
       }),
@@ -70,18 +92,22 @@ export async function listOpenPlayerSearches(): Promise<{
     return {
       success: true,
       hasPriorityTable: priorityTableCount > 0,
-      searches: rows.map((row) => ({
-        id: row.id,
-        start: row.start,
-        end: row.end,
-        system: row.system,
-        matchType: row.matchType,
-        creatorId: row.creatorId,
-        creatorName: row.creator.name,
-        respondedByMe: row.interests.length > 0,
-        interestCount: row._count.interests,
-        tableAvailable: row.tableAvailable,
-      })),
+      searches: rows.map((row) => {
+        const isOwn = row.creatorId === session.user.id;
+        return {
+          id: row.id,
+          start: row.start,
+          end: row.end,
+          system: row.system,
+          matchType: row.matchType,
+          creatorId: row.creatorId,
+          creatorName: row.creator.name,
+          respondedByMe: row.interests.length > 0,
+          interestCount: row._count.interests,
+          tableAvailable: row.tableAvailable,
+          needsActiveConfirmation: isOwn && row.confirmedActiveAt < cutoff,
+        };
+      }),
     };
   } catch (err) {
     unstable_rethrow(err);
@@ -95,26 +121,57 @@ export async function listOpenPlayerSearches(): Promise<{
   }
 }
 
-/** Pending interest requests on searches created by the given member. */
-export async function listIncomingPlayerSearchInterests(userId: string): Promise<{
+/** The member's own still-open searches that have gone 14 days unconfirmed. */
+export async function listStalePlayerSearchesForUser(userId: string): Promise<{
   success: boolean;
-  interests: IncomingPlayerSearchInterest[];
+  searches: StalePlayerSearch[];
+  message?: string;
+}> {
+  try {
+    const now = new Date();
+    const searches = await prisma.playerSearch.findMany({
+      where: {
+        creatorId: userId,
+        confirmedActiveAt: { lt: staleCutoff(now) },
+        OR: [{ end: { gte: now } }, { end: null }],
+      },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, system: true, matchType: true, start: true, end: true, createdAt: true },
+    });
+    return { success: true, searches };
+  } catch (err) {
+    unstable_rethrow(err);
+    console.error("error in listStalePlayerSearchesForUser", err);
+    return { success: false, searches: [], message: MESSAGES.COMMON.GENERIC_ERROR };
+  }
+}
+
+/**
+ * Every still-live time negotiation the given member is part of, whether as
+ * the search creator or as an interested responder. Newest activity first.
+ */
+export async function listPlayerSearchNegotiations(userId: string): Promise<{
+  success: boolean;
+  negotiations: PlayerSearchNegotiation[];
   message?: string;
 }> {
   try {
     const rows = await prisma.playerSearchInterest.findMany({
-      where: { search: { creatorId: userId, end: { gte: new Date() } } },
-      orderBy: { createdAt: "asc" },
+      where: {
+        proposedEnd: { gte: new Date() },
+        OR: [{ search: { creatorId: userId } }, { responderId: userId }],
+      },
+      orderBy: { updatedAt: "desc" },
       include: {
         responder: { select: { name: true } },
         search: {
           select: {
-            id: true,
-            start: true,
-            end: true,
+            creatorId: true,
             system: true,
             matchType: true,
+            start: true,
             tableAvailable: true,
+            creator: { select: { name: true } },
           },
         },
       },
@@ -122,17 +179,31 @@ export async function listIncomingPlayerSearchInterests(userId: string): Promise
 
     return {
       success: true,
-      interests: rows.map((row) => ({
-        id: row.id,
-        note: row.note,
-        responderName: row.responder.name,
-        createdAt: row.createdAt,
-        search: row.search,
-      })),
+      negotiations: rows.map((row) => {
+        const role: "creator" | "responder" =
+          row.search.creatorId === userId ? "creator" : "responder";
+        const creatorName = row.search.creator.name;
+        const proposerName =
+          row.proposedById === row.search.creatorId ? creatorName : row.responder.name;
+        return {
+          id: row.id,
+          role,
+          counterpartName: role === "creator" ? row.responder.name : creatorName,
+          proposerName,
+          proposedStart: row.proposedStart,
+          proposedEnd: row.proposedEnd,
+          proposedByMe: row.proposedById === userId,
+          awaitingMe: row.proposedById !== userId,
+          note: row.note,
+          system: row.search.system,
+          matchType: row.search.matchType,
+          tableAvailable: row.search.start === null ? null : row.search.tableAvailable,
+        };
+      }),
     };
   } catch (err) {
     unstable_rethrow(err);
-    console.error("error in listIncomingPlayerSearchInterests", err);
-    return { success: false, interests: [], message: MESSAGES.COMMON.GENERIC_ERROR };
+    console.error("error in listPlayerSearchNegotiations", err);
+    return { success: false, negotiations: [], message: MESSAGES.COMMON.GENERIC_ERROR };
   }
 }

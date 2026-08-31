@@ -1,12 +1,16 @@
 "use client";
 
-import { useState, type JSX } from "react";
+import { useState, useTransition, type JSX } from "react";
 import { Plus, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ConfirmDeleteDialog from "@/components/shared/ConfirmDeleteDialog";
 import { CONFIRM_MODE } from "@/lib/constants";
-import { deletePlayerSearch } from "@/service/player-search-service/player-search";
+import { showToast } from "@/lib/toast";
+import {
+  confirmPlayerSearchActive,
+  deletePlayerSearch,
+} from "@/service/player-search-service/player-search";
 import type { OpenPlayerSearch } from "@/lib/queries/player-search";
 import PlayerSearchCard from "./PlayerSearchCard";
 import PlayerSearchCreateDialog from "./PlayerSearchCreateDialog";
@@ -28,6 +32,13 @@ export default function PlayerSearchList({
   const [createOpen, setCreateOpen] = useState(false);
   const [respondTarget, setRespondTarget] = useState<OpenPlayerSearch | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<OpenPlayerSearch | null>(null);
+  const [, startTransition] = useTransition();
+
+  function handleConfirmActive(searchId: string): void {
+    startTransition(async () => {
+      showToast(await confirmPlayerSearchActive(searchId));
+    });
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -60,6 +71,7 @@ export default function PlayerSearchList({
               canDelete={search.creatorId === currentUserId || isAdmin}
               onRespond={() => setRespondTarget(search)}
               onDelete={() => setDeleteTarget(search)}
+              onConfirmActive={() => handleConfirmActive(search.id)}
             />
           ))}
         </div>

@@ -54,8 +54,14 @@ export async function syncPlayerSearchAvailability(windows: TimeWindow[]): Promi
       },
     });
 
-    const affected = candidates.filter((search) =>
-      windows.some((w) => search.start < w.end && search.end > w.start),
+    // Flexible searches (null window) have nothing to check and are excluded
+    // by the `where` above; narrow the type for the overlap test.
+    const affected = candidates.filter(
+      (search): search is typeof search & { start: Date; end: Date } => {
+        if (search.start === null || search.end === null) return false;
+        const { start, end } = search;
+        return windows.some((w) => start < w.end && end > w.start);
+      },
     );
     if (affected.length === 0) return;
 
