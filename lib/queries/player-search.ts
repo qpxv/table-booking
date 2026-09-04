@@ -8,18 +8,33 @@ import { MESSAGES } from "@/lib/constants";
 // open (unconfirmed) this long. Mirrored by the stale-check cron.
 export const PLAYER_SEARCH_STALE_AFTER_DAYS = 14;
 
+/** Phase 2 of a group search: the table is booked and it is filling up. */
+export type PlayerSearchBooking = {
+  tableId: string;
+  tableName: string;
+  start: Date;
+  end: Date;
+  participantCount: number;
+};
+
 export type OpenPlayerSearch = {
   id: string;
   start: Date | null;
   end: Date | null;
   system: string;
   matchType: string;
+  playerCount: number;
   creatorId: string;
   creatorName: string;
   respondedByMe: boolean;
   interestCount: number;
   tableAvailable: boolean;
   needsActiveConfirmation: boolean;
+  // Null while still negotiating a first opponent (phase 1). Set once the
+  // table is booked and members join via "Mitmachen" (phase 2).
+  booking: PlayerSearchBooking | null;
+  // Whether the current user is already a participant of `booking`.
+  joinedByMe: boolean;
 };
 
 export type StalePlayerSearch = {
@@ -75,13 +90,27 @@ export async function listOpenPlayerSearches(): Promise<{
     const [rows, priorityTableCount] = await Promise.all([
       prisma.playerSearch.findMany({
         // Fixed-time searches drop off once their window has passed; flexible
-        // ones (no end) stay until accepted or deleted.
+        // ones (no end) stay until accepted or deleted. Phase-2 group searches
+        // always carry a concrete window (the booked one), so `end` covers them.
         where: { OR: [{ end: { gte: now } }, { end: null }] },
         orderBy: { start: "asc" },
         include: {
           creator: { select: { name: true } },
           _count: { select: { interests: true } },
           interests: { where: { responderId: session.user.id }, select: { id: true } },
+          booking: {
+            select: {
+              tableId: true,
+              start: true,
+              end: true,
+              table: { select: { name: true } },
+              _count: { select: { participants: true } },
+              participants: {
+                where: { userId: session.user.id },
+                select: { id: true },
+              },
+            },
+          },
         },
       }),
       prisma.table.count({
@@ -100,12 +129,25 @@ export async function listOpenPlayerSearches(): Promise<{
           end: row.end,
           system: row.system,
           matchType: row.matchType,
+          playerCount: row.playerCount,
           creatorId: row.creatorId,
           creatorName: row.creator.name,
           respondedByMe: row.interests.length > 0,
           interestCount: row._count.interests,
           tableAvailable: row.tableAvailable,
-          needsActiveConfirmation: isOwn && row.confirmedActiveAt < cutoff,
+          // A booked (phase-2) search is inherently active: never nag it.
+          needsActiveConfirmation:
+            isOwn && row.bookingId === null && row.confirmedActiveAt < cutoff,
+          booking: row.booking
+            ? {
+                tableId: row.booking.tableId,
+                tableName: row.booking.table.name,
+                start: row.booking.start,
+                end: row.booking.end,
+                participantCount: row.booking._count.participants,
+              }
+            : null,
+          joinedByMe: (row.booking?.participants.length ?? 0) > 0,
         };
       }),
     };
@@ -132,6 +174,8 @@ export async function listStalePlayerSearchesForUser(userId: string): Promise<{
     const searches = await prisma.playerSearch.findMany({
       where: {
         creatorId: userId,
+        // Phase-2 searches are booked and active: exclude from the stale nag.
+        bookingId: null,
         confirmedActiveAt: { lt: staleCutoff(now) },
         OR: [{ end: { gte: now } }, { end: null }],
       },

@@ -45,15 +45,27 @@ export default function PlayerSearchCreateDialog({
   const { start, end } = defaultRange();
   const form = useForm<PlayerSearchFieldsInput>({
     resolver: zodResolver(playerSearchFieldsSchema),
-    defaultValues: { start, end, system: "", matchType: "" },
+    defaultValues: { start, end, system: "", matchType: "", playerCount: 2 },
   });
 
   function onSubmit(values: PlayerSearchFieldsInput): void {
     startTransition(async () => {
       const result = await createPlayerSearch(
         fixedTime
-          ? { fixedTime: true, start: values.start, end: values.end, system: values.system, matchType: values.matchType }
-          : { fixedTime: false, system: values.system, matchType: values.matchType },
+          ? {
+              fixedTime: true,
+              start: values.start,
+              end: values.end,
+              system: values.system,
+              matchType: values.matchType,
+              playerCount: values.playerCount,
+            }
+          : {
+              fixedTime: false,
+              system: values.system,
+              matchType: values.matchType,
+              playerCount: values.playerCount,
+            },
       );
       showToast(result);
       if (result.success) onClose();
@@ -147,6 +159,31 @@ export default function PlayerSearchCreateDialog({
                   placeholder="z. B. 2000 Punkte, gemütlich"
                   aria-invalid={fieldState.invalid}
                 />
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
+            )}
+          />
+
+          <Controller
+            name="playerCount"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={field.name}>Anzahl Spieler</FieldLabel>
+                <Input
+                  id={field.name}
+                  type="number"
+                  min={2}
+                  max={8}
+                  value={field.value}
+                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                  onBlur={field.onBlur}
+                  aria-invalid={fieldState.invalid}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Zähl dich selbst mit. Bei mehr als 2 Spielern können weitere mitmachen, sobald der
+                  erste Termin steht, bis die Runde voll ist.
+                </p>
                 {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               </Field>
             )}

@@ -1,5 +1,14 @@
 import type { JSX } from "react";
-import { Swords, Handshake, Check, Trash2, TriangleAlert, CalendarClock } from "lucide-react";
+import {
+  Swords,
+  Handshake,
+  Check,
+  Trash2,
+  TriangleAlert,
+  CalendarClock,
+  Users,
+  MapPin,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +21,7 @@ export default function PlayerSearchCard({
   isOwn,
   canDelete,
   onRespond,
+  onJoin,
   onDelete,
   onConfirmActive,
 }: {
@@ -19,13 +29,17 @@ export default function PlayerSearchCard({
   isOwn: boolean;
   canDelete: boolean;
   onRespond: () => void;
+  onJoin: () => void;
   onDelete: () => void;
   onConfirmActive: () => void;
 }): JSX.Element {
+  const { booking } = search;
   const fixed =
     search.start !== null && search.end !== null
       ? { start: search.start, end: search.end }
       : null;
+  const window = booking ?? fixed;
+  const isGroup = search.playerCount > 2;
 
   return (
     <Card>
@@ -36,13 +50,13 @@ export default function PlayerSearchCard({
               <Swords className="size-5" />
             </div>
             <div>
-              {fixed ? (
+              {window ? (
                 <>
                   <p className="font-heading text-base font-medium leading-snug">
-                    {formatBerlin(fixed.start, "dd.MM.yyyy")}
+                    {formatBerlin(window.start, "dd.MM.yyyy")}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {formatBerlin(fixed.start, "HH:mm")} – {formatBerlin(fixed.end, "HH:mm")} Uhr
+                    {formatBerlin(window.start, "HH:mm")} – {formatBerlin(window.end, "HH:mm")} Uhr
                   </p>
                 </>
               ) : (
@@ -57,13 +71,28 @@ export default function PlayerSearchCard({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <div>
+          <div className="flex flex-wrap items-center gap-1.5">
             <Badge variant="secondary">{search.system}</Badge>
+            {isGroup && (
+              <Badge variant="outline" className="gap-1">
+                <Users className="size-3" />
+                {booking
+                  ? `${booking.participantCount}/${search.playerCount} Spieler`
+                  : `${search.playerCount} Spieler gesucht`}
+              </Badge>
+            )}
           </div>
           <p className="text-sm text-muted-foreground break-words">{search.matchType}</p>
         </div>
 
-        {fixed && !search.tableAvailable && (
+        {booking && (
+          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <MapPin className="size-4 shrink-0" />
+            {booking.tableName}
+          </p>
+        )}
+
+        {!booking && fixed && !search.tableAvailable && (
           <p className="flex items-center gap-1.5 text-sm text-destructive">
             <TriangleAlert className="size-4 shrink-0" />
             {MESSAGES.PLAYER_SEARCH.TABLE_UNAVAILABLE}
@@ -87,7 +116,7 @@ export default function PlayerSearchCard({
         )}
 
         <div className="flex items-center justify-between gap-3">
-          {isOwn && search.interestCount > 0 ? (
+          {isOwn && !booking && search.interestCount > 0 ? (
             <span className="text-sm text-muted-foreground">
               {search.interestCount === 1 ? "1 Anfrage" : `${search.interestCount} Anfragen`}
             </span>
@@ -96,7 +125,19 @@ export default function PlayerSearchCard({
           )}
           <div className="flex items-center gap-2">
             {!isOwn &&
-              (search.respondedByMe ? (
+              (booking ? (
+                search.joinedByMe ? (
+                  <Button variant="outline" size="sm" disabled>
+                    <Check />
+                    Dabei
+                  </Button>
+                ) : (
+                  <Button size="sm" onClick={onJoin}>
+                    <Users />
+                    Mitmachen
+                  </Button>
+                )
+              ) : search.respondedByMe ? (
                 <Button variant="outline" size="sm" disabled>
                   <Check />
                   Interesse gesendet

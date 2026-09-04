@@ -83,6 +83,7 @@ export const MESSAGES = {
     SYSTEM_REQUIRED: "Bitte ein System angeben.",
     MATCH_TYPE_REQUIRED: "Bitte einen Spieltyp angeben.",
     PRIORITY_INVALID: "Bitte eine positive Zahl oder leer lassen.",
+    PLAYER_COUNT_RANGE: "Zwischen 2 und 8 Spielern.",
     TITLE_REQUIRED: "Titel ist erforderlich",
   },
   AUTH: {
@@ -165,6 +166,10 @@ export const MESSAGES = {
     COUNTER_SENT: "Gegenvorschlag gesendet.",
     NOT_YOUR_TURN: "Du bist gerade nicht am Zug.",
     CONFIRMED_ACTIVE: "Spielersuche als weiterhin aktiv bestätigt.",
+    NOT_GROUP_PHASE: "Diese Spielersuche kann noch nicht per Mitmachen betreten werden.",
+    ALREADY_BOOKED: "Diese Spielersuche ist bereits gebucht. Du kannst per Mitmachen beitreten.",
+    SEARCH_FULL: "Diese Spielersuche ist bereits voll.",
+    JOINED: "Du bist jetzt dabei.",
     booked: (tableName: string): string => `Gebucht: ${tableName}.`,
   },
   PAYMENT: {
@@ -270,6 +275,21 @@ export const MESSAGES = {
     playerSearchTableLost: (system: string, dateLabel: string) => ({
       title: "Kein Tisch mehr frei für deine Spielersuche",
       body: `${system}, ${dateLabel}. Bitte eine andere Uhrzeit wählen.`,
+    }),
+    // A group Spielersuche just got its table booked: the pending interests
+    // that did not win can now simply join via "Mitmachen".
+    playerSearchNowOpen: (system: string, tableName: string, dateLabel: string) => ({
+      title: `Spielersuche gebucht: ${system}`,
+      body: `${tableName}, ${dateLabel}. Du kannst jetzt per Mitmachen beitreten.`,
+    }),
+    playerSearchJoined: (
+      memberName: string,
+      system: string,
+      current: number,
+      total: number,
+    ) => ({
+      title: `${memberName} macht mit`,
+      body: `${system}: ${current}/${total} Spieler.`,
     }),
 
     passwordReset: () => ({

@@ -4,6 +4,19 @@ import { MESSAGES } from "@/lib/constants";
 const systemField = z.string().trim().min(1, MESSAGES.VALIDATION.SYSTEM_REQUIRED);
 const matchTypeField = z.string().trim().min(1, MESSAGES.VALIDATION.MATCH_TYPE_REQUIRED);
 const noteField = z.string().trim().max(500).optional();
+// Total players wanted, including the creator. 2 is a classic 1v1 search.
+// Form field: RHF already hands us a number (valueAsNumber).
+const playerCountField = z
+  .number()
+  .int(MESSAGES.VALIDATION.PLAYER_COUNT_RANGE)
+  .min(2, MESSAGES.VALIDATION.PLAYER_COUNT_RANGE)
+  .max(8, MESSAGES.VALIDATION.PLAYER_COUNT_RANGE);
+// Wire field: the server action coerces defensively.
+const playerCountWireField = z
+  .coerce.number()
+  .int(MESSAGES.VALIDATION.PLAYER_COUNT_RANGE)
+  .min(2, MESSAGES.VALIDATION.PLAYER_COUNT_RANGE)
+  .max(8, MESSAGES.VALIDATION.PLAYER_COUNT_RANGE);
 
 const startBeforeEnd = { message: MESSAGES.VALIDATION.START_BEFORE_END, path: ["end"] };
 const startInFuture = { message: MESSAGES.VALIDATION.START_IN_FUTURE, path: ["start"] };
@@ -18,6 +31,7 @@ export const playerSearchFieldsSchema = z
     end: z.date(),
     system: systemField,
     matchType: matchTypeField,
+    playerCount: playerCountField,
   })
   .refine((data) => data.start < data.end, startBeforeEnd)
   .refine((data) => data.start > new Date(), startInFuture);
@@ -39,6 +53,7 @@ export const createPlayerSearchSchema = z
     end: z.coerce.date().optional(),
     system: systemField,
     matchType: matchTypeField,
+    playerCount: playerCountWireField,
   })
   .refine(windowValid, startBeforeEnd)
   .refine(windowInFuture, startInFuture);

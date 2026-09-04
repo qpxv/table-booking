@@ -26,9 +26,10 @@ import {
 } from "@/lib/schemas/player-search";
 import type { ServiceResult } from "@/lib/service-types";
 
-// Thrown inside acceptPlayerSearchInterest's transaction so it rolls back.
+// Thrown inside a player-search transaction so it rolls back.
 class PlayerSearchGoneError extends Error {}
 class NoTableFreeError extends Error {}
+class PlayerSearchFullError extends Error {}
 
 export async function createPlayerSearch(
   values: CreatePlayerSearchInput,
@@ -39,7 +40,7 @@ export async function createPlayerSearch(
   const parsed = createPlayerSearchSchema.safeParse(values);
   if (!parsed.success) return { success: false, message: MESSAGES.COMMON.INVALID_INPUT };
 
-  const { fixedTime, system, matchType } = parsed.data;
+  const { fixedTime, system, matchType, playerCount } = parsed.data;
   const start = fixedTime ? (parsed.data.start ?? null) : null;
   const end = fixedTime ? (parsed.data.end ?? null) : null;
 
@@ -50,7 +51,15 @@ export async function createPlayerSearch(
     const tableAvailable = start && end ? await isWindowAutoBookable(start, end) : true;
 
     await prisma.playerSearch.create({
-      data: { creatorId: session.user.id, start, end, system, matchType, tableAvailable },
+      data: {
+        creatorId: session.user.id,
+        start,
+        end,
+        system,
+        matchType,
+        playerCount,
+        tableAvailable,
+      },
     });
 
     revalidatePath(ROUTES.SPIELERSUCHE);
@@ -133,6 +142,10 @@ export async function respondToPlayerSearch(
   if (!search) return { success: false, message: MESSAGES.PLAYER_SEARCH.NOT_AVAILABLE };
   if (search.creatorId === session.user.id) {
     return { success: false, message: MESSAGES.PLAYER_SEARCH.CANNOT_RESPOND_OWN };
+  }
+  // Already booked and filling up: no more negotiation, join via Mitmachen.
+  if (search.bookingId !== null) {
+    return { success: false, message: MESSAGES.PLAYER_SEARCH.ALREADY_BOOKED };
   }
 
   // The window the responder is putting on the table: their own suggestion,
@@ -250,10 +263,15 @@ export async function counterPlayerSearchInterest(
 
 /**
  * Accept the standing proposal on an interest: auto-book the first free table
- * in Table.autoBookingPriority order for `interest.proposedStart/End`, add
- * both members as participants, and delete the search (cascading away every
- * other pending interest). Callable by whichever party is on the clock (i.e.
- * did not make the last proposal).
+ * in Table.autoBookingPriority order for `interest.proposedStart/End` and add
+ * both members as participants. Callable by whichever party is on the clock
+ * (i.e. did not make the last proposal).
+ *
+ * For a 1v1 search this then deletes the search (cascading away every other
+ * pending interest). For a group search (`playerCount` > 2) it instead links
+ * the booking to the search, pins the search window to the booked one, and
+ * drops every pending interest: the search stays open for phase 2, where
+ * others join the booking via `joinPlayerSearch`.
  */
 export async function acceptPlayerSearchInterest(interestId: string): Promise<ServiceResult> {
   const session = await getSession();
@@ -277,6 +295,18 @@ export async function acceptPlayerSearchInterest(interestId: string): Promise<Se
 
   const start = interest.proposedStart;
   const end = interest.proposedEnd;
+  const isGroup = search.playerCount > 2;
+
+  // Pending interests that did not win: for a group search they are dropped
+  // and told they can now join via "Mitmachen".
+  const otherResponderIds = isGroup
+    ? (
+        await prisma.playerSearchInterest.findMany({
+          where: { searchId: search.id, id: { not: interest.id } },
+          select: { responderId: true },
+        })
+      ).map((row) => row.responderId)
+    : [];
 
   const priorityTables = await prisma.table.findMany({
     where: { active: true, allowMultipleBookings: false, autoBookingPriority: { not: null } },
@@ -289,9 +319,19 @@ export async function acceptPlayerSearchInterest(interestId: string): Promise<Se
 
   try {
     const booked = await prisma.$transaction(async (tx) => {
-      // Claim the search: if it's already gone, someone else accepted first.
-      const claim = await tx.playerSearch.deleteMany({ where: { id: search.id } });
-      if (claim.count === 0) throw new PlayerSearchGoneError();
+      // Claim the search. 1v1: delete it now. Group: flip it to phase 2
+      // (only if still in phase 1). Either way a zero count means someone
+      // else accepted first.
+      if (isGroup) {
+        const claim = await tx.playerSearch.updateMany({
+          where: { id: search.id, bookingId: null },
+          data: { start, end },
+        });
+        if (claim.count === 0) throw new PlayerSearchGoneError();
+      } else {
+        const claim = await tx.playerSearch.deleteMany({ where: { id: search.id } });
+        if (claim.count === 0) throw new PlayerSearchGoneError();
+      }
 
       for (const table of priorityTables) {
         await lockTableForBooking(tx, table.id);
@@ -314,6 +354,16 @@ export async function acceptPlayerSearchInterest(interestId: string): Promise<Se
             { bookingId: booking.id, userId: interest.responderId },
           ],
         });
+
+        if (isGroup) {
+          // Link the booking and clear every pending interest: from here the
+          // search fills up through joinPlayerSearch, not negotiation.
+          await tx.playerSearch.update({
+            where: { id: search.id },
+            data: { bookingId: booking.id },
+          });
+          await tx.playerSearchInterest.deleteMany({ where: { searchId: search.id } });
+        }
 
         return { tableId: table.id, tableName: table.name };
       }
@@ -344,6 +394,15 @@ export async function acceptPlayerSearchInterest(interestId: string): Promise<Se
       ROUTES.tischDetail(booked.tableId),
       `search-booked-${search.id}`,
     );
+
+    if (otherResponderIds.length > 0) {
+      notify(
+        otherResponderIds,
+        MESSAGES.NOTIFICATIONS.playerSearchNowOpen(search.system, booked.tableName, dateLabel),
+        ROUTES.SPIELERSUCHE,
+        `search-now-open-${search.id}`,
+      );
+    }
 
     // The auto-booking just consumed a table: other open Spielersuchen
     // overlapping this window may no longer be bookable.
@@ -430,6 +489,97 @@ export async function declinePlayerSearchInterest(interestId: string): Promise<S
   } catch (err) {
     unstable_rethrow(err);
     console.error("error in declinePlayerSearchInterest", err);
+    return { success: false, message: MESSAGES.COMMON.GENERIC_ERROR };
+  }
+}
+
+/**
+ * Phase 2 of a group search: join its booking directly (no negotiation, the
+ * window is fixed). When this fills the last slot the search row is deleted so
+ * it drops off the Spielersuche page; the booking stays.
+ */
+export async function joinPlayerSearch(searchId: string): Promise<ServiceResult> {
+  const session = await getSession();
+  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+
+  const search = await prisma.playerSearch.findUnique({
+    where: { id: searchId },
+    include: {
+      booking: {
+        include: {
+          table: { select: { name: true } },
+          participants: { select: { userId: true } },
+        },
+      },
+    },
+  });
+  if (!search || !search.booking) {
+    return { success: false, message: MESSAGES.PLAYER_SEARCH.NOT_GROUP_PHASE };
+  }
+
+  const { booking } = search;
+  if (booking.participants.some((p) => p.userId === session.user.id)) {
+    return { success: true, message: MESSAGES.PLAYER_SEARCH.JOINED };
+  }
+
+  const otherParticipantIds = booking.participants.map((p) => p.userId);
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      // Serialize concurrent joins on the same search so the slot count can't
+      // be over-committed (READ COMMITTED otherwise lets two joins both see
+      // the last free slot).
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`player-search:${searchId}`}))`;
+
+      const locked = await tx.playerSearch.findUnique({
+        where: { id: searchId },
+        select: { playerCount: true, bookingId: true },
+      });
+      if (!locked?.bookingId) throw new PlayerSearchGoneError();
+
+      const count = await tx.bookingParticipant.count({ where: { bookingId: booking.id } });
+      if (count >= locked.playerCount) throw new PlayerSearchFullError();
+
+      await tx.bookingParticipant.create({
+        data: { bookingId: booking.id, userId: session.user.id },
+      });
+
+      const filled = count + 1;
+      const nowFull = filled >= locked.playerCount;
+      if (nowFull) await tx.playerSearch.delete({ where: { id: searchId } });
+
+      return { filled, playerCount: locked.playerCount };
+    });
+
+    if (otherParticipantIds.length > 0) {
+      notify(
+        otherParticipantIds,
+        MESSAGES.NOTIFICATIONS.playerSearchJoined(
+          session.user.name,
+          search.system,
+          result.filled,
+          result.playerCount,
+        ),
+        ROUTES.tischDetail(booking.tableId),
+        `search-joined-${searchId}`,
+      );
+    }
+
+    revalidatePath(ROUTES.SPIELERSUCHE);
+    revalidatePath(ROUTES.DASHBOARD);
+    revalidatePath(ROUTES.TISCHE);
+    revalidatePath(ROUTES.tischDetail(booking.tableId));
+
+    return { success: true, message: MESSAGES.PLAYER_SEARCH.JOINED };
+  } catch (err) {
+    if (err instanceof PlayerSearchGoneError) {
+      return { success: false, message: MESSAGES.PLAYER_SEARCH.NOT_AVAILABLE };
+    }
+    if (err instanceof PlayerSearchFullError) {
+      return { success: false, message: MESSAGES.PLAYER_SEARCH.SEARCH_FULL };
+    }
+    unstable_rethrow(err);
+    console.error("error in joinPlayerSearch", err);
     return { success: false, message: MESSAGES.COMMON.GENERIC_ERROR };
   }
 }

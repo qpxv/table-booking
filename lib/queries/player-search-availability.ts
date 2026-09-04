@@ -43,7 +43,9 @@ export async function syncPlayerSearchAvailability(windows: TimeWindow[]): Promi
     const maxEnd = new Date(Math.max(...windows.map((w) => w.end.getTime())));
 
     const candidates = await prisma.playerSearch.findMany({
-      where: { end: { gte: now }, start: { lt: maxEnd } },
+      // Phase-2 group searches already hold a booked table: `tableAvailable`
+      // no longer applies to them.
+      where: { bookingId: null, end: { gte: now }, start: { lt: maxEnd } },
       select: {
         id: true,
         start: true,

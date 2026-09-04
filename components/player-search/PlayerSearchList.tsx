@@ -10,6 +10,7 @@ import { showToast } from "@/lib/toast";
 import {
   confirmPlayerSearchActive,
   deletePlayerSearch,
+  joinPlayerSearch,
 } from "@/service/player-search-service/player-search";
 import type { OpenPlayerSearch } from "@/lib/queries/player-search";
 import PlayerSearchCard from "./PlayerSearchCard";
@@ -37,6 +38,12 @@ export default function PlayerSearchList({
   function handleConfirmActive(searchId: string): void {
     startTransition(async () => {
       showToast(await confirmPlayerSearchActive(searchId));
+    });
+  }
+
+  function handleJoin(searchId: string): void {
+    startTransition(async () => {
+      showToast(await joinPlayerSearch(searchId));
     });
   }
 
@@ -70,6 +77,7 @@ export default function PlayerSearchList({
               isOwn={search.creatorId === currentUserId}
               canDelete={search.creatorId === currentUserId || isAdmin}
               onRespond={() => setRespondTarget(search)}
+              onJoin={() => handleJoin(search.id)}
               onDelete={() => setDeleteTarget(search)}
               onConfirmActive={() => handleConfirmActive(search.id)}
             />

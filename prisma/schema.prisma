@@ -131,6 +131,10 @@ model Booking {
 
   guests       BookingGuest[]
   participants BookingParticipant[]
+  // Set for a booking that was auto-created from a group Spielersuche and is
+  // still filling up (people join via "Mitmachen"). Cancelling the booking
+  // cascades the still-open search away.
+  playerSearch PlayerSearch?
 
   // Backs the overlap check: all bookings for a table within range X..Y.
   // Cancelling a booking hard-deletes it (no soft-delete/status field), so
@@ -197,11 +201,21 @@ model Game {
 // An open "Spielersuche": a member looking for an opponent for a match in a
 // given time window. Other members register interest (PlayerSearchInterest);
 // when the creator accepts one, the app auto-books the first free table
-// (Table.autoBookingPriority order) and deletes this row.
+// (Table.autoBookingPriority order).
+//
+// For a 1v1 search (`playerCount` 2) that first accept books the table and
+// deletes this row. For a group search (`playerCount` > 2) the accept instead
+// links the booking here (`bookingId`), drops every other pending interest,
+// and the search stays open in a second phase: other members join the booking
+// directly via "Mitmachen" until it is full, then this row is deleted.
 model PlayerSearch {
   id        String   @id @default(cuid())
+  // Total players wanted, including the creator (min 2). 2 is a classic 1v1
+  // search; > 2 turns on the group / "Mitmachen" phase after the first booking.
+  playerCount Int    @default(2)
   // Null when the creator left the time open ("flexibel"): the interested
   // member must then propose a concrete time on their PlayerSearchInterest.
+  // Filled with the booked window once a group search enters its second phase.
   start     DateTime?
   end       DateTime?
   // Game system, free text from the same suggestion list as Booking.game
@@ -228,6 +242,12 @@ model PlayerSearch {
 
   creatorId String
   creator   User   @relation(fields: [creatorId], references: [id])
+
+  // Null in phase 1 (still negotiating a first opponent). Set once the table
+  // is booked and the group search is filling up. Cascade: cancelling the
+  // booking removes the leftover search too.
+  bookingId String?  @unique
+  booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   interests PlayerSearchInterest[]
 

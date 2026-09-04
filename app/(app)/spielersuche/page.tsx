@@ -8,8 +8,10 @@ export default function PlayerSearchPage(): JSX.Element {
       <div>
         <h1 className="text-xl font-semibold tracking-tight">Spielersuche</h1>
         <p className="text-sm text-muted-foreground">
-          Suche einen Gegner für eine Partie. Der Ersteller entscheidet, wer
-          mitspielt; bei Zusage wird automatisch ein Tisch gebucht.
+          Suche Mitspieler für eine Partie. Der Ersteller entscheidet, wer den
+          ersten Platz bekommt; bei Zusage wird automatisch ein Tisch gebucht.
+          Bei Gruppenspielen können weitere Spieler danach per Mitmachen
+          beitreten, bis die Runde voll ist.
         </p>
       </div>
 
