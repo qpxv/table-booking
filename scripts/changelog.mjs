@@ -1,12 +1,12 @@
-// Generate a user-facing changelog entry from the commits made since the last
-// time CHANGELOG.md was touched, using the local `claude` CLI to write it in
-// our house format.
+// Generate a user-facing changelog from the commits made since the last time
+// CHANGELOG.md was touched, using the local `claude` CLI to write it in our
+// house format. CHANGELOG.md always holds just the newest release, so the
+// file never grows: git history keeps the older ones.
 //
-//   npm run changelog              # prepend a new "App-Update X.Y" block
+//   npm run changelog              # overwrite CHANGELOG.md with the new "App-Update X.Y"
 //   npm run changelog -- --dry-run # print to stdout, do not write the file
 //   npm run changelog -- --major   # bump the major version instead of minor
 //   npm run changelog -- --set 2.0 # force a specific version number
-//   npm run changelog -- --replace # overwrite CHANGELOG.md instead of prepending
 //
 // Needs the `claude` CLI on PATH (comes with Claude Code). Nothing is
 // committed: review the result, edit if needed, then commit yourself.
@@ -22,7 +22,6 @@ const DIFF_BUDGET = 50_000;
 
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run");
-const replace = args.has("--replace");
 const bumpMajor = args.has("--major");
 const setIdx = process.argv.indexOf("--set");
 const forcedVersion = setIdx !== -1 ? process.argv[setIdx + 1] : null;
@@ -161,9 +160,5 @@ if (dryRun) {
   process.exit(0);
 }
 
-const next = replace || !currentChangelog.trim()
-  ? `${entry}\n`
-  : `${entry}\n\n---\n\n${currentChangelog.trim()}\n`;
-
-writeFileSync(CHANGELOG, next);
-console.error(`\nWrote ${replace ? "" : "new entry to the top of "}CHANGELOG.md. Review and commit when happy.`);
+writeFileSync(CHANGELOG, `${entry}\n`);
+console.error("\nWrote CHANGELOG.md (replaced with the new release). Review and commit when happy.");
