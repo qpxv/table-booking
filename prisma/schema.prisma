@@ -20,6 +20,11 @@ model User {
   emailVerified Boolean   @default(false)
   image         String?
   role          String    @default("user")
+  // Populated once a member links their account via the Discord bot's
+  // /verbinden command (see discord-plan.md). Non-authoritative display
+  // cache alongside the authoritative snowflake.
+  discordUserId   String? @unique
+  discordUsername String?
   // Set when an admin provisions the account or resets its password; the
   // app is gated behind a forced password change until the member clears
   // it themselves on first login.

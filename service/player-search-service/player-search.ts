@@ -5,8 +5,7 @@ import { after } from "next/server";
 import { unstable_rethrow } from "next/navigation";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/session";
-import { isAdmin } from "@/lib/permissions";
+import { type Actor, resolveActor, actorIsAdmin } from "@/lib/actor";
 import { ROUTES, MESSAGES } from "@/lib/constants";
 import { findOverlappingBooking, lockTableForBooking } from "@/lib/booking-availability";
 import { playerSearchBookingLabel } from "@/lib/player-search-types";
@@ -33,9 +32,10 @@ class PlayerSearchFullError extends Error {}
 
 export async function createPlayerSearch(
   values: CreatePlayerSearchInput,
+  explicitActor?: Actor,
 ): Promise<ServiceResult> {
-  const session = await getSession();
-  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+  const actor = await resolveActor(explicitActor);
+  if (!actor) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
 
   const parsed = createPlayerSearchSchema.safeParse(values);
   if (!parsed.success) return { success: false, message: MESSAGES.COMMON.INVALID_INPUT };
@@ -52,7 +52,7 @@ export async function createPlayerSearch(
 
     await prisma.playerSearch.create({
       data: {
-        creatorId: session.user.id,
+        creatorId: actor.id,
         start,
         end,
         system,
@@ -71,13 +71,13 @@ export async function createPlayerSearch(
   }
 }
 
-export async function deletePlayerSearch(id: string): Promise<ServiceResult> {
-  const session = await getSession();
-  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+export async function deletePlayerSearch(id: string, explicitActor?: Actor): Promise<ServiceResult> {
+  const actor = await resolveActor(explicitActor);
+  if (!actor) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
 
   const search = await prisma.playerSearch.findUnique({ where: { id } });
   if (!search) return { success: false, message: MESSAGES.PLAYER_SEARCH.NOT_FOUND };
-  if (search.creatorId !== session.user.id && !isAdmin(session)) {
+  if (search.creatorId !== actor.id && !actorIsAdmin(actor)) {
     return { success: false, message: MESSAGES.COMMON.UNAUTHORIZED };
   }
 
@@ -94,16 +94,19 @@ export async function deletePlayerSearch(id: string): Promise<ServiceResult> {
 }
 
 /** The creator confirms an open search is still current, resetting the 14-day clock. */
-export async function confirmPlayerSearchActive(searchId: string): Promise<ServiceResult> {
-  const session = await getSession();
-  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+export async function confirmPlayerSearchActive(
+  searchId: string,
+  explicitActor?: Actor,
+): Promise<ServiceResult> {
+  const actor = await resolveActor(explicitActor);
+  if (!actor) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
 
   const search = await prisma.playerSearch.findUnique({
     where: { id: searchId },
     select: { creatorId: true },
   });
   if (!search) return { success: false, message: MESSAGES.PLAYER_SEARCH.NOT_FOUND };
-  if (search.creatorId !== session.user.id) {
+  if (search.creatorId !== actor.id) {
     return { success: false, message: MESSAGES.COMMON.UNAUTHORIZED };
   }
 
@@ -131,16 +134,17 @@ export async function confirmPlayerSearchActive(searchId: string): Promise<Servi
 export async function respondToPlayerSearch(
   searchId: string,
   values: RespondPlayerSearchInput,
+  explicitActor?: Actor,
 ): Promise<ServiceResult> {
-  const session = await getSession();
-  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+  const actor = await resolveActor(explicitActor);
+  if (!actor) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
 
   const parsed = respondPlayerSearchSchema.safeParse(values);
   if (!parsed.success) return { success: false, message: MESSAGES.COMMON.INVALID_INPUT };
 
   const search = await prisma.playerSearch.findUnique({ where: { id: searchId } });
   if (!search) return { success: false, message: MESSAGES.PLAYER_SEARCH.NOT_AVAILABLE };
-  if (search.creatorId === session.user.id) {
+  if (search.creatorId === actor.id) {
     return { success: false, message: MESSAGES.PLAYER_SEARCH.CANNOT_RESPOND_OWN };
   }
   // Already booked and filling up: no more negotiation, join via Mitmachen.
@@ -166,18 +170,18 @@ export async function respondToPlayerSearch(
     await prisma.playerSearchInterest.create({
       data: {
         searchId,
-        responderId: session.user.id,
+        responderId: actor.id,
         note,
         proposedStart: proposed.start,
         proposedEnd: proposed.end,
-        proposedById: session.user.id,
+        proposedById: actor.id,
       },
     });
 
     notify(
       [search.creatorId],
       MESSAGES.NOTIFICATIONS.playerSearchInterest(
-        session.user.name,
+        actor.name,
         search.system,
         search.matchType,
         formatEventDateRange(proposed.start, proposed.end),
@@ -206,9 +210,10 @@ export async function respondToPlayerSearch(
 export async function counterPlayerSearchInterest(
   interestId: string,
   values: CounterPlayerSearchInput,
+  explicitActor?: Actor,
 ): Promise<ServiceResult> {
-  const session = await getSession();
-  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+  const actor = await resolveActor(explicitActor);
+  if (!actor) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
 
   const parsed = counterPlayerSearchSchema.safeParse(values);
   if (!parsed.success) return { success: false, message: MESSAGES.COMMON.INVALID_INPUT };
@@ -220,14 +225,14 @@ export async function counterPlayerSearchInterest(
   if (!interest) return { success: false, message: MESSAGES.PLAYER_SEARCH.INTEREST_NOT_FOUND };
 
   const { creatorId } = interest.search;
-  const isParty = session.user.id === creatorId || session.user.id === interest.responderId;
+  const isParty = actor.id === creatorId || actor.id === interest.responderId;
   if (!isParty) return { success: false, message: MESSAGES.COMMON.UNAUTHORIZED };
-  if (session.user.id === interest.proposedById) {
+  if (actor.id === interest.proposedById) {
     return { success: false, message: MESSAGES.PLAYER_SEARCH.NOT_YOUR_TURN };
   }
 
   const note = parsed.data.note?.trim();
-  const otherPartyId = session.user.id === creatorId ? interest.responderId : creatorId;
+  const otherPartyId = actor.id === creatorId ? interest.responderId : creatorId;
 
   try {
     await prisma.playerSearchInterest.update({
@@ -235,7 +240,7 @@ export async function counterPlayerSearchInterest(
       data: {
         proposedStart: parsed.data.start,
         proposedEnd: parsed.data.end,
-        proposedById: session.user.id,
+        proposedById: actor.id,
         ...(note ? { note } : {}),
       },
     });
@@ -243,7 +248,7 @@ export async function counterPlayerSearchInterest(
     notify(
       [otherPartyId],
       MESSAGES.NOTIFICATIONS.playerSearchCounter(
-        session.user.name,
+        actor.name,
         formatEventDateRange(parsed.data.start, parsed.data.end),
       ),
       ROUTES.DASHBOARD,
@@ -273,9 +278,12 @@ export async function counterPlayerSearchInterest(
  * drops every pending interest: the search stays open for phase 2, where
  * others join the booking via `joinPlayerSearch`.
  */
-export async function acceptPlayerSearchInterest(interestId: string): Promise<ServiceResult> {
-  const session = await getSession();
-  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+export async function acceptPlayerSearchInterest(
+  interestId: string,
+  explicitActor?: Actor,
+): Promise<ServiceResult> {
+  const actor = await resolveActor(explicitActor);
+  if (!actor) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
 
   const interest = await prisma.playerSearchInterest.findUnique({
     where: { id: interestId },
@@ -287,9 +295,9 @@ export async function acceptPlayerSearchInterest(interestId: string): Promise<Se
   if (!interest) return { success: false, message: MESSAGES.PLAYER_SEARCH.INTEREST_NOT_FOUND };
 
   const { search } = interest;
-  const isParty = session.user.id === search.creatorId || session.user.id === interest.responderId;
+  const isParty = actor.id === search.creatorId || actor.id === interest.responderId;
   if (!isParty) return { success: false, message: MESSAGES.COMMON.UNAUTHORIZED };
-  if (session.user.id === interest.proposedById) {
+  if (actor.id === interest.proposedById) {
     return { success: false, message: MESSAGES.PLAYER_SEARCH.NOT_YOUR_TURN };
   }
 
@@ -435,9 +443,12 @@ export async function acceptPlayerSearchInterest(interestId: string): Promise<Se
  * on their search; the responder may do it only when it is their move (i.e.
  * rejecting the creator's counter-proposal). The search stays open.
  */
-export async function declinePlayerSearchInterest(interestId: string): Promise<ServiceResult> {
-  const session = await getSession();
-  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+export async function declinePlayerSearchInterest(
+  interestId: string,
+  explicitActor?: Actor,
+): Promise<ServiceResult> {
+  const actor = await resolveActor(explicitActor);
+  if (!actor) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
 
   const interest = await prisma.playerSearchInterest.findUnique({
     where: { id: interestId },
@@ -448,9 +459,9 @@ export async function declinePlayerSearchInterest(interestId: string): Promise<S
   });
   if (!interest) return { success: false, message: MESSAGES.PLAYER_SEARCH.INTEREST_NOT_FOUND };
 
-  const isCreator = interest.search.creatorId === session.user.id;
+  const isCreator = interest.search.creatorId === actor.id;
   const isResponderTurn =
-    interest.responderId === session.user.id && session.user.id !== interest.proposedById;
+    interest.responderId === actor.id && actor.id !== interest.proposedById;
   if (!isCreator && !isResponderTurn) {
     return { success: false, message: MESSAGES.COMMON.UNAUTHORIZED };
   }
@@ -464,7 +475,7 @@ export async function declinePlayerSearchInterest(interestId: string): Promise<S
       notify(
         [interest.responderId],
         MESSAGES.NOTIFICATIONS.playerSearchDeclined(
-          session.user.name,
+          actor.name,
           interest.search.system,
           dateLabel,
         ),
@@ -498,9 +509,9 @@ export async function declinePlayerSearchInterest(interestId: string): Promise<S
  * window is fixed). When this fills the last slot the search row is deleted so
  * it drops off the Spielersuche page; the booking stays.
  */
-export async function joinPlayerSearch(searchId: string): Promise<ServiceResult> {
-  const session = await getSession();
-  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+export async function joinPlayerSearch(searchId: string, explicitActor?: Actor): Promise<ServiceResult> {
+  const actor = await resolveActor(explicitActor);
+  if (!actor) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
 
   const search = await prisma.playerSearch.findUnique({
     where: { id: searchId },
@@ -518,7 +529,7 @@ export async function joinPlayerSearch(searchId: string): Promise<ServiceResult>
   }
 
   const { booking } = search;
-  if (booking.participants.some((p) => p.userId === session.user.id)) {
+  if (booking.participants.some((p) => p.userId === actor.id)) {
     return { success: true, message: MESSAGES.PLAYER_SEARCH.JOINED };
   }
 
@@ -541,7 +552,7 @@ export async function joinPlayerSearch(searchId: string): Promise<ServiceResult>
       if (count >= locked.playerCount) throw new PlayerSearchFullError();
 
       await tx.bookingParticipant.create({
-        data: { bookingId: booking.id, userId: session.user.id },
+        data: { bookingId: booking.id, userId: actor.id },
       });
 
       const filled = count + 1;
@@ -555,7 +566,7 @@ export async function joinPlayerSearch(searchId: string): Promise<ServiceResult>
       notify(
         otherParticipantIds,
         MESSAGES.NOTIFICATIONS.playerSearchJoined(
-          session.user.name,
+          actor.name,
           search.system,
           result.filled,
           result.playerCount,

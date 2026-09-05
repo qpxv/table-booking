@@ -3,29 +3,29 @@
 import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/session";
+import { type Actor, resolveActor } from "@/lib/actor";
 import { requireAdmin } from "@/lib/permissions";
 import { ROUTES, MESSAGES } from "@/lib/constants";
 import { getCurrentBerlinYearMonth } from "@/lib/datetime";
 import { drinkBudgetSchema } from "@/lib/schemas/drink";
 import type { ServiceResult } from "@/lib/service-types";
 
-export async function adjustDrinkCount(delta: 1 | -1): Promise<ServiceResult> {
-  const session = await getSession();
-  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+export async function adjustDrinkCount(delta: 1 | -1, explicitActor?: Actor): Promise<ServiceResult> {
+  const actor = await resolveActor(explicitActor);
+  if (!actor) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
 
   const { year, month } = getCurrentBerlinYearMonth();
 
   try {
     await prisma.$transaction(async (tx) => {
       const existing = await tx.drinkTally.findUnique({
-        where: { userId_year_month: { userId: session.user.id, year, month } },
+        where: { userId_year_month: { userId: actor.id, year, month } },
         select: { count: true },
       });
       const newCount = Math.max(0, (existing?.count ?? 0) + delta);
       await tx.drinkTally.upsert({
-        where: { userId_year_month: { userId: session.user.id, year, month } },
-        create: { userId: session.user.id, year, month, count: newCount },
+        where: { userId_year_month: { userId: actor.id, year, month } },
+        create: { userId: actor.id, year, month, count: newCount },
         update: { count: newCount },
       });
     });

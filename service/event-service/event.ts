@@ -3,8 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/session";
-import { requireAdmin } from "@/lib/permissions";
+import { type Actor, resolveActor, actorIsAdmin } from "@/lib/actor";
 import { ROUTES, MESSAGES } from "@/lib/constants";
 import { eventInputSchema, type EventInput } from "@/lib/schemas/event";
 import { formatEventDateRange } from "@/lib/datetime";
@@ -24,12 +23,10 @@ function revalidateEvents(): void {
   revalidatePath(ROUTES.DASHBOARD);
 }
 
-export async function createEvent(values: EventInput): Promise<ServiceResult> {
-  const authError = await requireAdmin();
-  if (authError) return authError;
-
-  const session = await getSession();
-  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+export async function createEvent(values: EventInput, explicitActor?: Actor): Promise<ServiceResult> {
+  const actor = await resolveActor(explicitActor);
+  if (!actor) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+  if (!actorIsAdmin(actor)) return { success: false, message: MESSAGES.COMMON.UNAUTHORIZED };
 
   const parsed = eventInputSchema.safeParse(values);
   if (!parsed.success) return { success: false, message: MESSAGES.COMMON.INVALID_INPUT };
@@ -37,7 +34,7 @@ export async function createEvent(values: EventInput): Promise<ServiceResult> {
   try {
     const created = await prisma.event.create({
       data: {
-        createdById: session.user.id,
+        createdById: actor.id,
         title: parsed.data.title,
         description: parsed.data.description || null,
         location: parsed.data.location || null,
@@ -47,7 +44,7 @@ export async function createEvent(values: EventInput): Promise<ServiceResult> {
     });
 
     notify(
-      await otherMemberIds(session.user.id),
+      await otherMemberIds(actor.id),
       MESSAGES.NOTIFICATIONS.eventCreated(
         created.title,
         formatEventDateRange(created.start, created.end),
@@ -65,12 +62,14 @@ export async function createEvent(values: EventInput): Promise<ServiceResult> {
   }
 }
 
-export async function updateEvent(id: string, values: EventInput): Promise<ServiceResult> {
-  const authError = await requireAdmin();
-  if (authError) return authError;
-
-  const session = await getSession();
-  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+export async function updateEvent(
+  id: string,
+  values: EventInput,
+  explicitActor?: Actor,
+): Promise<ServiceResult> {
+  const actor = await resolveActor(explicitActor);
+  if (!actor) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+  if (!actorIsAdmin(actor)) return { success: false, message: MESSAGES.COMMON.UNAUTHORIZED };
 
   const parsed = eventInputSchema.safeParse(values);
   if (!parsed.success) return { success: false, message: MESSAGES.COMMON.INVALID_INPUT };
@@ -102,7 +101,7 @@ export async function updateEvent(id: string, values: EventInput): Promise<Servi
       notify(
         event.participants
           .map((participant) => participant.userId)
-          .filter((userId) => userId !== session.user.id),
+          .filter((userId) => userId !== actor.id),
         MESSAGES.NOTIFICATIONS.eventMoved(
           parsed.data.title,
           formatEventDateRange(parsed.data.start, newEnd),
@@ -120,12 +119,10 @@ export async function updateEvent(id: string, values: EventInput): Promise<Servi
   }
 }
 
-export async function deleteEvent(id: string): Promise<ServiceResult> {
-  const authError = await requireAdmin();
-  if (authError) return authError;
-
-  const session = await getSession();
-  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+export async function deleteEvent(id: string, explicitActor?: Actor): Promise<ServiceResult> {
+  const actor = await resolveActor(explicitActor);
+  if (!actor) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+  if (!actorIsAdmin(actor)) return { success: false, message: MESSAGES.COMMON.UNAUTHORIZED };
 
   const event = await prisma.event.findUnique({
     where: { id },
@@ -140,7 +137,7 @@ export async function deleteEvent(id: string): Promise<ServiceResult> {
     await prisma.event.delete({ where: { id } });
 
     notify(
-      participantIds.filter((userId) => userId !== session.user.id),
+      participantIds.filter((userId) => userId !== actor.id),
       MESSAGES.NOTIFICATIONS.eventCancelled(
         event.title,
         formatEventDateRange(event.start, event.end),
@@ -157,27 +154,27 @@ export async function deleteEvent(id: string): Promise<ServiceResult> {
   }
 }
 
-export async function joinEvent(eventId: string): Promise<ServiceResult> {
-  const session = await getSession();
-  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+export async function joinEvent(eventId: string, explicitActor?: Actor): Promise<ServiceResult> {
+  const actor = await resolveActor(explicitActor);
+  if (!actor) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
 
   const event = await prisma.event.findUnique({ where: { id: eventId } });
   if (!event) return { success: false, message: MESSAGES.EVENT.NOT_FOUND };
 
   try {
     const existing = await prisma.eventParticipant.findUnique({
-      where: { eventId_userId: { eventId, userId: session.user.id } },
+      where: { eventId_userId: { eventId, userId: actor.id } },
       select: { id: true },
     });
     if (!existing) {
       await prisma.eventParticipant.create({
-        data: { eventId, userId: session.user.id },
+        data: { eventId, userId: actor.id },
       });
 
-      if (event.createdById !== session.user.id) {
+      if (event.createdById !== actor.id) {
         notify(
           [event.createdById],
-          MESSAGES.NOTIFICATIONS.eventJoined(session.user.name, event.title),
+          MESSAGES.NOTIFICATIONS.eventJoined(actor.name, event.title),
           ROUTES.EVENTS,
           `event-${eventId}`,
         );
@@ -192,13 +189,13 @@ export async function joinEvent(eventId: string): Promise<ServiceResult> {
   }
 }
 
-export async function leaveEvent(eventId: string): Promise<ServiceResult> {
-  const session = await getSession();
-  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+export async function leaveEvent(eventId: string, explicitActor?: Actor): Promise<ServiceResult> {
+  const actor = await resolveActor(explicitActor);
+  if (!actor) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
 
   try {
     await prisma.eventParticipant.deleteMany({
-      where: { eventId, userId: session.user.id },
+      where: { eventId, userId: actor.id },
     });
 
     revalidateEvents();

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { unstable_rethrow } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/session";
+import { type Actor, resolveActor } from "@/lib/actor";
 import { canEditBooking } from "@/lib/permissions";
 import { calculateGuestPrice, GUEST_PRICE_FIRST_VISIT } from "@/lib/pricing";
 import { ROUTES, MESSAGES } from "@/lib/constants";
@@ -28,9 +28,10 @@ import type { ServiceResult } from "@/lib/service-types";
 export async function createBooking(
   tableId: string,
   values: CreateBookingInput,
+  explicitActor?: Actor,
 ): Promise<ServiceResult> {
-  const session = await getSession();
-  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+  const actor = await resolveActor(explicitActor);
+  if (!actor) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
 
   const table = await prisma.table.findUnique({ where: { id: tableId } });
   if (!table) return { success: false, message: MESSAGES.TABLE.NOT_FOUND };
@@ -59,7 +60,7 @@ export async function createBooking(
   }
 
   const participantUserIds = new Set(data.participantUserIds);
-  participantUserIds.delete(session.user.id);
+  participantUserIds.delete(actor.id);
   for (const userId of participantUserIds) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
@@ -78,7 +79,7 @@ export async function createBooking(
       const newBooking = await tx.booking.create({
         data: {
           tableId,
-          userId: session.user.id,
+          userId: actor.id,
           start: data.start,
           end: data.end,
           // Shared ("Mehrfachbuchung") tables are a community event slot,
@@ -91,7 +92,7 @@ export async function createBooking(
       // participant counts/join-leave are uniform everywhere instead of
       // special-casing "+1 for the creator".
       await tx.bookingParticipant.create({
-        data: { bookingId: newBooking.id, userId: session.user.id },
+        data: { bookingId: newBooking.id, userId: actor.id },
       });
       for (const userId of participantUserIds) {
         await tx.bookingParticipant.create({ data: { bookingId: newBooking.id, userId } });
@@ -111,7 +112,7 @@ export async function createBooking(
             existingGuest?.id ??
             (
               await tx.guest.create({
-                data: { name: guestInput.newName, userId: session.user.id },
+                data: { name: guestInput.newName, userId: actor.id },
               })
             ).id;
         }
@@ -129,7 +130,7 @@ export async function createBooking(
     notify(
       [...participantUserIds],
       MESSAGES.NOTIFICATIONS.bookingAddedParticipant(
-        session.user.name,
+        actor.name,
         table.name,
         formatEventDateRange(data.start, data.end),
       ),
@@ -158,17 +159,18 @@ export async function createBooking(
 export async function updateBooking(
   id: string,
   values: UpdateBookingInput,
+  explicitActor?: Actor,
 ): Promise<ServiceResult> {
-  const session = await getSession();
+  const actor = await resolveActor(explicitActor);
   const booking = await prisma.booking.findUnique({
     where: { id },
     include: { guests: true, table: true, participants: { select: { userId: true } } },
   });
   if (!booking) return { success: false, message: MESSAGES.BOOKING.NOT_FOUND };
-  if (!session || !canEditBooking(session, booking)) {
+  if (!actor || !canEditBooking(actor, booking)) {
     return { success: false, message: MESSAGES.COMMON.UNAUTHORIZED };
   }
-  const editorId = session.user.id;
+  const editorId = actor.id;
 
   const parsed = updateBookingSchema.safeParse(values);
   if (!parsed.success) return { success: false, message: MESSAGES.COMMON.INVALID_INPUT };
@@ -321,7 +323,7 @@ export async function updateBooking(
         priorParticipantIds.filter(
           (userId) => userId !== editorId && !removedParticipantIds.includes(userId),
         ),
-        MESSAGES.NOTIFICATIONS.bookingMoved(session.user.name, booking.table.name, dateLabel),
+        MESSAGES.NOTIFICATIONS.bookingMoved(actor.name, booking.table.name, dateLabel),
         ROUTES.tischDetail(booking.tableId),
         `booking-${id}`,
       );
@@ -330,7 +332,7 @@ export async function updateBooking(
       notify(
         addedParticipantIds,
         MESSAGES.NOTIFICATIONS.bookingAddedParticipant(
-          session.user.name,
+          actor.name,
           booking.table.name,
           dateLabel,
         ),
@@ -371,8 +373,8 @@ export async function updateBooking(
   }
 }
 
-export async function cancelBooking(id: string): Promise<ServiceResult> {
-  const session = await getSession();
+export async function cancelBooking(id: string, explicitActor?: Actor): Promise<ServiceResult> {
+  const actor = await resolveActor(explicitActor);
   const booking = await prisma.booking.findUnique({
     where: { id },
     include: { guests: true, table: { select: { name: true } }, participants: { select: { userId: true } } },
@@ -381,14 +383,14 @@ export async function cancelBooking(id: string): Promise<ServiceResult> {
 
   // Admins can cancel any booking; members only their own
   // (canEditBooking already covers "owner OR admin").
-  if (!session || !canEditBooking(session, booking)) {
+  if (!actor || !canEditBooking(actor, booking)) {
     return { success: false, message: MESSAGES.COMMON.UNAUTHORIZED };
   }
 
   // Captured before the delete cascades the participant rows away.
   const recipientIds = booking.participants
     .map((participant) => participant.userId)
-    .filter((userId) => userId !== session.user.id);
+    .filter((userId) => userId !== actor.id);
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -408,7 +410,7 @@ export async function cancelBooking(id: string): Promise<ServiceResult> {
     notify(
       recipientIds,
       MESSAGES.NOTIFICATIONS.bookingCancelled(
-        session.user.name,
+        actor.name,
         booking.table.name,
         formatEventDateRange(booking.start, booking.end),
       ),
@@ -462,9 +464,9 @@ async function recalculateGuestPricing(
 }
 
 /** Join any active booking as an additional participant. */
-export async function joinBooking(bookingId: string): Promise<ServiceResult> {
-  const session = await getSession();
-  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+export async function joinBooking(bookingId: string, explicitActor?: Actor): Promise<ServiceResult> {
+  const actor = await resolveActor(explicitActor);
+  if (!actor) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
 
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
@@ -476,19 +478,19 @@ export async function joinBooking(bookingId: string): Promise<ServiceResult> {
 
   try {
     const existing = await prisma.bookingParticipant.findUnique({
-      where: { bookingId_userId: { bookingId, userId: session.user.id } },
+      where: { bookingId_userId: { bookingId, userId: actor.id } },
       select: { id: true },
     });
     if (!existing) {
       await prisma.bookingParticipant.create({
-        data: { bookingId, userId: session.user.id },
+        data: { bookingId, userId: actor.id },
       });
 
-      if (booking.userId !== session.user.id) {
+      if (booking.userId !== actor.id) {
         notify(
           [booking.userId],
           MESSAGES.NOTIFICATIONS.bookingJoined(
-            session.user.name,
+            actor.name,
             booking.table.name,
             formatEventDateRange(booking.start, booking.end),
           ),
@@ -511,29 +513,29 @@ export async function joinBooking(bookingId: string): Promise<ServiceResult> {
 }
 
 /** Leave a booking. The creator can never leave their own event. */
-export async function leaveBooking(bookingId: string): Promise<ServiceResult> {
-  const session = await getSession();
-  if (!session) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+export async function leaveBooking(bookingId: string, explicitActor?: Actor): Promise<ServiceResult> {
+  const actor = await resolveActor(explicitActor);
+  if (!actor) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
 
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
     include: { table: { select: { name: true } } },
   });
   if (!booking) return { success: false, message: MESSAGES.BOOKING.EVENT_NOT_FOUND };
-  if (booking.userId === session.user.id) {
+  if (booking.userId === actor.id) {
     return { success: false, message: MESSAGES.BOOKING.CREATOR_CANNOT_LEAVE };
   }
 
   try {
     const removed = await prisma.bookingParticipant.deleteMany({
-      where: { bookingId, userId: session.user.id },
+      where: { bookingId, userId: actor.id },
     });
 
     if (removed.count > 0) {
       notify(
         [booking.userId],
         MESSAGES.NOTIFICATIONS.bookingLeft(
-          session.user.name,
+          actor.name,
           booking.table.name,
           formatEventDateRange(booking.start, booking.end),
         ),
