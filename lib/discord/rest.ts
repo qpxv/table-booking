@@ -32,7 +32,10 @@ export async function editInteractionResponse(
 ): Promise<void> {
   const res = await discordFetch(
     `/webhooks/${discordEnv.appId}/${token}/messages/@original`,
-    { method: "PATCH", body: JSON.stringify(body) },
+    {
+      method: "PATCH",
+      body: JSON.stringify({ allowed_mentions: { parse: [] }, ...body }),
+    },
   );
   if (!res.ok) {
     console.error("discord editInteractionResponse failed", res.status, await safeText(res));

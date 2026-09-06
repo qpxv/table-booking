@@ -18,6 +18,19 @@ export async function fetchBookingsForTable(tableId: string) {
 // send each participant a "dein Termin startet gleich" reminder. Other
 // time-based reminders could hook in here too (e.g. members with an unpaid
 // guest visit in Gasthistorie).
+// All bookings overlapping a Berlin calendar day, with booker + table name.
+// Backs the Discord `/tische <datum>` overview.
+export async function fetchBookingsForBerlinDay(dayStart: Date, dayEnd: Date) {
+  return prisma.booking.findMany({
+    where: { start: { lt: dayEnd }, end: { gt: dayStart } },
+    include: {
+      table: { select: { name: true } },
+      user: { select: { name: true } },
+    },
+    orderBy: [{ table: { name: "asc" } }, { start: "asc" }],
+  });
+}
+
 export async function fetchUpcomingBookingsForUser(userId: string) {
   return prisma.booking.findMany({
     where: {

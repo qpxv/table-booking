@@ -190,6 +190,59 @@ export async function listStalePlayerSearchesForUser(userId: string): Promise<{
   }
 }
 
+/** The member's own still-open searches (soonest first). For the Discord bot. */
+export async function listOwnOpenPlayerSearches(userId: string): Promise<
+  { id: string; system: string; matchType: string; start: Date | null; end: Date | null }[]
+> {
+  const now = new Date();
+  return prisma.playerSearch.findMany({
+    where: {
+      creatorId: userId,
+      bookingId: null,
+      OR: [{ end: { gte: now } }, { end: null }],
+    },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, system: true, matchType: true, start: true, end: true },
+  });
+}
+
+/**
+ * Pending interests on the member's own searches where it is the member's
+ * move (they did not make the standing proposal), i.e. the ones `/spielersuche
+ * accept` / `decline` can act on. For the Discord bot.
+ */
+export async function listActionableInterestsForCreator(userId: string): Promise<
+  {
+    id: string;
+    responderName: string;
+    system: string;
+    matchType: string;
+    proposedStart: Date;
+    proposedEnd: Date;
+  }[]
+> {
+  const rows = await prisma.playerSearchInterest.findMany({
+    where: {
+      proposedById: { not: userId },
+      proposedEnd: { gte: new Date() },
+      search: { creatorId: userId, bookingId: null },
+    },
+    orderBy: { updatedAt: "desc" },
+    include: {
+      responder: { select: { name: true } },
+      search: { select: { system: true, matchType: true } },
+    },
+  });
+  return rows.map((row) => ({
+    id: row.id,
+    responderName: row.responder.name,
+    system: row.search.system,
+    matchType: row.search.matchType,
+    proposedStart: row.proposedStart,
+    proposedEnd: row.proposedEnd,
+  }));
+}
+
 /**
  * Every still-live time negotiation the given member is part of, whether as
  * the search creator or as an interested responder. Newest activity first.

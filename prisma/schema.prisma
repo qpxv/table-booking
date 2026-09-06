@@ -99,6 +99,23 @@ model Verification {
   @@map("verification")
 }
 
+// Short-lived scratch state for the Discord bot's multi-step component flows
+// (e.g. /buchen: the parsed window is stashed here when the command runs, the
+// table + member selects update it, the confirm button consumes it). A button
+// click is a fresh request with no memory of the command that opened it, and
+// the state is too large for a component custom_id. Rows are swept when older
+// than ~15 min at the start of each flow; nothing depends on them long-term.
+model DiscordPendingAction {
+  id        String   @id @default(cuid())
+  kind      String
+  payload   Json
+  // App User.id of the invoking member (not a FK: rows are ephemeral).
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 // --- Table booking -------------------------------------------------------
 
 model Table {

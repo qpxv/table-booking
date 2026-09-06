@@ -55,6 +55,16 @@ export async function getDrinkWidgetData(): Promise<{
   }
 }
 
+/** A single member's drink count for the current Berlin month. For the Discord bot. */
+export async function getOwnDrinkCount(userId: string): Promise<number> {
+  const { year, month } = getCurrentBerlinYearMonth();
+  const tally = await prisma.drinkTally.findUnique({
+    where: { userId_year_month: { userId, year, month } },
+    select: { count: true },
+  });
+  return tally?.count ?? 0;
+}
+
 /** Admin-only monthly drink report: initial stock plus per-member counts. */
 export async function getDrinkReport(
   year: number,

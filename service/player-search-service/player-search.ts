@@ -11,6 +11,7 @@ import { findOverlappingBooking, lockTableForBooking } from "@/lib/booking-avail
 import { playerSearchBookingLabel } from "@/lib/player-search-types";
 import { formatEventDateRange } from "@/lib/datetime";
 import { notify } from "@/lib/push/notify";
+import { announce } from "@/lib/discord/announce";
 import {
   isWindowAutoBookable,
   syncPlayerSearchAvailability,
@@ -61,6 +62,15 @@ export async function createPlayerSearch(
         tableAvailable,
       },
     });
+
+    announce(
+      MESSAGES.DISCORD.ANNOUNCE.playerSearchOpened(
+        actor.name,
+        system,
+        matchType,
+        start && end ? formatEventDateRange(start, end) : "flexibel",
+      ),
+    );
 
     revalidatePath(ROUTES.SPIELERSUCHE);
     return { success: true, message: MESSAGES.PLAYER_SEARCH.CREATED };
@@ -411,6 +421,14 @@ export async function acceptPlayerSearchInterest(
         `search-now-open-${search.id}`,
       );
     }
+
+    announce(
+      MESSAGES.DISCORD.ANNOUNCE.playerSearchBooked(
+        booked.tableName,
+        search.system,
+        dateLabel,
+      ),
+    );
 
     // The auto-booking just consumed a table: other open Spielersuchen
     // overlapping this window may no longer be bookable.

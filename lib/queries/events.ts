@@ -67,6 +67,34 @@ export async function listUpcomingEvents(): Promise<{
   }
 }
 
+/**
+ * Bare upcoming events (id, title, window, whether the given member is in).
+ * Not session-bound: for the Discord bot's `/event` selects.
+ */
+export async function listUpcomingEventsBasic(userId: string): Promise<
+  { id: string; title: string; start: Date; end: Date | null; joined: boolean }[]
+> {
+  const rows = await prisma.event.findMany({
+    where: upcomingFilter(new Date()),
+    orderBy: { start: "asc" },
+    take: 25,
+    select: {
+      id: true,
+      title: true,
+      start: true,
+      end: true,
+      participants: { where: { userId }, select: { id: true } },
+    },
+  });
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    start: row.start,
+    end: row.end,
+    joined: row.participants.length > 0,
+  }));
+}
+
 /** Upcoming events the given member has signed up for (for the dashboard). */
 export async function listUpcomingEventsForUser(userId: string): Promise<{
   success: boolean;

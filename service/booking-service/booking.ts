@@ -22,6 +22,7 @@ import {
 } from "@/lib/schemas/booking";
 import { formatEventDateRange } from "@/lib/datetime";
 import { notify } from "@/lib/push/notify";
+import { announce } from "@/lib/discord/announce";
 import { syncPlayerSearchAvailability } from "@/lib/queries/player-search-availability";
 import type { ServiceResult } from "@/lib/service-types";
 
@@ -135,6 +136,15 @@ export async function createBooking(
         formatEventDateRange(data.start, data.end),
       ),
       ROUTES.tischDetail(tableId),
+    );
+
+    announce(
+      MESSAGES.DISCORD.ANNOUNCE.booking(
+        actor.name,
+        table.name,
+        formatEventDateRange(data.start, data.end),
+        table.allowMultipleBookings ? null : data.game || null,
+      ),
     );
 
     // A new booking can consume the last auto-bookable table for an open
@@ -416,6 +426,14 @@ export async function cancelBooking(id: string, explicitActor?: Actor): Promise<
       ),
       ROUTES.tischDetail(booking.tableId),
       `booking-${id}`,
+    );
+
+    announce(
+      MESSAGES.DISCORD.ANNOUNCE.bookingCancelled(
+        actor.name,
+        booking.table.name,
+        formatEventDateRange(booking.start, booking.end),
+      ),
     );
 
     // Cancelling frees the table for its window: an open Spielersuche that

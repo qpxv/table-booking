@@ -37,6 +37,30 @@ export async function listTables(): Promise<{
   }
 }
 
+/**
+ * Tables a booking could be placed on for [start, end): every active shared
+ * ("Mehrfachbuchung") table, plus every active exclusive table with no
+ * overlapping booking. Used by the Discord `/buchen` table picker. Not
+ * cached (depends on bookings) and not session-bound.
+ */
+export async function listBookableTablesForWindow(
+  start: Date,
+  end: Date,
+): Promise<{ id: string; name: string; shared: boolean }[]> {
+  const tables = await prisma.table.findMany({
+    where: {
+      active: true,
+      OR: [
+        { allowMultipleBookings: true },
+        { bookings: { none: { start: { lt: end }, end: { gt: start } } } },
+      ],
+    },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, allowMultipleBookings: true },
+  });
+  return tables.map((t) => ({ id: t.id, name: t.name, shared: t.allowMultipleBookings }));
+}
+
 export async function getTableById(id: string): Promise<{
   success: boolean;
   table: Table | null;

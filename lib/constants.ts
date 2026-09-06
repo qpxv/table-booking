@@ -32,6 +32,11 @@ export const ROLES = {
   USER: "user",
 } as const;
 
+// Default length of a table booking made via the Discord bot's /buchen when
+// no explicit `dauer` is given. The web form always takes an explicit
+// start + end, so this default only exists for the bot.
+export const DEFAULT_BOOKING_DURATION_HOURS = 3;
+
 export const DIALOG_MODE = {
   CREATE: "create",
   EDIT: "edit",
@@ -196,6 +201,53 @@ export const MESSAGES = {
       "Tippe /verbinden im Vereins-Discord und folge dem Link, um die Verknüpfung herzustellen.",
     SETTINGS_CONNECTED_LABEL: "Verbundener Account",
     SETTINGS_UNLINK_LABEL: "Verbindung trennen",
+
+    // /buchen and the shared component flow.
+    INVALID_DATETIME:
+      "Datum oder Uhrzeit nicht erkannt. Beispiele: `05.09.` `5.9.2026` `2026-09-05`, Uhrzeit `18:00`, Dauer `3h` oder `2:30`.",
+    NO_TABLES_FREE: "Im gewählten Zeitraum ist kein Tisch frei.",
+    PICK_A_TABLE: "Bitte zuerst einen Tisch auswählen.",
+    ACTION_EXPIRED:
+      "Diese Aktion ist abgelaufen. Bitte den Befehl erneut ausführen.",
+    NOT_ADMIN: "Nur Admins können das.",
+    NOTHING_TO_SHOW: "Nichts gefunden.",
+    skippedUnlinked: (names: string[]): string =>
+      `Nicht verbunden, übersprungen: ${names.join(", ")}`,
+    buchenSummary: (dateLabel: string, game: string | null, guests: string[]): string => {
+      const lines = [`Zeitraum: ${dateLabel}`];
+      if (game) lines.push(`Spiel: ${game}`);
+      if (guests.length > 0) lines.push(`Gäste: ${guests.join(", ")}`);
+      lines.push("Tisch und Mitglieder wählen, dann auf Buchen tippen.");
+      return lines.join("\n");
+    },
+    CONFIRM_CANCEL_PREFIX: "Wirklich absagen: ",
+    CONFIRM_DELETE_SEARCH_PREFIX: "Spielersuche wirklich löschen: ",
+    CONFIRM_DELETE_EVENT_PREFIX: "Event wirklich löschen: ",
+    SELECT_BOOKING_PLACEHOLDER: "Buchung wählen",
+    SELECT_SEARCH_PLACEHOLDER: "Spielersuche wählen",
+    SELECT_EVENT_PLACEHOLDER: "Event wählen",
+    SELECT_INTEREST_PLACEHOLDER: "Anfrage wählen",
+    SELECT_TABLE_PLACEHOLDER: "Tisch wählen",
+    SELECT_MEMBERS_PLACEHOLDER: "Mitglieder hinzufügen (optional)",
+    drinkCount: (count: number): string =>
+      `Dein Getränkezähler diesen Monat: ${count}.`,
+    tischeDayEmpty: (dayLabel: string): string =>
+      `Am ${dayLabel} sind keine Tische gebucht.`,
+    // Channel announcements (Phase 7). Plain lines posted publicly.
+    ANNOUNCE: {
+      booking: (memberName: string, tableName: string, dateLabel: string, game: string | null): string =>
+        `Neue Buchung: ${tableName}, ${dateLabel}${game ? `, ${game}` : ""} (${memberName})`,
+      bookingCancelled: (memberName: string, tableName: string, dateLabel: string): string =>
+        `Buchung storniert: ${tableName}, ${dateLabel} (${memberName})`,
+      playerSearchOpened: (memberName: string, system: string, matchType: string, when: string): string =>
+        `Neue Spielersuche: ${system}, ${matchType}, ${when} (${memberName})`,
+      playerSearchBooked: (tableName: string, system: string, dateLabel: string): string =>
+        `Spielersuche gebucht: ${tableName}, ${system}, ${dateLabel}`,
+      eventCreated: (title: string, dateLabel: string, location: string | null): string =>
+        `Neues Event: ${title}, ${dateLabel}${location ? `, ${location}` : ""}`,
+      eventCancelled: (title: string, dateLabel: string): string =>
+        `Event abgesagt: ${title}, ${dateLabel}`,
+    },
   },
   PAYMENT: {
     MARKED_PAID: "Als bezahlt markiert.",

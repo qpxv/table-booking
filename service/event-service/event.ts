@@ -8,6 +8,7 @@ import { ROUTES, MESSAGES } from "@/lib/constants";
 import { eventInputSchema, type EventInput } from "@/lib/schemas/event";
 import { formatEventDateRange } from "@/lib/datetime";
 import { notify } from "@/lib/push/notify";
+import { announce } from "@/lib/discord/announce";
 import type { ServiceResult } from "@/lib/service-types";
 
 async function otherMemberIds(exceptUserId: string): Promise<string[]> {
@@ -52,6 +53,13 @@ export async function createEvent(values: EventInput, explicitActor?: Actor): Pr
       ),
       ROUTES.EVENTS,
       `event-${created.id}`,
+    );
+    announce(
+      MESSAGES.DISCORD.ANNOUNCE.eventCreated(
+        created.title,
+        formatEventDateRange(created.start, created.end),
+        created.location,
+      ),
     );
     revalidateEvents();
     return { success: true, message: MESSAGES.EVENT.CREATED };
@@ -144,6 +152,12 @@ export async function deleteEvent(id: string, explicitActor?: Actor): Promise<Se
       ),
       ROUTES.EVENTS,
       `event-${id}`,
+    );
+    announce(
+      MESSAGES.DISCORD.ANNOUNCE.eventCancelled(
+        event.title,
+        formatEventDateRange(event.start, event.end),
+      ),
     );
     revalidateEvents();
     return { success: true, message: MESSAGES.EVENT.DELETED };
