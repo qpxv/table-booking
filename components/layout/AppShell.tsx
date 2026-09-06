@@ -15,6 +15,7 @@ type AppShellUser = {
   email: string;
   role: string;
   iban: string | null;
+  discordUsername: string | null;
 };
 
 function NavButton({ href, children }: { href: string; children: React.ReactNode }): JSX.Element {
@@ -92,12 +93,18 @@ export default function AppShell({
           name={user.name}
           email={user.email}
           iban={user.iban}
+          discordUsername={user.discordUsername}
           drinkWidget={drinkWidget}
         />
 
         <div className="hidden items-center gap-1 md:flex">
           <DrinkWidgetHeaderButton ownCount={drinkWidget.ownCount} guests={drinkWidget.guests} />
-          <UserMenu name={user.name} email={user.email} iban={user.iban} />
+          <UserMenu
+            name={user.name}
+            email={user.email}
+            iban={user.iban}
+            discordUsername={user.discordUsername}
+          />
         </div>
       </header>
       <main className="flex flex-1 flex-col p-6">{children}</main>

@@ -6,7 +6,7 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
-import { UserCircle, KeyRound, Landmark } from "lucide-react";
+import { UserCircle, KeyRound, Landmark, MessageCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, FieldLabel, FieldError, FieldDescription, FieldGroup } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -17,8 +17,9 @@ import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
 import { isValidIban, formatIbanInput } from "@/lib/iban";
 import { MESSAGES } from "@/lib/constants";
+import { unlinkDiscordAccount } from "@/service/user-service/discord-link";
 
-type Tab = "profile" | "password" | "payment";
+type Tab = "profile" | "password" | "payment" | "discord";
 
 // better-auth's client errors carry a stable `code` alongside an
 // English `message`. Map the ones these two forms can actually hit to
@@ -67,11 +68,13 @@ export default function SettingsDialog({
   name,
   email,
   iban,
+  discordUsername,
   onClose,
 }: {
   name: string;
   email: string;
   iban: string | null;
+  discordUsername: string | null;
   onClose: () => void;
 }): JSX.Element {
   const [tab, setTab] = useState<Tab>("profile");
@@ -96,6 +99,10 @@ export default function SettingsDialog({
               <Landmark />
               Zahlungsdetails
             </TabButton>
+            <TabButton active={tab === "discord"} onClick={() => setTab("discord")}>
+              <MessageCircle />
+              Discord
+            </TabButton>
           </nav>
           {/* All three forms stay mounted, stacked in the same grid cell, so
               the grid's height is driven by the tallest one: keeps the
@@ -109,6 +116,9 @@ export default function SettingsDialog({
             </div>
             <div className={cn("col-start-1 row-start-1", tab !== "payment" && "invisible")}>
               <PaymentForm iban={iban} />
+            </div>
+            <div className={cn("col-start-1 row-start-1", tab !== "discord" && "invisible")}>
+              <DiscordForm discordUsername={discordUsername} />
             </div>
           </div>
         </div>
@@ -204,6 +214,59 @@ function ProfileForm({ name, email }: { name: string; email: string }): JSX.Elem
         Änderungen speichern
       </Button>
     </form>
+  );
+}
+
+function DiscordForm({
+  discordUsername,
+}: {
+  discordUsername: string | null;
+}): JSX.Element {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+
+  if (!discordUsername) {
+    return (
+      <div className="flex flex-col gap-2 text-sm text-muted-foreground">
+        <p>{MESSAGES.DISCORD.SETTINGS_NOT_LINKED}</p>
+        <p>
+          Tippe{" "}
+          <code className="rounded bg-muted px-1 py-0.5 text-foreground">/verbinden</code>{" "}
+          im Vereins-Discord und folge dem Link, um die Verknüpfung herzustellen.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1 text-sm">
+        <span className="text-muted-foreground">
+          {MESSAGES.DISCORD.SETTINGS_CONNECTED_LABEL}
+        </span>
+        <span className="font-medium">{discordUsername}</span>
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        disabled={pending}
+        className="self-end"
+        onClick={() =>
+          startTransition(async () => {
+            const result = await unlinkDiscordAccount();
+            if (result.success) {
+              toast.success(result.message);
+              router.refresh();
+              return;
+            }
+            toast.error(result.message);
+          })
+        }
+      >
+        {pending && <Spinner />}
+        {MESSAGES.DISCORD.SETTINGS_UNLINK_LABEL}
+      </Button>
+    </div>
   );
 }
 

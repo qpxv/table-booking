@@ -35,6 +35,7 @@ export default async function AppLayout({
           email: session.user.email,
           role: session.user.role ?? ROLES.USER,
           iban: session.user.iban ?? null,
+          discordUsername: session.user.discordUsername ?? null,
         }}
         drinkWidget={{ ownCount: drinkResult.ownCount, guests: drinkResult.guests }}
       >

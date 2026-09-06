@@ -34,6 +34,15 @@ export const auth = betterAuth({
         required: false,
         input: false,
       },
+      // Server-managed only (input: false): written/cleared exclusively by the
+      // Discord account-linking service (service/user-service/discord-link.ts).
+      // Exposed on the session so the Einstellungen "Discord" tab can show the
+      // linked handle without an extra query.
+      discordUsername: {
+        type: "string",
+        required: false,
+        input: false,
+      },
     },
     changeEmail: {
       enabled: true,

@@ -40,12 +40,14 @@ export default function MobileNav({
   name,
   email,
   iban,
+  discordUsername,
   drinkWidget,
 }: {
   links: NavEntry[];
   name: string;
   email: string;
   iban: string | null;
+  discordUsername: string | null;
   drinkWidget: DrinkWidgetData;
 }): JSX.Element {
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -93,6 +95,7 @@ export default function MobileNav({
           name={name}
           email={email}
           iban={iban}
+          discordUsername={discordUsername}
           onClose={() => setSettingsOpen(false)}
         />
       )}

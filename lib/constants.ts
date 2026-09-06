@@ -13,6 +13,7 @@ export const ROUTES = {
   ANWESENHEIT: "/anwesenheit",
   IMPRESSUM: "/impressum",
   DATENSCHUTZ: "/datenschutz",
+  DISCORD_VERBINDEN: "/einstellungen/discord/verbinden",
   tischDetail: (tableId: string): string => `/tische/${tableId}`,
 } as const;
 
@@ -171,6 +172,30 @@ export const MESSAGES = {
     SEARCH_FULL: "Diese Spielersuche ist bereits voll.",
     JOINED: "Du bist jetzt dabei.",
     booked: (tableName: string): string => `Gebucht: ${tableName}.`,
+  },
+  DISCORD: {
+    // Shown when a Discord command needs a linked account and there isn't one.
+    NOT_LINKED:
+      "Dein Discord-Account ist noch nicht verbunden. Nutze `/verbinden`.",
+    NOTHING_TO_UNLINK: "Dein Discord-Account ist nicht verbunden.",
+    ALREADY_LINKED_SELF:
+      "Dein Discord-Account ist bereits mit einem Konto verbunden.",
+    ALREADY_LINKED_OTHER:
+      "Dieser Discord-Account ist bereits mit einem anderen Mitgliedskonto verbunden.",
+    LINK_EXPIRED:
+      "Dieser Verknüpfungs-Link ist ungültig oder abgelaufen. Bitte `/verbinden` erneut ausführen.",
+    LINKED: "Discord-Account verbunden.",
+    UNLINKED: "Discord-Verbindung getrennt.",
+    WRONG_GUILD: "Dieser Bot ist nur im Vereins-Discord nutzbar.",
+    UNKNOWN_COMMAND: "Unbekannter Befehl.",
+    GENERIC_ERROR: "Ein Fehler ist aufgetreten. Bitte später erneut versuchen.",
+    linkPrompt: (url: string): string =>
+      `Öffne diesen Link, während du im Vereinsportal angemeldet bist, um die Verknüpfung zu bestätigen (10 Minuten gültig):\n${url}`,
+    SETTINGS_NOT_LINKED: "Dein Discord-Account ist nicht verbunden.",
+    SETTINGS_HINT:
+      "Tippe /verbinden im Vereins-Discord und folge dem Link, um die Verknüpfung herzustellen.",
+    SETTINGS_CONNECTED_LABEL: "Verbundener Account",
+    SETTINGS_UNLINK_LABEL: "Verbindung trennen",
   },
   PAYMENT: {
     MARKED_PAID: "Als bezahlt markiert.",

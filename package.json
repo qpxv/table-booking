@@ -7,7 +7,8 @@
     "build": "prisma generate && next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "changelog": "node scripts/changelog.mjs"
+    "changelog": "node scripts/changelog.mjs",
+    "discord:register": "tsx scripts/register-discord-commands.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -29,6 +30,7 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.4.0",
     "date-fns-tz": "^3.2.0",
+    "discord-interactions": "^4.4.0",
     "lucide-react": "^1.25.0",
     "luxon": "^3.7.2",
     "next": "16.2.10",
@@ -59,6 +61,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "tailwindcss": "^4",
+    "tsx": "^4.23.13",
     "typescript": "^5"
   }
 }

@@ -32,10 +32,12 @@ export default function UserMenu({
   name,
   email,
   iban,
+  discordUsername,
 }: {
   name: string;
   email: string;
   iban: string | null;
+  discordUsername: string | null;
 }): JSX.Element {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const handleLogout = useSignOut();
@@ -94,6 +96,7 @@ export default function UserMenu({
           name={name}
           email={email}
           iban={iban}
+          discordUsername={discordUsername}
           onClose={() => setSettingsOpen(false)}
         />
       )}
