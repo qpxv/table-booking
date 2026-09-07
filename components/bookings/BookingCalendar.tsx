@@ -163,6 +163,7 @@ export default function BookingCalendar({
           tableName={tableName}
           booking={dialog.booking}
           currentUserId={currentUserId}
+          tableAllowsMultiple={tableAllowsMultiple}
           canEdit={dialog.booking.userId === currentUserId || isAdmin}
           onEdit={() => setDialog({ mode: DIALOG_MODE.EDIT, booking: dialog.booking })}
           onClose={() => setDialog(null)}

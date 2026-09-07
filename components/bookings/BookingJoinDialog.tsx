@@ -26,6 +26,7 @@ export default function BookingJoinDialog({
   tableName,
   booking,
   currentUserId,
+  tableAllowsMultiple,
   canEdit,
   onEdit,
   onClose,
@@ -33,6 +34,7 @@ export default function BookingJoinDialog({
   tableName: string;
   booking: CalendarBooking;
   currentUserId: string;
+  tableAllowsMultiple: boolean;
   canEdit: boolean;
   onEdit: () => void;
   onClose: () => void;
@@ -129,7 +131,7 @@ export default function BookingJoinDialog({
               </ul>
             </div>
           )}
-          {!isCreator && (
+          {!isCreator && tableAllowsMultiple && (
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="participant-activity">Was machst du am Tisch?</Label>
               <Input
@@ -159,14 +161,16 @@ export default function BookingJoinDialog({
             </Button>
             {!isCreator && isParticipant && (
               <>
-                <Button
-                  type="button"
-                  onClick={handleSaveActivity}
-                  disabled={pending || !activityChanged}
-                >
-                  {pending ? <Spinner /> : <Check />}
-                  Speichern
-                </Button>
+                {tableAllowsMultiple && (
+                  <Button
+                    type="button"
+                    onClick={handleSaveActivity}
+                    disabled={pending || !activityChanged}
+                  >
+                    {pending ? <Spinner /> : <Check />}
+                    Speichern
+                  </Button>
+                )}
                 <Button
                   type="button"
                   variant="destructive"
