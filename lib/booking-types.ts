@@ -9,7 +9,7 @@ export type CalendarBooking = {
   userId: string;
   userName: string;
   guests: { guestId: string; name: string; price: number }[];
-  participants: { userId: string; name: string }[];
+  participants: { userId: string; name: string; activity: string | null }[];
 };
 
 export type OptimisticBookingAction =

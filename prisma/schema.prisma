@@ -198,6 +198,10 @@ model BookingGuest {
 model BookingParticipant {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
+  // Free-text "what am I doing at the table" (Ölmalerei, Basteln, ...), set
+  // by the member when they join a shared table via "Mitmachen" and editable
+  // afterwards. Purely informational for the other participants.
+  activity  String?
 
   bookingId String
   booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)

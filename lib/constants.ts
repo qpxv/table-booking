@@ -85,6 +85,7 @@ export const MESSAGES = {
     MEMBER_ID_REQUIRED: "Mitgliedsnummer ist erforderlich",
     IBAN_INVALID: "Ungültige IBAN.",
     START_BEFORE_END: "Start muss vor dem Ende liegen.",
+    ACTIVITY_TOO_LONG: "Höchstens 80 Zeichen.",
     START_IN_FUTURE: "Der Zeitraum muss in der Zukunft liegen.",
     SYSTEM_REQUIRED: "Bitte ein System angeben.",
     MATCH_TYPE_REQUIRED: "Bitte einen Spieltyp angeben.",
@@ -140,6 +141,8 @@ export const MESSAGES = {
     LEFT: "Du bist abgemeldet.",
     CREATOR_CANNOT_LEAVE: "Der Ersteller kann den Termin nicht verlassen.",
     NO_BOOKING_SELECTED: "Keine Buchung ausgewählt.",
+    ACTIVITY_SAVED: "Tätigkeit gespeichert.",
+    NOT_PARTICIPANT: "Du nimmst an diesem Termin nicht teil.",
   },
   EVENT: {
     CREATED: "Event erstellt.",

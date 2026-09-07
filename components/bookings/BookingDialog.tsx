@@ -130,8 +130,8 @@ export default function BookingDialog({
       userId: creatorUserId,
       userName: creatorName,
       participants: [
-        { userId: creatorUserId, name: creatorName },
-        ...selectedParticipants.map((m) => ({ userId: m.id, name: m.name })),
+        { userId: creatorUserId, name: creatorName, activity: null },
+        ...selectedParticipants.map((m) => ({ userId: m.id, name: m.name, activity: null })),
       ],
       guests: selectedGuests.map((selection) => ({
         guestId: isExistingGuestSelection(selection)

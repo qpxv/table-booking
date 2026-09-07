@@ -17,6 +17,7 @@ import {
 import {
   createBookingSchema,
   updateBookingSchema,
+  participantActivitySchema,
   type CreateBookingInput,
   type UpdateBookingInput,
 } from "@/lib/schemas/booking";
@@ -481,10 +482,23 @@ async function recalculateGuestPricing(
   });
 }
 
-/** Join any active booking as an additional participant. */
-export async function joinBooking(bookingId: string, explicitActor?: Actor): Promise<ServiceResult> {
+/**
+ * Join any active booking as an additional participant. `activity` is the
+ * optional free-text "what am I doing at the table" note shown to the other
+ * participants; empty/whitespace is stored as no activity.
+ */
+export async function joinBooking(
+  bookingId: string,
+  activity?: string,
+  explicitActor?: Actor,
+): Promise<ServiceResult> {
   const actor = await resolveActor(explicitActor);
   if (!actor) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+
+  const parsedActivity = participantActivitySchema.safeParse(activity);
+  if (!parsedActivity.success) {
+    return { success: false, message: MESSAGES.VALIDATION.ACTIVITY_TOO_LONG };
+  }
 
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
@@ -501,7 +515,7 @@ export async function joinBooking(bookingId: string, explicitActor?: Actor): Pro
     });
     if (!existing) {
       await prisma.bookingParticipant.create({
-        data: { bookingId, userId: actor.id },
+        data: { bookingId, userId: actor.id, activity: parsedActivity.data },
       });
 
       if (booking.userId !== actor.id) {
@@ -570,6 +584,50 @@ export async function leaveBooking(bookingId: string, explicitActor?: Actor): Pr
   } catch (err) {
     unstable_rethrow(err);
     console.error("error in leaveBooking", err);
+    return { success: false, message: MESSAGES.COMMON.GENERIC_ERROR };
+  }
+}
+
+/**
+ * Update the current member's "what am I doing at the table" note on a
+ * booking they already participate in. Empty/whitespace clears it.
+ */
+export async function updateParticipantActivity(
+  bookingId: string,
+  activity: string,
+  explicitActor?: Actor,
+): Promise<ServiceResult> {
+  const actor = await resolveActor(explicitActor);
+  if (!actor) return { success: false, message: MESSAGES.COMMON.NOT_AUTHENTICATED };
+
+  const parsedActivity = participantActivitySchema.safeParse(activity);
+  if (!parsedActivity.success) {
+    return { success: false, message: MESSAGES.VALIDATION.ACTIVITY_TOO_LONG };
+  }
+
+  try {
+    const updated = await prisma.bookingParticipant.updateMany({
+      where: { bookingId, userId: actor.id },
+      data: { activity: parsedActivity.data },
+    });
+    if (updated.count === 0) {
+      return { success: false, message: MESSAGES.BOOKING.NOT_PARTICIPANT };
+    }
+
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: { tableId: true },
+    });
+    if (booking) {
+      revalidatePath(`${ROUTES.TISCHE}/${booking.tableId}`);
+      revalidatePath(ROUTES.TISCHE);
+      revalidatePath(ROUTES.DASHBOARD);
+    }
+
+    return { success: true, message: MESSAGES.BOOKING.ACTIVITY_SAVED };
+  } catch (err) {
+    unstable_rethrow(err);
+    console.error("error in updateParticipantActivity", err);
     return { success: false, message: MESSAGES.COMMON.GENERIC_ERROR };
   }
 }

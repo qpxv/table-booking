@@ -1,14 +1,22 @@
 "use client";
 
-import { useTransition, type JSX } from "react";
-import { LogIn, LogOut, Pencil, X } from "lucide-react";
+import { useState, useTransition, type JSX } from "react";
+import { Check, LogIn, LogOut, Pencil, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { formatBerlin } from "@/lib/datetime";
-import { joinBooking, leaveBooking } from "@/service/booking-service/booking";
+import {
+  joinBooking,
+  leaveBooking,
+  updateParticipantActivity,
+} from "@/service/booking-service/booking";
 import { showToast } from "@/lib/toast";
 import type { CalendarBooking } from "@/lib/booking-types";
+
+const ACTIVITY_MAX_LENGTH = 80;
 
 // Shown when clicking any event, on any table, instead of jumping straight
 // to the edit dialog: any member can join/leave here; only the creator or
@@ -31,13 +39,31 @@ export default function BookingJoinDialog({
 }): JSX.Element {
   const [pending, startTransition] = useTransition();
   const isCreator = booking.userId === currentUserId;
-  const isParticipant = booking.participants.some((p) => p.userId === currentUserId);
+  const myParticipant = booking.participants.find((p) => p.userId === currentUserId);
+  const isParticipant = myParticipant !== undefined;
 
-  function handleJoinToggle(): void {
+  const [activity, setActivity] = useState(myParticipant?.activity ?? "");
+  const activityChanged = activity.trim() !== (myParticipant?.activity ?? "");
+
+  function handleJoin(): void {
     startTransition(async () => {
-      const result = isParticipant
-        ? await leaveBooking(booking.id)
-        : await joinBooking(booking.id);
+      const result = await joinBooking(booking.id, activity.trim() || undefined);
+      showToast(result);
+      if (result.success) onClose();
+    });
+  }
+
+  function handleLeave(): void {
+    startTransition(async () => {
+      const result = await leaveBooking(booking.id);
+      showToast(result);
+      if (result.success) onClose();
+    });
+  }
+
+  function handleSaveActivity(): void {
+    startTransition(async () => {
+      const result = await updateParticipantActivity(booking.id, activity.trim());
       showToast(result);
       if (result.success) onClose();
     });
@@ -70,13 +96,18 @@ export default function BookingJoinDialog({
                 ? "1 Mitglied"
                 : `${booking.participants.length} Mitglieder`}
             </p>
-            <ul className="flex flex-wrap gap-1.5">
+            <ul className="flex flex-col gap-1.5">
               {booking.participants.map((participant) => (
                 <li
                   key={participant.userId}
-                  className="rounded-full bg-muted px-2.5 py-0.5 text-sm"
+                  className="rounded-lg bg-muted px-2.5 py-1 text-sm"
                 >
-                  {participant.name}
+                  <span>{participant.name}</span>
+                  {participant.activity && (
+                    <span className="block text-xs text-muted-foreground">
+                      {participant.activity}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
@@ -98,6 +129,19 @@ export default function BookingJoinDialog({
               </ul>
             </div>
           )}
+          {!isCreator && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="participant-activity">Was machst du am Tisch?</Label>
+              <Input
+                id="participant-activity"
+                value={activity}
+                maxLength={ACTIVITY_MAX_LENGTH}
+                placeholder="z.B. Ölmalerei, Basteln"
+                onChange={(event) => setActivity(event.target.value)}
+                disabled={pending}
+              />
+            </div>
+          )}
         </div>
         <DialogFooter className="sm:justify-between">
           <div>
@@ -113,15 +157,31 @@ export default function BookingJoinDialog({
               <X />
               Schließen
             </Button>
-            {!isCreator && (
-              <Button
-                type="button"
-                variant={isParticipant ? "destructive" : "default"}
-                onClick={handleJoinToggle}
-                disabled={pending}
-              >
-                {pending ? <Spinner /> : isParticipant ? <LogOut /> : <LogIn />}
-                {isParticipant ? "Verlassen" : "Mitmachen"}
+            {!isCreator && isParticipant && (
+              <>
+                <Button
+                  type="button"
+                  onClick={handleSaveActivity}
+                  disabled={pending || !activityChanged}
+                >
+                  {pending ? <Spinner /> : <Check />}
+                  Speichern
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleLeave}
+                  disabled={pending}
+                >
+                  <LogOut />
+                  Verlassen
+                </Button>
+              </>
+            )}
+            {!isCreator && !isParticipant && (
+              <Button type="button" onClick={handleJoin} disabled={pending}>
+                {pending ? <Spinner /> : <LogIn />}
+                Mitmachen
               </Button>
             )}
           </div>

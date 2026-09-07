@@ -66,3 +66,12 @@ export const updateBookingSchema = z
   });
 
 export type UpdateBookingInput = z.input<typeof updateBookingSchema>;
+
+// "Was machst du am Tisch?" free text a member attaches when joining a shared
+// table via Mitmachen. Empty/whitespace normalises to null (no activity set).
+export const participantActivitySchema = z
+  .string()
+  .trim()
+  .max(80, { message: MESSAGES.VALIDATION.ACTIVITY_TOO_LONG })
+  .optional()
+  .transform((value) => (value && value.length > 0 ? value : null));

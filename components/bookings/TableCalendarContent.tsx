@@ -63,7 +63,11 @@ export default async function TableCalendarContent({
             name: g.guest.name,
             price: Number(g.price),
           })),
-          participants: b.participants.map((p) => ({ userId: p.userId, name: p.user.name })),
+          participants: b.participants.map((p) => ({
+            userId: p.userId,
+            name: p.user.name,
+            activity: p.activity,
+          })),
         }))}
         knownGuests={knownGuests}
         knownGames={knownGames}
