@@ -1,11 +1,13 @@
 import { Suspense, type JSX } from "react";
 import DashboardBookings from "@/components/bookings/DashboardBookings";
 import DashboardBookingsSkeleton from "@/components/bookings/DashboardBookingsSkeleton";
+import DashboardTodayAttendance from "@/components/attendance/DashboardTodayAttendance";
 import DashboardEvents from "@/components/events/DashboardEvents";
 import DashboardEventsSkeleton from "@/components/events/DashboardEventsSkeleton";
 import DashboardPlayerSearchNegotiations from "@/components/player-search/DashboardPlayerSearchNegotiations";
 import DashboardStalePlayerSearches from "@/components/player-search/DashboardStalePlayerSearches";
 import EnableNotificationsNudge from "@/components/notifications/EnableNotificationsNudge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function DashboardPage(): JSX.Element {
   return (
@@ -19,7 +21,12 @@ export default function DashboardPage(): JSX.Element {
       </Suspense>
 
       <section className="flex flex-col gap-4">
-        <h1 className="text-xl font-semibold tracking-tight">Anstehende Reservierungen</h1>
+        <div className="flex items-center justify-between gap-4">
+          <h1 className="text-xl font-semibold tracking-tight">Anstehende Reservierungen</h1>
+          <Suspense fallback={<Skeleton className="size-8 shrink-0 rounded-md" />}>
+            <DashboardTodayAttendance />
+          </Suspense>
+        </div>
         <Suspense fallback={<DashboardBookingsSkeleton />}>
           <DashboardBookings />
         </Suspense>

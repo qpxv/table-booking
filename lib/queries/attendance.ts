@@ -1,6 +1,7 @@
 import "server-only";
 import { unstable_rethrow } from "next/navigation";
 import { getSession } from "@/lib/session";
+import { prisma } from "@/lib/prisma";
 import { MESSAGES } from "@/lib/constants";
 import {
   attendanceDayToDate,
@@ -54,6 +55,48 @@ export async function listAttendanceDays(): Promise<{
       success: false,
       days: [],
       currentUserId: "",
+      message: MESSAGES.COMMON.GENERIC_ERROR,
+    };
+  }
+}
+
+export interface TodayAttendee {
+  id: string;
+  name: string;
+}
+
+/**
+ * The members marked present today (Berlin), merging explicit Attendance rows
+ * with members who own or joined a booking today. Powers the attendance
+ * popover next to "Anstehende Reservierungen" on the dashboard.
+ */
+export async function listTodayAttendees(): Promise<{
+  success: boolean;
+  attendees: TodayAttendee[];
+  message?: string;
+}> {
+  try {
+    const today = getTodayBerlinRange().start;
+    const byDay = await buildAttendanceByDay(today);
+    const userIds = byDay.get(berlinDayString(today));
+
+    if (!userIds || userIds.size === 0) {
+      return { success: true, attendees: [] };
+    }
+
+    const attendees = await prisma.user.findMany({
+      where: { id: { in: [...userIds] } },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    });
+
+    return { success: true, attendees };
+  } catch (err) {
+    unstable_rethrow(err);
+    console.error("error in listTodayAttendees", err);
+    return {
+      success: false,
+      attendees: [],
       message: MESSAGES.COMMON.GENERIC_ERROR,
     };
   }
