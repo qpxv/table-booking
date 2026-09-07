@@ -146,6 +146,7 @@ export async function createBooking(
         formatEventDateRange(data.start, data.end),
         table.allowMultipleBookings ? null : data.game || null,
       ),
+      "booking",
     );
 
     // A new booking can consume the last auto-bookable table for an open
@@ -435,6 +436,7 @@ export async function cancelBooking(id: string, explicitActor?: Actor): Promise<
         booking.table.name,
         formatEventDateRange(booking.start, booking.end),
       ),
+      "booking",
     );
 
     // Cancelling frees the table for its window: an open Spielersuche that

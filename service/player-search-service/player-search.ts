@@ -70,6 +70,7 @@ export async function createPlayerSearch(
         matchType,
         start && end ? formatEventDateRange(start, end) : "flexibel",
       ),
+      "playerSearch",
     );
 
     revalidatePath(ROUTES.SPIELERSUCHE);
@@ -428,6 +429,7 @@ export async function acceptPlayerSearchInterest(
         search.system,
         dateLabel,
       ),
+      "playerSearch",
     );
 
     // The auto-booking just consumed a table: other open Spielersuchen

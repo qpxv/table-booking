@@ -60,6 +60,7 @@ export async function createEvent(values: EventInput, explicitActor?: Actor): Pr
         formatEventDateRange(created.start, created.end),
         created.location,
       ),
+      "event",
     );
     revalidateEvents();
     return { success: true, message: MESSAGES.EVENT.CREATED };
@@ -158,6 +159,7 @@ export async function deleteEvent(id: string, explicitActor?: Actor): Promise<Se
         event.title,
         formatEventDateRange(event.start, event.end),
       ),
+      "event",
     );
     revalidateEvents();
     return { success: true, message: MESSAGES.EVENT.DELETED };

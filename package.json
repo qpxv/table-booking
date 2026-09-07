@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "changelog": "node scripts/changelog.mjs",
+    "changelog:post": "tsx scripts/post-changelog.ts",
     "discord:register": "tsx scripts/register-discord-commands.ts"
   },
   "dependencies": {
